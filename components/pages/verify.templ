@@ -1,16 +1,9 @@
 package pages
 
 import (
-	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/web/templates"
-	"github.com/arko-chat/arko/web/templates/ui"
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/models"
 )
-
-templ VerifyPage(user models.User) {
-	@templates.Layout("Arko | Verify Device") {
-		@VerifyPageContent(user)
-	}
-}
 
 templ VerifyPageContent(user models.User) {
 	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">

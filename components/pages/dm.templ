@@ -7,12 +7,6 @@ import (
 	"github.com/arko-chat/arko/models"
 )
 
-templ DMPage(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
-	@templates.Layout("Arko | " + friend.Name) {
-		@DMPageContent(user, spaces, friendsList, friend, messages, roomID)
-	}
-}
-
 templ DMPageContent(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
 	<main class="flex w-full h-screen overflow-hidden">
 		@sidebar.SpaceList(spaces)

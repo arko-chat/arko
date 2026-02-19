@@ -1,15 +1,6 @@
 package pages
 
-import (
-	"github.com/arko-chat/arko/web/templates"
-	"github.com/arko-chat/arko/web/templates/ui"
-)
-
-templ LoginPage() {
-	@templates.Layout("Arko | Login") {
-		@LoginPageContent()
-	}
-}
+import "github.com/arko-chat/arko/components/ui"
 
 templ LoginPageContent() {
 	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">

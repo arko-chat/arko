@@ -1,17 +1,10 @@
 package pages
 
 import (
-	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/web/templates"
-	"github.com/arko-chat/arko/web/templates/features/friends"
-	"github.com/arko-chat/arko/web/templates/sidebar"
+	"github.com/arko-chat/arko/components/features/friends"
+	"github.com/arko-chat/arko/components/sidebar"
+	"github.com/arko-chat/arko/models"
 )
-
-templ FriendsPage(user models.User, spaces []models.Space, viewData []models.User) {
-	@templates.Layout("Arko | Friends") {
-		@FriendsPageContent(user, spaces, viewData)
-	}
-}
 
 templ FriendsPageContent(user models.User, spaces []models.Space, viewData []models.User) {
 	<main class="flex w-full h-screen overflow-hidden">
