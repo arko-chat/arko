@@ -1,0 +1,14 @@
+package spaces
+
+import "github.com/arko-chat/arko/components/ui"
+
+templ CreateCategory() {
+	<div class="p-4 space-y-4">
+		@ui.InputGroup("Category Name", false, "", ui.TextInput("New Category", templ.Attributes{}))
+		@ui.Checkbox("Private Category", "Only selected members and roles will be able to view this category", templ.Attributes{})
+	</div>
+	@ui.ModalFooter(
+		ui.Button("Cancel", "ghost", templ.Attributes{"@click": "open = false"}),
+		ui.Button("Create", "primary", templ.Attributes{}),
+	)
+}

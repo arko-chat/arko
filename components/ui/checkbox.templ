@@ -1,0 +1,33 @@
+package ui
+
+templ Checkbox(label string, description string, attributes templ.Attributes) {
+	<label class="flex items-center gap-2.5 cursor-pointer group/check">
+		<input
+			type="checkbox"
+			{ attributes... }
+			class="accent-brand"
+		/>
+		<div>
+			<span class="text-sm text-content-secondary group-hover/check:text-content-primary transition-colors duration-150">{ label }</span>
+			if description != "" {
+				<p class="text-[11px] text-content-muted mt-0.5">{ description }</p>
+			}
+		</div>
+	</label>
+}
+
+templ CheckboxWithDescription(label string, description string, attributes templ.Attributes) {
+	<label class="flex items-center justify-between cursor-pointer group/check px-2 py-2 -mx-2 rounded-md transition-colors duration-150 hover:bg-hover-primary">
+		<div>
+			<div class="text-sm font-medium text-content-secondary group-hover/check:text-content-primary transition-colors duration-150">{ label }</div>
+			if description != "" {
+				<div class="text-[11px] text-content-muted mt-0.5 transition-colors duration-150">{ description }</div>
+			}
+		</div>
+		<input
+			type="checkbox"
+			{ attributes... }
+			class="accent-brand ml-4 shrink-0"
+		/>
+	</label>
+}

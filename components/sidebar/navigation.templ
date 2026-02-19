@@ -1,0 +1,118 @@
+package sidebar
+
+import (
+	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/web/templates/modals/spaces"
+	"github.com/arko-chat/arko/web/templates/ui"
+)
+
+templ NavigationSidebar(viewType string, user models.User, data interface{}) {
+	@ui.ResizablePanel(
+		"navigation-sidebar",
+		"nav-sidebar-width",
+		"17%",
+		"min-w-[240px] h-screen bg-surface-alt relative flex flex-col shrink-0 max-[750px]:flex-1 max-[750px]:min-w-0 transition-colors",
+	) {
+		@sidebarHeader(viewType, data)
+		<div class="flex-1 overflow-y-auto py-2">
+			@sidebarContent(viewType, data)
+		</div>
+		@ProfileBar(user)
+		if viewType == "space" {
+			if spaceDetail, ok := data.(models.SpaceDetail); ok {
+				@spaceModals(spaceDetail)
+			}
+		}
+	}
+	@ui.ResizableHandle("#navigation-sidebar", "nav-sidebar-width", 180, 400, true)
+}
+
+templ spaceModals(spaceDetail models.SpaceDetail) {
+	@ui.Modal("invite-modal", "Invite People", ui.ModalSizeMedium, spaces.InvitePeople())
+	@ui.ModalWithTabs(
+		"space-settings-modal",
+		"Space Settings",
+		[]ui.TabItem{
+			{
+				Label:   "Overview",
+				Value:   "overview",
+				Active:  true,
+				Content: spaces.SpaceSettingsOverview(),
+			},
+			{
+				Label:   "Roles",
+				Value:   "roles",
+				Content: spaces.SpaceSettingsRoles(),
+			},
+			{Separator: true},
+			{
+				Label:   "Members",
+				Value:   "members",
+				Content: spaces.SpaceSettingsMembers(),
+			},
+		},
+		ui.ModalFooter(
+			ui.Button("Cancel", "ghost", templ.Attributes{
+				"@click": "open = false",
+			}),
+			ui.Button("Save Changes", "primary", templ.Attributes{}),
+		),
+	)
+	@ui.Modal("create-channel-modal", "Create Channel", ui.ModalSizeSmall, spaces.CreateChannel())
+	@ui.Modal("create-category-modal", "Create Category", ui.ModalSizeSmall, spaces.CreateCategory())
+	@ui.Modal("notification-settings-modal", "Notification Settings", ui.ModalSizeMedium, spaces.NotificationSettings())
+	@ui.Modal("privacy-settings-modal", "Privacy Settings", ui.ModalSizeMedium, spaces.PrivacySettings())
+	@ui.Modal("leave-space-modal", "Leave '"+spaceDetail.Name+"'", ui.ModalSizeSmall, spaces.LeaveSpace(spaceDetail.Name))
+}
+
+templ sidebarHeader(viewType string, data interface{}) {
+	if viewType == "friends" {
+		<div class="w-full h-13 flex items-center px-3 border-b border-border-divider shrink-0 transition-colors">
+			@ui.SearchInput("Find or start a conversation", "search", templ.Attributes{
+				"hx-post":    "/friends/search",
+				"hx-trigger": "keyup changed delay:300ms",
+				"hx-target":  "#friends-list",
+			})
+		</div>
+	} else if viewType == "space" {
+		if spaceDetail, ok := data.(models.SpaceDetail); ok {
+			@spaceHeaderWithDropdown(spaceDetail)
+		}
+	}
+}
+
+templ spaceHeaderWithDropdown(spaceDetail models.SpaceDetail) {
+	<div class="w-full h-13 border-b border-border-divider shrink-0 transition-colors">
+		@ui.Dropdown(
+			"space-menu",
+			spaceHeaderTrigger(spaceDetail.Name),
+			[]ui.DropdownItem{
+				{Label: "Invite People", Icon: "fa-solid fa-user-plus", Color: "primary", Action: "invite-modal"},
+				{Label: "Space Settings", Icon: "fa-solid fa-gear", Action: "space-settings-modal"},
+				{Separator: true},
+				{Label: "Leave Space", Icon: "fa-solid fa-arrow-right-from-bracket", Color: "danger", Action: "leave-space-modal"},
+			},
+		)
+	</div>
+}
+
+templ spaceHeaderTrigger(spaceName string) {
+	<div class="w-full h-13 flex items-center justify-between px-4 cursor-pointer hover:bg-hover-secondary transition-colors">
+		<h1 class="text-content-primary font-semibold text-sm truncate flex-1 pointer-events-none">
+			{ spaceName }
+		</h1>
+		<i class="fa-solid fa-chevron-down text-content-muted text-xs transition-transform pointer-events-none"></i>
+	</div>
+}
+
+templ sidebarContent(viewType string, data interface{}) {
+	if viewType == "friends" {
+		if friends, ok := data.([]models.User); ok {
+			@FriendsSection(friends)
+		}
+	} else if viewType == "space" {
+		if spaceDetail, ok := data.(models.SpaceDetail); ok {
+			@ChannelsSection(spaceDetail.Channels)
+		}
+	}
+}

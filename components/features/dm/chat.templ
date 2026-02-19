@@ -1,0 +1,20 @@
+package dm
+
+import (
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/models"
+)
+
+templ Header(friend models.User) {
+	<div class="w-full px-4 py-3 border-b border-border-divider flex items-center gap-3 shrink-0 transition-colors">
+		@ui.Avatar(friend.Avatar, "sm", friend.Status == "Online", true)
+		<div class="flex flex-col">
+			<h2 class="text-sm font-semibold text-content-primary transition-colors">{ friend.Name }</h2>
+			if friend.Status == "Online" {
+				<span class="text-[11px] text-content-muted transition-colors">Online</span>
+			} else {
+				<span class="text-[11px] text-content-muted transition-colors">Offline</span>
+			}
+		</div>
+	</div>
+}

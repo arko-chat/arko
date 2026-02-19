@@ -1,0 +1,42 @@
+package ui
+
+type RadioOptionOpts struct {
+	Value       string
+	Label       string
+	Description string
+	Icon        string
+	Checked     bool
+}
+
+templ RadioGroup(name string, options []RadioOptionOpts) {
+	<div class="space-y-2">
+		for _, option := range options {
+			@radioOption(name, option)
+		}
+	</div>
+}
+
+templ radioOption(name string, option RadioOptionOpts) {
+	<label class="flex items-center gap-3 p-3 bg-surface-alt rounded-lg cursor-pointer transition-colors duration-150 hover:bg-hover-primary border border-transparent hover:border-hover-secondary group/radio">
+		<input
+			type="radio"
+			name={ name }
+			value={ option.Value }
+			if option.Checked {
+				checked
+			}
+			class="accent-brand"
+		/>
+		<div class="flex items-center gap-3 flex-1">
+			if option.Icon != "" {
+				<i class={ option.Icon, "text-content-icon transition-colors duration-150 group-hover/radio:text-content-primary" }></i>
+			}
+			<div>
+				<div class="text-sm font-medium text-content-primary">{ option.Label }</div>
+				if option.Description != "" {
+					<div class="text-xs text-content-secondary transition-colors duration-150 group-hover/radio:text-content-icon">{ option.Description }</div>
+				}
+			</div>
+		</div>
+	</label>
+}

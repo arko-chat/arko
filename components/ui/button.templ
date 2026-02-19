@@ -1,0 +1,99 @@
+package ui
+
+templ Button(label string, variant string, attributes templ.Attributes) {
+	<button { attributes... } class={ buttonClass(variant) }>
+		{ label }
+	</button>
+}
+
+templ IconButton(icon string, variant string, attributes templ.Attributes) {
+	<button { attributes... } class={ iconButtonClass(variant) }>
+		<i class={ icon }></i>
+	</button>
+}
+
+templ IconGroup(icons []templ.Component, bordered bool, hideOnMobile bool) {
+	<div
+		class={
+			"flex items-center gap-1.5",
+			templ.KV("border-l border-border-divider pl-3 transition-colors", bordered),
+			templ.KV("max-[1050px]:hidden", hideOnMobile),
+		}
+	>
+		for _, icon := range icons {
+			@icon
+		}
+	</div>
+}
+
+templ NavIcon(iconClass string, bordered bool) {
+	<i
+		class={
+			"text-[13px] text-content-muted transition-colors duration-150 hover:text-content-primary cursor-pointer",
+			iconClass,
+			templ.KV("border-r border-border-divider pr-3", bordered),
+		}
+	></i>
+}
+
+type NavButtonOpts struct {
+	Label        string
+	HxGet        string
+	HxTarget     string
+	HxIndicator  string
+	Active       bool
+	Variant      string
+	HideOnMobile bool
+}
+
+templ NavButton(opts NavButtonOpts) {
+	<button
+		class={
+			"cursor-pointer px-3 py-1 text-sm font-medium rounded-md transition-all duration-150 relative active:scale-[0.97]",
+			templ.KV("bg-hover-active text-content-primary", opts.Active),
+			templ.KV("text-content-muted hover:bg-hover-primary hover:text-content-primary", !opts.Active && opts.Variant != "success"),
+			templ.KV("bg-success text-white hover:bg-success-hover", opts.Variant == "success"),
+			templ.KV("max-[850px]:hidden", opts.HideOnMobile),
+		}
+		if opts.HxGet != "" {
+			hx-get={ opts.HxGet }
+		}
+		if opts.HxTarget != "" {
+			hx-target={ opts.HxTarget }
+		}
+		if opts.HxIndicator != "" {
+			hx-indicator={ opts.HxIndicator }
+		}
+	>
+		<span class="htmx-indicator absolute inset-0 flex items-center justify-center">
+			<i class="fa-solid fa-spinner spinner text-xs"></i>
+		</span>
+		<span class="[.htmx-request_&]:invisible">
+			{ opts.Label }
+		</span>
+	</button>
+}
+
+func buttonClass(variant string) string {
+	base := "outline-none border-none rounded-md px-3 py-1.5 text-sm cursor-pointer transition-all duration-150 active:scale-[0.97]"
+	switch variant {
+	case "primary":
+		return base + " font-semibold bg-brand text-white hover:bg-brand-hover"
+	case "success":
+		return base + " font-semibold bg-success text-white hover:bg-success-hover"
+	case "ghost":
+		return base + " font-medium bg-transparent text-content-secondary hover:bg-hover-primary hover:text-content-primary"
+	default:
+		return base + " font-medium bg-hover-primary text-content-secondary hover:bg-hover-secondary hover:text-content-primary"
+	}
+}
+
+func iconButtonClass(variant string) string {
+	base := "cursor-pointer transition-colors duration-150 active:scale-95 p-1 rounded"
+	switch variant {
+	case "danger":
+		return base + " text-content-muted hover:text-danger"
+	default:
+		return base + " text-content-muted hover:text-content-primary"
+	}
+}

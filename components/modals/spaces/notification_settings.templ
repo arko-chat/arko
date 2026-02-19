@@ -1,0 +1,27 @@
+package spaces
+
+import "github.com/arko-chat/arko/components/ui"
+
+templ NotificationSettings() {
+	<div class="p-4 space-y-6">
+		<div>
+			@ui.SectionHeader("Message Notifications")
+			@ui.RadioGroup("notifications", []ui.RadioOptionOpts{
+				{Value: "all", Label: "All Messages", Description: "Get notified for every message", Checked: true},
+				{Value: "mentions", Label: "Only @mentions", Description: "Only get notified when someone mentions you"},
+				{Value: "none", Label: "Nothing", Description: "Don't notify me for anything"},
+			})
+		</div>
+		@ui.Divider()
+		<div>
+			@ui.SectionHeader("Other Settings")
+			<div class="space-y-3">
+				@ui.CheckboxWithDescription("Suppress @everyone and @here", "Don't notify me when @everyone or @here is used", templ.Attributes{})
+				@ui.CheckboxWithDescription("Mobile Push Notifications", "Receive push notifications on your mobile device", templ.Attributes{"checked": true})
+			</div>
+		</div>
+	</div>
+	@ui.ModalFooter(
+		ui.Button("Done", "primary", templ.Attributes{"@click": "open = false"}),
+	)
+}

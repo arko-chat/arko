@@ -1,0 +1,19 @@
+package friends
+
+import (
+	"github.com/arko-chat/arko/components/features/dm"
+	"github.com/arko-chat/arko/components/layout"
+	"github.com/arko-chat/arko/models"
+)
+
+templ View(currentFilter string) {
+	<div id="content-area" class="w-full flex-1 flex flex-col max-[750px]:hidden">
+		@layout.Navbar("friends", "Friends", "friends", currentFilter)
+		<div class="flex-1 flex overflow-hidden bg-surface-base transition-colors">
+			<div id="main-content" class="bg-surface-base h-full flex-1 flex items-center justify-center flex-col gap-12 max-[1050px]:w-full transition-colors">
+				@dm.Empty()
+			</div>
+			@ActivitySidebar([]models.User{})
+		</div>
+	</div>
+}

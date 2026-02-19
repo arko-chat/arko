@@ -1,0 +1,53 @@
+package sidebar
+
+import (
+	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/web/templates/ui"
+)
+
+templ FriendsSection(friends []models.User) {
+	<div class="w-full mt-1">
+		<div class="flex items-center justify-between pl-4 pr-3 py-1.5 group/header cursor-pointer">
+			<span class="text-[11px] font-semibold text-content-muted tracking-wide group-hover/header:text-content-secondary transition-colors">
+				Direct Messages
+			</span>
+			<i class="fa fa-plus text-[11px] text-content-muted opacity-0 group-hover/header:opacity-100 hover:text-content-primary transition-all cursor-pointer"></i>
+		</div>
+		<div id="friends-list" class="mt-0.5 flex flex-col">
+			@FriendsList(friends)
+		</div>
+	</div>
+}
+
+templ FriendsList(friends []models.User) {
+	for _, friend := range friends {
+		<div
+			class="flex items-center gap-3 pl-4 pr-3 py-[5px] mx-2 rounded-md hover:bg-hover-primary cursor-pointer transition-colors relative group"
+			hx-get={ templ.SafeURL("/dm/" + friend.ID) }
+			hx-target="body"
+			hx-swap="innerHTML"
+			hx-push-url="true"
+			hx-indicator="closest div"
+		>
+			@ui.Avatar(friend.Avatar, "sm", friend.Status == "Online", true)
+			<div class="flex-1 min-w-0">
+				<p class="text-sm font-medium text-content-secondary group-hover:text-content-primary truncate transition-colors">{ friend.Name }</p>
+				<p class="text-[11px] text-content-faint truncate transition-colors">{ friend.Status }</p>
+			</div>
+			<i class="fa-solid fa-spinner spinner text-brand htmx-indicator text-xs shrink-0"></i>
+		</div>
+	}
+}
+
+templ FriendItem(friend models.User) {
+	<div
+		class="flex items-center gap-3 pl-4 pr-3 py-[5px] mx-2 cursor-pointer rounded-md hover:bg-hover-primary group transition-colors relative"
+		hx-get={ templ.SafeURL("/dm/" + friend.ID) }
+		hx-target="#main-content"
+		hx-swap="innerHTML"
+	>
+		@ui.Avatar(friend.Avatar, "sm", friend.Status == "Online", true)
+		<p class="text-sm font-medium text-content-secondary group-hover:text-content-primary transition-colors flex-1 truncate">{ friend.Name }</p>
+		<i class="fa fa-xmark text-[11px] text-content-muted opacity-0 group-hover:opacity-100 transition-opacity shrink-0"></i>
+	</div>
+}

@@ -1,0 +1,16 @@
+package spaces
+
+import "github.com/arko-chat/arko/components/ui"
+
+templ LeaveSpace(spaceName string) {
+	<div class="p-4 space-y-4">
+		<p class="text-content-primary">
+			Are you sure you want to leave <strong class="font-bold text-white">{ spaceName }</strong>?
+			You won't be able to rejoin this space unless you are re-invited.
+		</p>
+	</div>
+	@ui.ModalFooter(
+		ui.Button("Cancel", "ghost", templ.Attributes{"@click": "open = false"}),
+		ui.Button("Leave Space", "danger", templ.Attributes{}),
+	)
+}

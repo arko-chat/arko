@@ -1,0 +1,75 @@
+package ui
+
+templ Label(text string, required bool) {
+	<label class="block text-[11px] font-semibold text-content-muted uppercase mb-1.5 tracking-wide">
+		{ text }
+		if required {
+			<span class="text-danger ml-0.5">*</span>
+		}
+	</label>
+}
+
+templ HelpText(text string, attributes templ.Attributes) {
+	<p { attributes... } class="text-[11px] text-content-muted mt-1.5">{ text }</p>
+}
+
+templ InputGroup(label string, required bool, helpText string, input templ.Component) {
+	<div>
+		@Label(label, required)
+		@input
+		if helpText != "" {
+			@HelpText(helpText, templ.Attributes{})
+		}
+	</div>
+}
+
+templ TextInput(placeholder string, attributes templ.Attributes) {
+	<input
+		type="text"
+		placeholder={ placeholder }
+		{ attributes... }
+		class="w-full px-3 py-2 bg-surface-sunken text-sm text-content-primary rounded-md border border-border-subtle outline-none placeholder-content-placeholder transition-all duration-150 focus:border-brand focus:ring-1 focus:ring-brand/20"
+	/>
+}
+
+templ TextInputWithIcon(placeholder string, icon string, iconPosition string, attributes templ.Attributes) {
+	<div class="relative group/input">
+		if iconPosition == "left" {
+			<span class="absolute left-3 top-1/2 -translate-y-1/2 text-content-muted text-[13px] transition-colors duration-150 group-focus-within/input:text-brand">{ icon }</span>
+			<input
+				type="text"
+				placeholder={ placeholder }
+				{ attributes... }
+				class="w-full pl-8 pr-3 py-2 bg-surface-sunken text-sm text-content-primary rounded-md border border-border-subtle outline-none placeholder-content-placeholder transition-all duration-150 focus:border-brand focus:ring-1 focus:ring-brand/20"
+			/>
+		} else {
+			<input
+				type="text"
+				placeholder={ placeholder }
+				{ attributes... }
+				class="w-full px-3 pr-8 py-2 bg-surface-sunken text-sm text-content-primary rounded-md border border-border-subtle outline-none placeholder-content-placeholder transition-all duration-150 focus:border-brand focus:ring-1 focus:ring-brand/20"
+			/>
+			<span class="absolute right-3 top-1/2 -translate-y-1/2 text-content-muted text-[13px] transition-colors duration-150 group-focus-within/input:text-brand">{ icon }</span>
+		}
+	</div>
+}
+
+templ Textarea(placeholder string, rows int, attributes templ.Attributes) {
+	<textarea
+		rows={ templ.JSONString(rows) }
+		placeholder={ placeholder }
+		{ attributes... }
+		class="w-full px-3 py-2 bg-surface-sunken text-sm text-content-primary rounded-md border border-border-subtle outline-none resize-none placeholder-content-placeholder transition-all duration-150 focus:border-brand focus:ring-1 focus:ring-brand/20"
+	></textarea>
+}
+
+templ MessageTextarea(placeholder string, extraClass string, attributes templ.Attributes) {
+	<textarea
+		rows="1"
+		placeholder={ placeholder }
+		{ attributes... }
+		class={ "w-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed max-h-48 block " + extraClass }
+		x-data
+		x-on:input="$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'"
+	></textarea>
+}

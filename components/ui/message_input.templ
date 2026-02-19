@@ -1,0 +1,91 @@
+package ui
+
+import "fmt"
+
+templ MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) {
+	<div class="px-4 pb-4 pt-2 shrink-0">
+		<form { htmxAttrs... } class="w-full">
+			<div
+				id="message-input-body"
+				class="rounded-lg border border-border-divider bg-surface-input transition-colors focus-within:border-brand/40 focus-within:ring-1 focus-within:ring-brand/20 flex flex-col overflow-hidden"
+				style={ fmt.Sprintf("height: var(--message-input-height, %s)", "120px") }
+				x-data={ fmt.Sprintf(`{
+					init() {
+						const saved = localStorage.getItem('%s');
+						if (saved) {
+							this.$el.style.height = saved + 'px';
+							document.documentElement.style.setProperty('--%s', saved + 'px');
+						}
+					}
+				}`, "message-input-height", "message-input-height") }
+				x-init="init()"
+			>
+				<div
+					class="h-1 cursor-row-resize shrink-0 hover:bg-brand/40 transition-colors duration-150 relative"
+					x-data="{ dragging: false, startY: 0, startHeight: 0 }"
+					x-init={ fmt.Sprintf(`
+						window.addEventListener('mousemove', (e) => {
+							if (!dragging) return;
+							const target = document.querySelector('#message-input-body');
+							if (!target) return;
+							const diff = startY - e.clientY;
+							const newHeight = Math.max(%d, Math.min(%d, startHeight + diff));
+							target.style.height = newHeight + 'px';
+							localStorage.setItem('%s', newHeight);
+							document.documentElement.style.setProperty('--%s', newHeight + 'px');
+						});
+						window.addEventListener('mouseup', () => {
+							if (dragging) {
+								dragging = false;
+								document.body.style.cursor = '';
+								document.body.style.userSelect = '';
+							}
+						});
+					`, 80, 480, "message-input-height", "message-input-height") }
+					@mousedown={ fmt.Sprintf(`
+						dragging = true;
+						startY = $event.clientY;
+						const target = document.querySelector('#message-input-body');
+						startHeight = target ? target.offsetHeight : 0;
+						document.body.style.cursor = 'row-resize';
+						document.body.style.userSelect = 'none';
+					`) }
+				>
+					<div class="absolute inset-x-0 -top-1 -bottom-1"></div>
+				</div>
+				<div class="flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0">
+					@IconButton("fa-solid fa-bold", "default", templ.Attributes{"type": "button", "title": "Bold"})
+					@IconButton("fa-solid fa-italic", "default", templ.Attributes{"type": "button", "title": "Italic"})
+					@IconButton("fa-solid fa-strikethrough", "default", templ.Attributes{"type": "button", "title": "Strikethrough"})
+					<div class="w-px h-3.5 bg-border-divider mx-1"></div>
+					@IconButton("fa-solid fa-link", "default", templ.Attributes{"type": "button", "title": "Link"})
+					@IconButton("fa-solid fa-list-ul", "default", templ.Attributes{"type": "button", "title": "Bullet list"})
+					@IconButton("fa-solid fa-list-ol", "default", templ.Attributes{"type": "button", "title": "Numbered list"})
+					<div class="w-px h-3.5 bg-border-divider mx-1"></div>
+					@IconButton("fa-solid fa-code", "default", templ.Attributes{"type": "button", "title": "Inline code"})
+					@IconButton("fa-solid fa-terminal", "default", templ.Attributes{"type": "button", "title": "Code block"})
+					@IconButton("fa-solid fa-quote-right", "default", templ.Attributes{"type": "button", "title": "Blockquote"})
+					<div class="flex-1"></div>
+					@IconButton("fa-solid fa-plus", "default", templ.Attributes{"type": "button", "title": "Attach file"})
+					@IconButton("fa-solid fa-face-smile", "default", templ.Attributes{"type": "button", "title": "Emoji"})
+					@IconButton("fa-solid fa-at", "default", templ.Attributes{"type": "button", "title": "Mention"})
+				</div>
+				@MessageTextarea(placeholder, "flex-1 max-h-none", templ.Attributes{
+					"name":         name,
+					"autocomplete": "off",
+					"required":     true,
+					"onKeyDown":    "if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').requestSubmit()}",
+				})
+			</div>
+			<div class="flex items-center justify-between mt-1.5 px-0.5">
+				<span class="text-[10px] text-content-faint">
+					<kbd class="font-mono">Enter</kbd> to send · <kbd class="font-mono">Shift+Enter</kbd> { "for" } new line
+				</span>
+				@IconButton("fa-solid fa-paper-plane", "default", templ.Attributes{
+					"type":  "submit",
+					"class": "w-8 h-8 rounded bg-brand text-white hover:bg-brand-hover transition-colors",
+				})
+			</div>
+		</form>
+	</div>
+}

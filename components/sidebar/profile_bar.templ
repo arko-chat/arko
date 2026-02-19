@@ -1,0 +1,23 @@
+package sidebar
+
+import (
+	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/web/templates/ui"
+)
+
+templ ProfileBar(user models.User) {
+	<div class="bg-surface-profile flex items-center justify-between px-3 py-2 w-full shrink-0 border-t border-border-divider transition-colors">
+		<div class="flex items-center gap-2.5 min-w-0">
+			@ui.Avatar(user.Avatar, "sm", true, true)
+			<div class="flex flex-col leading-[1.3] min-w-0">
+				<p class="text-sm font-semibold text-content-primary truncate">{ user.Name }</p>
+				<span class="text-[11px] text-content-muted truncate">{ user.Status }</span>
+			</div>
+		</div>
+		<div class="flex items-center gap-1 text-content-icon shrink-0 ml-2">
+			@ui.IconButton("fa-solid fa-microphone mic-btn text-[13px]", "danger", templ.Attributes{})
+			@ui.IconButton("fa-solid fa-headphones head-btn text-[13px]", "danger", templ.Attributes{})
+			<i class="fa-solid fa-gear text-[13px] cursor-pointer text-content-icon hover:text-content-primary transition-all duration-500 hover:rotate-180 ml-0.5"></i>
+		</div>
+	</div>
+}

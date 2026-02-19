@@ -1,0 +1,38 @@
+package friends
+
+import (
+	"github.com/arko-chat/arko/components/features/dm"
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/models"
+)
+
+templ Content(filter string) {
+	<div id="friends-nav-buttons" class="px-5 flex items-center justify-start gap-4 max-[850px]:px-2" hx-swap-oob="true">
+		@ui.NavButton(ui.NavButtonOpts{Label: "Online", HxGet: "/friends?filter=online", HxTarget: "#main-content", Active: filter == "online" || filter == ""})
+		@ui.NavButton(ui.NavButtonOpts{Label: "All", HxGet: "/friends?filter=all", HxTarget: "#main-content", HideOnMobile: true, Active: filter == "all"})
+		@ui.NavButton(ui.NavButtonOpts{Label: "Pending", HxGet: "/friends?filter=pending", HxTarget: "#main-content", HideOnMobile: true, Active: filter == "pending"})
+		@ui.NavButton(ui.NavButtonOpts{Label: "Blocked", HxGet: "/friends?filter=blocked", HxTarget: "#main-content", HideOnMobile: true, Active: filter == "blocked"})
+		@ui.NavButton(ui.NavButtonOpts{Label: "Add Friend", Variant: "success"})
+	</div>
+	<div id="main-content" hx-swap-oob="true" class="h-full w-[65%] border-r border-border-primary flex items-center justify-center flex-col gap-12 max-[1050px]:w-full max-[1050px]:border-none transition-colors">
+		@dm.Empty()
+	</div>
+}
+
+templ ActivitySidebar(activities []models.User) {
+	@ui.ResizableHandle("#activity-sidebar", "activity-sidebar-width", 200, 500, false)
+	@ui.ResizablePanel(
+		"activity-sidebar",
+		"activity-sidebar-width",
+		"35%",
+		"bg-surface-alt h-full px-4 py-5 max-[1050px]:hidden transition-colors",
+	) {
+		<h1 class="text-xl font-black mb-5 text-content-primary transition-colors">Active Now</h1>
+		if len(activities) == 0 {
+			<div class="flex items-center justify-center gap-1 flex-col">
+				<h2 class="text-base font-semibold text-center text-content-primary transition-colors">It's quiet for now...</h2>
+				<p class="text-xs text-content-muted text-center transition-colors">When a friend starts an activity—like playing a game or hanging out on voice—we'll show it here!</p>
+			</div>
+		}
+	}
+}

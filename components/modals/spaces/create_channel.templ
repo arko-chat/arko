@@ -1,0 +1,20 @@
+package spaces
+
+import "github.com/arko-chat/arko/components/ui"
+
+templ CreateChannel() {
+	<div class="p-4 space-y-4">
+		<div>
+			@ui.Label("Channel Type", false)
+			@ui.RadioGroup("channel-type", []ui.RadioOptionOpts{
+				{Value: "text", Label: "Text Channel", Description: "Send messages, images, and more", Icon: "fa-solid fa-hashtag", Checked: true},
+				{Value: "voice", Label: "Voice Channel", Description: "Hang out together with voice and video", Icon: "fa-solid fa-volume-high"},
+			})
+		</div>
+		@ui.InputGroup("Channel Name", false, "", ui.TextInputWithIcon("new-channel", "#", "left", templ.Attributes{}))
+	</div>
+	@ui.ModalFooter(
+		ui.Button("Cancel", "ghost", templ.Attributes{"@click": "open = false"}),
+		ui.Button("Create Channel", "primary", templ.Attributes{}),
+	)
+}

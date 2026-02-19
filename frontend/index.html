@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arko</title>
+    <script>
+      (function () {
+        var s = document.documentElement.style;
+        var keys = [
+          "nav-sidebar-width",
+          "activity-sidebar-width",
+          "members-sidebar-width",
+        ];
+        keys.forEach(function (k) {
+          var v = localStorage.getItem(k);
+          if (v) s.setProperty("--" + k, v + "px");
+        });
+      })();
+    </script>
+    <link rel="stylesheet" href="src/assets/css/app.css" />
+    <script src="https://unpkg.com/htmx.org@2.0.8"></script>
+    <script src="https://unpkg.com/htmx-ext-ws@2.0.2/ws.js"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.8/dist/ext/loading-states.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <style>
+      [x-cloak] {
+        display: none !important;
+      }
+      .htmx-indicator {
+        display: none;
+      }
+      .htmx-request .htmx-indicator {
+        display: inline-block;
+      }
+      .htmx-request.htmx-indicator {
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-slide-down {
+        animation: slideDown 0.15s ease-out both;
+      }
+    </style>
+  </head>
+  <body
+    class="h-full overflow-hidden font-sans bg-surface-overlay"
+    hx-ext="loading-states"
+  >
+    <div
+      id="initial"
+      hx-get="/initial"
+      hx-trigger="load"
+      hx-target="#initial"
+      hx-swap="outerHTML"
+    ></div>
+    <script>
+      document.addEventListener("alpine:init", () => {
+        console.log("Alpine.js initialized");
+      });
+
+      window.addEventListener("load", () => {
+        console.log(
+          "Window loaded. Alpine available:",
+          typeof Alpine !== "undefined",
+        );
+      });
+
+      document.body.addEventListener("htmx:afterSettle", function (evt) {
+        var t = document.querySelector("title");
+        if (t) document.title = t.textContent;
+      });
+
+      document.addEventListener("htmx:wsBeforeMessage", function (e) {
+        const socketEl = e.target;
+        if (socketEl && socketEl.closest("[hx-swap-oob]")) {
+          return;
+        }
+      });
+
+      document.addEventListener("htmx:beforeSwap", function (e) {
+        const currentWs = document.querySelector("[ws-connect]");
+        if (!currentWs) return;
+
+        const target = e.detail.target;
+        if (target && target.contains(currentWs)) return;
+
+        const ext = currentWs.getAttribute("ws-connect");
+        if (ext) {
+          htmx.trigger(currentWs, "htmx:wsClose");
+        }
+      });
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,113 @@
+package chat
+
+import (
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/models"
+)
+
+type Props struct {
+	RoomID            string
+	Placeholder       string
+	Messages          []models.Message
+	CurrentUserID     string
+	CurrentUserName   string
+	CurrentUserAvatar string
+	ChannelName       string
+	Topic             string
+	WelcomeUser       *models.User
+}
+
+templ Chat(props Props) {
+	<div
+		class="w-full h-full flex flex-col"
+		hx-ext="ws"
+		ws-connect={ "/ws/room/" + props.RoomID }
+		id="chat-container"
+		data-user-name={ props.CurrentUserName }
+		data-user-avatar={ props.CurrentUserAvatar }
+	>
+		if props.Topic != "" {
+			@ui.TopicBanner(props.Topic)
+		}
+		<div
+			id="messages"
+			class="flex-1 overflow-y-auto flex flex-col-reverse"
+		>
+			<div id="message-list" class="flex flex-col py-2">
+				if props.WelcomeUser != nil {
+					@ui.DMWelcome(*props.WelcomeUser)
+				} else if props.ChannelName != "" {
+					@ui.ChannelWelcome(props.ChannelName, props.Topic)
+				}
+				@ui.MessageList(props.Messages, props.CurrentUserID)
+			</div>
+		</div>
+		<div id="typing-indicator" class="shrink-0">
+			@ui.TypingIndicator([]string{})
+		</div>
+		@ui.MessageInput(props.Placeholder, "message", templ.Attributes{
+			"ws-send":              "",
+			"hx-on::ws-after-send": "window.__handleOptimisticSend(this)",
+		})
+	</div>
+	@optimisticMessageScript()
+}
+
+templ optimisticMessageScript() {
+	<script>
+		(function() {
+			function escapeHtml(text) {
+				var div = document.createElement('div');
+				div.textContent = text;
+				return div.innerHTML;
+			}
+
+			function escapeAttr(text) {
+				return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+			}
+
+			window.__handleOptimisticSend = function(form) {
+				var input = form.querySelector('textarea[name="message"]');
+				if (!input) return;
+				var content = input.value.trim();
+				if (!content) return;
+
+				var container = document.getElementById('chat-container');
+				if (!container) return;
+				var userName = container.dataset.userName || '';
+				var userAvatar = container.dataset.userAvatar || '';
+
+				var pendingEl = document.createElement('div');
+				pendingEl.className = 'flex gap-3 px-4 py-1 relative message-pending';
+				pendingEl.setAttribute('data-pending', 'true');
+				pendingEl.innerHTML =
+					'<div class="relative shrink-0 w-10 h-10">' +
+						'<img src="' + escapeAttr(userAvatar) + '" alt="avatar" class="w-full h-full object-cover rounded-full" />' +
+					'</div>' +
+					'<div class="flex-1 min-w-0">' +
+						'<div class="flex items-center gap-2 mb-0.5">' +
+							'<span class="font-semibold text-sm text-content-primary">' + escapeHtml(userName) + '</span>' +
+							'<i class="fa-solid fa-spinner spinner text-xs text-brand"></i>' +
+						'</div>' +
+						'<div class="text-sm text-content-secondary/60 leading-relaxed break-words">' + escapeHtml(content) + '</div>' +
+					'</div>';
+
+				var messageList = document.getElementById('message-list');
+				if (messageList) {
+					messageList.appendChild(pendingEl);
+					var scrollContainer = document.getElementById('messages');
+					if (scrollContainer) {
+						scrollContainer.scrollTop = scrollContainer.scrollHeight;
+					}
+				}
+
+				form.reset();
+			};
+
+			document.body.addEventListener('htmx:wsBeforeMessage', function() {
+				var pending = document.querySelector('.message-pending');
+				if (pending) pending.remove();
+			});
+		})();
+	</script>
+}

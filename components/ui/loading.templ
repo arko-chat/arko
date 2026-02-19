@@ -1,0 +1,20 @@
+package ui
+
+templ Spinner(size string) {
+	switch size {
+		case "sm":
+			<i class="fa-solid fa-spinner spinner text-sm htmx-indicator text-brand"></i>
+		case "md":
+			<i class="fa-solid fa-spinner spinner text-xl htmx-indicator text-brand"></i>
+		default:
+			<i class="fa-solid fa-spinner spinner text-3xl htmx-indicator text-brand"></i>
+	}
+}
+
+templ LoadingOverlay() {
+	<div class="htmx-indicator absolute inset-0 bg-black/20 dark:bg-black/40 flex items-center justify-center z-50">
+		<div class="bg-surface-base rounded-lg p-6 shadow-xl">
+			<i class="fa-solid fa-spinner spinner text-4xl text-brand"></i>
+		</div>
+	</div>
+}

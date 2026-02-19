@@ -1,0 +1,75 @@
+package sidebar
+
+import "github.com/arko-chat/arko/internal/models"
+import "github.com/arko-chat/arko/web/templates/utils"
+
+templ SpaceList(spaces []models.Space) {
+	<aside class="w-[60px] flex flex-col items-center py-3 px-0 bg-surface-sunken h-screen shrink-0 overflow-y-auto transition-colors">
+		<div class="flex flex-col items-center gap-1.5 w-full px-2">
+			@homeButton()
+			<hr class="w-7 border-t border-border-divider my-1.5 shrink-0 transition-colors"/>
+			for _, space := range spaces {
+				@spaceButton(space)
+			}
+		</div>
+		<div class="mt-auto flex flex-col items-center gap-1.5 px-2 pb-1">
+			<hr class="w-7 border-t border-border-divider mb-1.5 shrink-0 transition-colors"/>
+			@actionButtons()
+		</div>
+	</aside>
+}
+
+templ spaceButton(space models.Space) {
+	<button
+		class="shrink-0 relative w-full flex justify-center"
+		hx-get={ templ.SafeURL("/space/" + space.ID) }
+		hx-target="body"
+		hx-swap="innerHTML"
+		hx-push-url="true"
+		hx-indicator={ "#space-loading-" + utils.Hash(space.ID) }
+	>
+		<img
+			src={ space.Avatar }
+			alt={ space.Name }
+			class="w-9 h-9 rounded-lg cursor-pointer transition-all duration-150 hover:rounded-xl hover:brightness-110"
+		/>
+		<div id={ "space-loading-" + utils.Hash(space.ID) } class="htmx-indicator absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+			<i class="fa-solid fa-spinner spinner text-white text-sm"></i>
+		</div>
+	</button>
+}
+
+templ homeButton() {
+	<button
+		class="shrink-0 relative w-full flex justify-center"
+		hx-get="/"
+		hx-target="body"
+		hx-swap="innerHTML"
+		hx-push-url="true"
+		hx-indicator="#home-loading"
+	>
+		<div class="w-9 h-9 bg-brand rounded-lg flex items-center justify-center cursor-pointer transition-all duration-150 hover:rounded-xl hover:bg-brand-hover">
+			<i class="fa-solid fa-user-group text-white text-base"></i>
+		</div>
+		<div id="home-loading" class="htmx-indicator absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+			<i class="fa-solid fa-spinner spinner text-white text-sm"></i>
+		</div>
+	</button>
+}
+
+templ actionButtons() {
+	@spaceActionButton("fa-solid fa-compass", "", templ.Attributes{})
+	@spaceActionButton("fa-solid fa-arrow-down", "", templ.Attributes{})
+}
+
+templ spaceActionButton(icon string, title string, attributes templ.Attributes) {
+	<button
+		{ attributes... }
+		if title != "" {
+			title={ title }
+		}
+		class="w-9 h-9 bg-surface-raised text-content-icon rounded-lg cursor-pointer text-base flex items-center justify-center transition-all duration-150 hover:bg-brand hover:text-white hover:rounded-xl shrink-0"
+	>
+		<i class={ icon }></i>
+	</button>
+}

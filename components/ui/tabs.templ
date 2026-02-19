@@ -1,0 +1,61 @@
+package ui
+
+type TabItem struct {
+	Label     string
+	Value     string
+	Active    bool
+	Separator bool
+	Content   templ.Component
+}
+
+templ TabContainer(id string, tabs []TabItem) {
+	<div
+		id={ id }
+		class="flex flex-1 overflow-hidden"
+		x-data={ "{ activeTab: '" + defaultTab(tabs) + "' }" }
+	>
+		<div class="w-64 bg-surface-alt p-3 space-y-1 shrink-0">
+			for _, tab := range tabs {
+				if tab.Separator {
+					<div class="pt-2 border-t border-border-divider mt-2"></div>
+				} else {
+					<button
+						type="button"
+						@click={ "activeTab = '" + tab.Value + "'" }
+						class="w-full text-left px-3 py-2 rounded text-sm transition-all duration-150 cursor-pointer active:scale-[0.98]"
+						:class={ "activeTab === '" + tab.Value + "' ? 'bg-hover-active text-content-primary font-medium' : 'text-content-secondary hover:bg-hover-active hover:text-content-primary hover:pl-3.5'" }
+					>
+						{ tab.Label }
+					</button>
+				}
+			}
+		</div>
+		<div class="flex-1 overflow-y-auto bg-surface-base">
+			for _, tab := range tabs {
+				if !tab.Separator && tab.Content != nil {
+					<div
+						x-show={ "activeTab === '" + tab.Value + "'" }
+						x-cloak
+						class="p-6 space-y-6"
+					>
+						@tab.Content
+					</div>
+				}
+			}
+		</div>
+	</div>
+}
+
+func defaultTab(tabs []TabItem) string {
+	for _, tab := range tabs {
+		if tab.Active {
+			return tab.Value
+		}
+	}
+	for _, tab := range tabs {
+		if !tab.Separator {
+			return tab.Value
+		}
+	}
+	return ""
+}

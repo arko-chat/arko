@@ -1,0 +1,58 @@
+package sidebar
+
+import "github.com/arko-chat/arko/components/ui"
+
+templ ChannelsSection(channels []models.Channel) {
+	<div class="w-full py-2">
+		@channelGroup("Text Channels", channels, "text")
+		<div class="my-3 mx-4 border-t border-border-divider"></div>
+		@channelGroup("Voice Channels", channels, "voice")
+	</div>
+}
+
+templ channelGroup(title string, channels []models.Channel, channelType models.ChannelType) {
+	<div class="mb-1">
+		<div class="flex items-center justify-between pl-4 pr-3 py-1 group/header cursor-pointer">
+			<div class="flex items-center gap-1.5">
+				<i class="fa fa-chevron-down text-content-muted text-[10px] transition-transform group-hover/header:text-content-secondary"></i>
+				<span class="text-[11px] font-semibold text-content-muted tracking-wide group-hover/header:text-content-secondary transition-colors">
+					{ title }
+				</span>
+			</div>
+			<i class="fa fa-plus text-content-muted text-[11px] cursor-pointer opacity-0 group-hover/header:opacity-100 hover:text-content-primary transition-all"></i>
+		</div>
+		<div class="flex flex-col mt-0.5">
+			for _, channel := range channels {
+				if channel.Type == channelType {
+					@channelItem(channel)
+				}
+			}
+		</div>
+	</div>
+}
+
+templ channelItem(channel models.Channel) {
+	<div
+		class="flex items-center gap-2.5 pl-6 pr-3 mx-2 cursor-pointer rounded-md hover:bg-hover-primary group transition-colors text-content-muted relative"
+		hx-get={ templ.SafeURL("/space/" + channel.SpaceID + "/channel/" + channel.ID) }
+		hx-target="body"
+		hx-swap="innerHTML"
+		hx-push-url="true"
+		hx-indicator="closest div"
+	>
+		if channel.Type == "text" {
+			<i class="fa-solid fa-hashtag text-[13px] shrink-0 text-content-faint group-hover:text-content-muted transition-colors"></i>
+		} else {
+			<i class="fa-solid fa-volume-high text-[13px] shrink-0 text-content-faint group-hover:text-content-muted transition-colors"></i>
+		}
+		<span class="text-sm font-medium text-content-secondary group-hover:text-content-primary transition-colors truncate">
+			{ channel.Name }
+		</span>
+		<div class="ml-auto flex items-center gap-1 shrink-0">
+			<i class="fa-solid fa-spinner spinner text-brand htmx-indicator text-xs"></i>
+			<div class="opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
+				@ui.IconButton("fa fa-gear text-[11px] text-content-muted hover:text-content-primary", "default", templ.Attributes{})
+			</div>
+		</div>
+	</div>
+}

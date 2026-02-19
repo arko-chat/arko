@@ -1,0 +1,59 @@
+package ui
+
+type DropdownItem struct {
+	Label     string
+	Icon      string
+	Color     string
+	Separator bool
+	Action    string
+}
+
+templ Dropdown(id string, trigger templ.Component, items []DropdownItem) {
+	<div
+		class="relative"
+		x-data="{ open: false }"
+		@click.outside="open = false"
+		@keydown.escape.window="open = false"
+	>
+		<div @click="open = !open">
+			@trigger
+		</div>
+		<div
+			x-show="open"
+			x-cloak
+			x-transition:enter="transition ease-out duration-150"
+			x-transition:enter-start="opacity-0 -translate-y-1"
+			x-transition:enter-end="opacity-100 translate-y-0"
+			x-transition:leave="transition ease-in duration-100"
+			x-transition:leave-start="opacity-100 translate-y-0"
+			x-transition:leave-end="opacity-0 -translate-y-1"
+			class="absolute top-full left-0 mt-1 w-52 bg-surface-float rounded-lg shadow-lg border border-border-subtle z-50 py-1 px-1.5"
+		>
+			for _, item := range items {
+				@DropdownMenuItem(item)
+			}
+		</div>
+	</div>
+}
+
+templ DropdownMenuItem(item DropdownItem) {
+	if item.Separator {
+		<div class="h-px bg-border-divider my-1 mx-1"></div>
+	} else {
+		<button
+			type="button"
+			@click={ "open = false; $dispatch('open-modal', '" + item.Action + "')" }
+			class={
+				"w-full flex items-center gap-2.5 px-2 py-[6px] rounded-md text-sm font-medium transition-colors duration-100 cursor-pointer active:scale-[0.98]",
+				templ.KV("text-danger hover:bg-danger/10", item.Color == "danger"),
+				templ.KV("text-content-secondary hover:bg-brand hover:text-white", item.Color == "primary"),
+				templ.KV("text-content-secondary hover:bg-hover-primary hover:text-content-primary", item.Color == "" || item.Color == "default"),
+			}
+		>
+			if item.Icon != "" {
+				<i class={ item.Icon, "text-[13px] w-4 shrink-0" }></i>
+			}
+			<span class="flex-1 text-left">{ item.Label }</span>
+		</button>
+	}
+}

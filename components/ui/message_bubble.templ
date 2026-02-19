@@ -1,0 +1,128 @@
+package ui
+
+import (
+	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/web/templates/utils"
+)
+
+templ MessageBubble(message models.Message) {
+	<div class="flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative">
+		@Avatar(message.Author.Avatar, "md", true, false)
+		<div class="flex-1 min-w-0">
+			<div class="flex items-baseline gap-2 mb-0.5">
+				<span class="font-semibold text-sm text-content-primary cursor-pointer hover:underline transition-colors duration-150">
+					{ message.Author.Name }
+				</span>
+				<span class="text-[11px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+					{ utils.FormatTimestamp(message.Timestamp) }
+				</span>
+			</div>
+			if message.IsSystem {
+				@SystemMessage(message.SystemIcon, message.Content)
+			} else {
+				<div class="text-sm text-content-secondary leading-relaxed break-words">
+					{ message.Content }
+				</div>
+				if len(message.Attachments) > 0 {
+					<div class="flex flex-col gap-1.5 mt-1">
+						for _, a := range message.Attachments {
+							if a.Type == "image" {
+								@ImageAttachment(a.URL, a.AltText)
+							} else {
+								@FileAttachment(a.Name, a.Size, a.URL, a.FileType)
+							}
+						}
+					</div>
+				}
+				if len(message.Embeds) > 0 {
+					<div class="flex flex-col gap-1.5 mt-1">
+						for _, e := range message.Embeds {
+							@LinkEmbed(e.Title, e.Description, e.URL, e.ImageURL, e.SiteName)
+						}
+					</div>
+				}
+				if len(message.Reactions) > 0 {
+					@MessageReactions(message.Reactions, message.ID)
+				}
+				if message.ThreadCount > 0 {
+					@ThreadReply(message)
+				}
+			}
+		</div>
+		@MessageActions(message.ID)
+	</div>
+}
+
+templ MessageBubbleContinued(message models.Message) {
+	<div class="flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative">
+		<div class="w-8 shrink-0 flex items-start justify-center pt-1">
+			<span class="text-[10px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150 leading-none">
+				{ utils.FormatTimestampShort(message.Timestamp) }
+			</span>
+		</div>
+		<div class="flex-1 min-w-0">
+			<div class="text-sm text-content-secondary leading-relaxed break-words">
+				{ message.Content }
+			</div>
+			if len(message.Attachments) > 0 {
+				<div class="flex flex-col gap-1.5 mt-1">
+					for _, a := range message.Attachments {
+						if a.Type == "image" {
+							@ImageAttachment(a.URL, a.AltText)
+						} else {
+							@FileAttachment(a.Name, a.Size, a.URL, a.FileType)
+						}
+					}
+				</div>
+			}
+			if len(message.Embeds) > 0 {
+				<div class="flex flex-col gap-1.5 mt-1">
+					for _, e := range message.Embeds {
+						@LinkEmbed(e.Title, e.Description, e.URL, e.ImageURL, e.SiteName)
+					}
+				</div>
+			}
+			if len(message.Reactions) > 0 {
+				@MessageReactions(message.Reactions, message.ID)
+			}
+			if message.ThreadCount > 0 {
+				@ThreadReply(message)
+			}
+		</div>
+		@MessageActions(message.ID)
+	</div>
+}
+
+templ MessageList(messages []models.Message, currentUserID string) {
+	<div class="flex flex-col">
+		for i := len(messages) - 1; i >= 0; i-- {
+			if i < len(messages)-1 && !utils.IsSameDay(messages[i].Timestamp, messages[i+1].Timestamp) {
+				@DateDivider(utils.FormatDate(messages[i+1].Timestamp))
+			}
+			if i < len(messages)-1 &&
+				messages[i+1].Author.ID == messages[i].Author.ID &&
+				utils.WithinMinutes(messages[i].Timestamp, messages[i+1].Timestamp, 5) {
+				@MessageBubbleContinued(messages[i])
+			} else {
+				@MessageBubble(messages[i])
+			}
+		}
+	</div>
+}
+
+templ MessageBubblePending(message models.Message) {
+	<div class="flex gap-3 px-4 py-1 relative message-pending" data-pending="true">
+		@Avatar(message.Author.Avatar, "md", true, false)
+		<div class="flex-1 min-w-0">
+			<div class="flex items-center gap-2 mb-0.5">
+				<span class="font-semibold text-sm text-content-primary">
+					{ message.Author.Name }
+				</span>
+				<i class="fa-solid fa-spinner spinner text-xs text-brand"></i>
+			</div>
+			<div class="text-sm text-content-secondary/60 leading-relaxed break-words">
+				{ message.Content }
+			</div>
+		</div>
+	</div>
+}

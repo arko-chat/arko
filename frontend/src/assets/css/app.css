@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+
+  /* ── Brand / Accent ── */
+  --color-brand: #3b6fe8;
+  --color-brand-hover: #2f5ecf;
+  --color-success: #1f9e6e;
+  --color-success-hover: #187d57;
+  --color-danger: #c93b3b;
+  --color-danger-hover: #a82f2f;
+
+  /* ── Surfaces ── */
+  --color-surface-base: var(--surface-base);
+  --color-surface-alt: var(--surface-alt);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-float: var(--surface-float);
+  --color-surface-input: var(--surface-input);
+  --color-surface-profile: var(--surface-profile);
+
+  /* ── Interactive states ── */
+  --color-hover-primary: var(--hover-primary);
+  --color-hover-secondary: var(--hover-secondary);
+  --color-hover-active: var(--hover-active);
+  --color-hover-muted: var(--hover-muted);
+
+  /* ── Content / Text ── */
+  --color-content-primary: var(--content-primary);
+  --color-content-secondary: var(--content-secondary);
+  --color-content-muted: var(--content-muted);
+  --color-content-faint: var(--content-faint);
+  --color-content-icon: var(--content-icon);
+  --color-content-placeholder: var(--content-placeholder);
+
+  /* ── Borders ── */
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-divider: var(--border-divider);
+}
+
+/* ── Light mode tokens ── */
+:root {
+  --surface-base: #fafaf9;
+  --surface-alt: #f4f3f1;
+  --surface-sunken: #ebe9e6;
+  --surface-raised: #ffffff;
+  --surface-overlay: #ffffff;
+  --surface-float: #ffffff;
+  --surface-input: #f0eeec;
+  --surface-profile: #eeece9;
+
+  --hover-primary: #e5e3e0;
+  --hover-secondary: #eceae7;
+  --hover-active: #e0dedd;
+  --hover-muted: #f0eeec;
+
+  --content-primary: #111110;
+  --content-secondary: #57534e;
+  --content-muted: #78716c;
+  --content-faint: #a8a29e;
+  --content-icon: #6b7280;
+  --content-placeholder: #a8a29e;
+
+  --border-primary: #e5e3df;
+  --border-secondary: #d4d0cc;
+  --border-subtle: #f0eeed;
+  --border-divider: #ccc9c4;
+
+  --status-shadow: #ffffff;
+}
+
+/* ── Dark mode tokens ── */
+.dark {
+  --surface-base: #1c1c1a;
+  --surface-alt: #232321;
+  --surface-sunken: #161614;
+  --surface-raised: #2a2a27;
+  --surface-overlay: #2a2a27;
+  --surface-float: #2f2f2c;
+  --surface-input: #2f2f2c;
+  --surface-profile: #1e1e1c;
+
+  --hover-primary: #2f2f2c;
+  --hover-secondary: #383835;
+  --hover-active: #35352f;
+  --hover-muted: #2a2a27;
+
+  --content-primary: #f5f4f2;
+  --content-secondary: #a09d99;
+  --content-muted: #6b6864;
+  --content-faint: #6b6864;
+  --content-icon: #9c9894;
+  --content-placeholder: #6b6864;
+
+  --border-primary: #2a2a26;
+  --border-secondary: #1e1e1b;
+  --border-subtle: #242422;
+  --border-divider: #38382f;
+
+  --status-shadow: #1c1c1a;
+}
+

@@ -1,0 +1,24 @@
+package ui
+
+templ SearchInput(placeholder string, name string, htmxAttrs templ.Attributes) {
+	<input
+		type="text"
+		name={ name }
+		placeholder={ placeholder }
+		{ htmxAttrs... }
+		class="w-full p-1.5 rounded bg-surface-sunken border border-transparent outline-none text-sm text-content-primary placeholder-content-placeholder transition-all duration-150 focus:border-brand focus:ring-1 focus:ring-brand/30"
+	/>
+}
+
+templ SearchInputWithIcon(placeholder string, name string, attributes templ.Attributes) {
+	<div class="relative group/search">
+		<input
+			type="text"
+			name={ name }
+			placeholder={ placeholder }
+			{ attributes... }
+			class="w-40 px-3 py-1.5 pr-8 bg-surface-sunken border border-transparent outline-none rounded text-sm text-content-primary placeholder-content-placeholder transition-all duration-200 focus:w-60 focus:border-brand focus:ring-1 focus:ring-brand/30"
+		/>
+		<i class="fa-solid fa-magnifying-glass text-sm text-content-placeholder absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-150 group-focus-within/search:text-brand"></i>
+	</div>
+}

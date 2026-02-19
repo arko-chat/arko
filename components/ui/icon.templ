@@ -1,0 +1,20 @@
+package ui
+
+templ Icon(iconType string) {
+	switch iconType {
+		case "friends":
+			<i class="fa-solid fa-user-group text-[15px] text-content-muted transition-colors duration-150"></i>
+		case "nitro":
+			<i class="fa-solid fa-bolt text-[15px] text-content-muted transition-colors duration-150"></i>
+		case "shop":
+			<i class="fa-solid fa-shop text-[15px] text-content-muted transition-colors duration-150"></i>
+		case "text-channel":
+			<i class="fa-solid fa-hashtag text-[13px] transition-colors duration-150"></i>
+		case "voice-channel":
+			<i class="fa-solid fa-volume-high text-[13px] transition-colors duration-150"></i>
+		case "settings":
+			<i class="fa-solid fa-gear text-[13px] transition-all duration-300 hover:rotate-45"></i>
+		case "plus":
+			<i class="fa-solid fa-plus text-[13px] transition-transform duration-200 hover:rotate-90"></i>
+	}
+}

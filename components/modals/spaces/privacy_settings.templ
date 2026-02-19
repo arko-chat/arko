@@ -1,0 +1,26 @@
+package spaces
+
+import "github.com/arko-chat/arko/components/ui"
+
+templ PrivacySettings() {
+	<div class="p-4 space-y-6">
+		<div>
+			@ui.SectionHeader("Direct Messages")
+			<div class="space-y-3">
+				@ui.CheckboxWithDescription("Allow direct messages from space members", "This applies to all spaces", templ.Attributes{"checked": true})
+				@ui.CheckboxWithDescription("Enable message requests", "Get message requests from space members you don't share a space with", templ.Attributes{})
+			</div>
+		</div>
+		@ui.Divider()
+		<div>
+			@ui.SectionHeader("Space Privacy Defaults")
+			<div class="space-y-3">
+				@ui.CheckboxWithDescription("Show current activity", "Display what you're currently doing", templ.Attributes{"checked": true})
+				@ui.CheckboxWithDescription("Use data to improve Discord", "Help us improve Discord with usage data", templ.Attributes{})
+			</div>
+		</div>
+	</div>
+	@ui.ModalFooter(
+		ui.Button("Done", "primary", templ.Attributes{"@click": "open = false"}),
+	)
+}

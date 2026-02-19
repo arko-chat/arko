@@ -1,0 +1,288 @@
+package ui
+
+import (
+	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/web/templates/utils"
+)
+
+templ MessageActions(messageID string) {
+	<div class="absolute right-4 -top-3 opacity-0 group-hover:opacity-100 transition-opacity duration-100 flex items-center bg-surface-base border border-border-divider rounded-md shadow-sm z-10">
+		@IconButton("fa-solid fa-face-smile", "default", templ.Attributes{"type": "button", "title": "Add reaction"})
+		@IconButton("fa-solid fa-reply", "default", templ.Attributes{"type": "button", "title": "Reply"})
+		@IconButton("fa-solid fa-bookmark", "default", templ.Attributes{"type": "button", "title": "Save"})
+		@IconButton("fa-solid fa-ellipsis", "default", templ.Attributes{"type": "button", "title": "More actions"})
+	</div>
+}
+
+templ MessageReactions(reactions []models.Reaction, messageID string) {
+	<div class="flex flex-wrap gap-1 mt-1.5">
+		for _, reaction := range reactions {
+			@ReactionPill(reaction, messageID)
+		}
+		@AddReactionPill(messageID)
+	</div>
+}
+
+templ ReactionPill(reaction models.Reaction, messageID string) {
+	<button
+		type="button"
+		class={
+			"flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors duration-100",
+			templ.KV("bg-brand/10 border-brand/30 text-brand", reaction.HasCurrentUser),
+			templ.KV("bg-surface-alt border-border-divider text-content-secondary hover:border-brand/30 hover:bg-brand/5", !reaction.HasCurrentUser),
+		}
+		hx-post={ "/message/" + messageID + "/react" }
+		hx-vals={ `{"emoji":"` + reaction.Emoji + `"}` }
+		hx-swap="outerHTML"
+		hx-target="closest div"
+	>
+		<span>{ reaction.Emoji }</span>
+		<span class="font-medium tabular-nums">{ utils.FormatCount(reaction.Count) }</span>
+	</button>
+}
+
+templ AddReactionPill(messageID string) {
+	<button
+		type="button"
+		class="flex items-center justify-center w-7 h-[22px] rounded-full border border-dashed border-border-divider text-content-faint hover:text-content-muted hover:border-border-secondary transition-colors duration-100"
+	>
+		<i class="fa-solid fa-plus text-[10px]"></i>
+	</button>
+}
+
+templ ThreadReply(message models.Message) {
+	<button
+		type="button"
+		class="mt-1.5 flex items-center gap-2 text-xs text-brand hover:underline cursor-pointer group/thread"
+		hx-get={ "/message/" + message.ID + "/thread" }
+		hx-target="#thread-panel"
+		hx-swap="innerHTML"
+	>
+		<div class="flex -space-x-1">
+			for _, p := range message.ThreadParticipants {
+				<img src={ p.Avatar } class="w-4 h-4 rounded-full ring-1 ring-surface-base object-cover"/>
+			}
+		</div>
+		<span class="font-medium">
+			{ utils.FormatCount(message.ThreadCount) } { utils.Pluralize(message.ThreadCount, "reply", "replies") }
+		</span>
+		<span class="text-content-faint group-hover/thread:text-brand transition-colors">
+			Last reply { utils.FormatTimestamp(message.LastThreadReply) }
+		</span>
+		<i class="fa-solid fa-chevron-right text-[10px] opacity-0 group-hover/thread:opacity-100 transition-opacity"></i>
+	</button>
+}
+
+templ DateDivider(label string) {
+	<div class="flex items-center gap-3 px-4 my-3">
+		<div class="flex-1 h-px bg-border-divider"></div>
+		<span class="text-[11px] font-semibold text-content-muted px-2 py-0.5 rounded-full border border-border-divider bg-surface-base">
+			{ label }
+		</span>
+		<div class="flex-1 h-px bg-border-divider"></div>
+	</div>
+}
+
+templ UnreadDivider() {
+	<div class="flex items-center gap-3 px-4 my-2">
+		<div class="flex-1 h-px bg-danger/50"></div>
+		<span class="text-[11px] font-semibold text-danger shrink-0">New</span>
+	</div>
+}
+
+templ SystemMessage(icon string, content string) {
+	<div class="flex items-center gap-2.5 text-xs text-content-muted">
+		<i class={ icon + " text-[11px] shrink-0" }></i>
+		<span>{ content }</span>
+	</div>
+}
+
+templ TypingIndicator(names []string) {
+	if len(names) > 0 {
+		<div class="flex items-center gap-1.5 px-4 py-1 h-6">
+			<div class="flex items-end gap-[3px] mb-0.5">
+				<span class="w-1 h-1 rounded-full bg-content-muted animate-bounce [animation-delay:0ms]"></span>
+				<span class="w-1 h-1 rounded-full bg-content-muted animate-bounce [animation-delay:150ms]"></span>
+				<span class="w-1 h-1 rounded-full bg-content-muted animate-bounce [animation-delay:300ms]"></span>
+			</div>
+			<span class="text-[11px] text-content-muted">
+				{ utils.FormatTypingNames(names) }
+				if len(names) == 1 {
+					is typing...
+				} else {
+					are typing...
+				}
+			</span>
+		</div>
+	} else {
+		<div class="h-6"></div>
+	}
+}
+
+templ PinnedMessageBanner(message models.Message) {
+	<div class="flex items-center gap-3 px-4 py-2 bg-surface-alt border-b border-border-divider cursor-pointer hover:bg-hover-primary transition-colors group/pin">
+		<i class="fa-solid fa-thumbtack text-[11px] text-content-muted rotate-45 shrink-0"></i>
+		<div class="flex-1 min-w-0">
+			<span class="text-[11px] font-semibold text-content-muted">Pinned message</span>
+			<p class="text-xs text-content-secondary truncate">{ message.Content }</p>
+		</div>
+		@IconButton("fa-solid fa-xmark", "default", templ.Attributes{"type": "button", "class": "opacity-0 group-hover/pin:opacity-100 transition-opacity shrink-0"})
+	</div>
+}
+
+templ TopicBanner(topic string) {
+	<div class="flex items-center gap-2 px-4 py-1.5 bg-surface-alt border-b border-border-divider">
+		<i class="fa-solid fa-align-left text-[11px] text-content-faint shrink-0"></i>
+		<p class="text-xs text-content-muted truncate">{ topic }</p>
+	</div>
+}
+
+templ ChannelWelcome(channelName string, description string) {
+	<div class="px-4 pt-8 pb-4">
+		<div class="w-12 h-12 rounded-xl bg-surface-alt border border-border-divider flex items-center justify-center mb-3">
+			<i class="fa-solid fa-hashtag text-content-muted text-lg"></i>
+		</div>
+		<h2 class="text-xl font-bold text-content-primary mb-1">Welcome to #{ channelName }</h2>
+		if description != "" {
+			<p class="text-sm text-content-muted">{ description }</p>
+		} else {
+			<p class="text-sm text-content-muted">
+				This is the very beginning of the #{ channelName } channel.
+			</p>
+		}
+	</div>
+}
+
+templ DMWelcome(user models.User) {
+	<div class="px-4 pt-8 pb-4">
+		@Avatar(user.Avatar, "xl", user.Status == "Online", false)
+		<h2 class="text-xl font-bold text-content-primary mt-3 mb-1">{ user.Name }</h2>
+		<p class="text-sm text-content-muted">
+			This is the beginning of your direct message history with
+			<span class="font-medium text-content-secondary">{ user.Name }</span>.
+		</p>
+	</div>
+}
+
+templ FileAttachment(name string, size string, url string, fileType string) {
+	<a
+		href={ templ.SafeURL(url) }
+		target="_blank"
+		class="inline-flex items-center gap-3 px-3 py-2.5 bg-surface-alt border border-border-divider rounded-lg hover:border-border-secondary transition-colors max-w-xs group/file"
+	>
+		<div class="w-8 h-8 rounded-md bg-surface-sunken flex items-center justify-center shrink-0">
+			<i class={ fileTypeIcon(fileType) + " text-[13px] text-content-muted" }></i>
+		</div>
+		<div class="min-w-0 flex-1">
+			<p class="text-xs font-medium text-content-primary truncate group-hover/file:underline">{ name }</p>
+			<p class="text-[10px] text-content-muted">{ size }</p>
+		</div>
+		<i class="fa-solid fa-download text-[11px] text-content-faint group-hover/file:text-content-muted transition-colors shrink-0"></i>
+	</a>
+}
+
+func fileTypeIcon(fileType string) string {
+	switch fileType {
+	case "pdf":
+		return "fa-solid fa-file-pdf"
+	case "image":
+		return "fa-solid fa-file-image"
+	case "video":
+		return "fa-solid fa-file-video"
+	case "audio":
+		return "fa-solid fa-file-audio"
+	case "zip":
+		return "fa-solid fa-file-zipper"
+	case "code":
+		return "fa-solid fa-file-code"
+	default:
+		return "fa-solid fa-file"
+	}
+}
+
+templ ImageAttachment(url string, alt string) {
+	<div class="mt-0.5 max-w-sm">
+		<img
+			src={ url }
+			alt={ alt }
+			class="rounded-lg border border-border-divider max-h-80 object-cover cursor-zoom-in hover:brightness-95 transition-all"
+			loading="lazy"
+		/>
+	</div>
+}
+
+templ LinkEmbed(title string, description string, url string, imageURL string, siteName string) {
+	<div class="mt-1 flex gap-2 max-w-lg">
+		<div class="w-0.5 rounded-full bg-border-secondary shrink-0 self-stretch"></div>
+		<div class="flex-1 min-w-0 py-1">
+			if siteName != "" {
+				<p class="text-[11px] text-content-muted mb-0.5">{ siteName }</p>
+			}
+			<a
+				href={ templ.SafeURL(url) }
+				target="_blank"
+				class="text-sm font-semibold text-brand hover:underline block truncate"
+			>
+				{ title }
+			</a>
+			if description != "" {
+				<p class="text-xs text-content-secondary mt-0.5 line-clamp-2 leading-relaxed">{ description }</p>
+			}
+			if imageURL != "" {
+				<img
+					src={ imageURL }
+					class="mt-2 rounded-md max-h-40 object-cover border border-border-divider"
+					loading="lazy"
+				/>
+			}
+		</div>
+	</div>
+}
+
+templ MessageSearchResult(message models.Message) {
+	<div
+		class="flex gap-3 px-4 py-3 hover:bg-hover-primary cursor-pointer transition-colors duration-100 border-b border-border-subtle last:border-0"
+		hx-get={ "/message/" + message.ID + "/jump" }
+		hx-target="#chat-area"
+		hx-swap="innerHTML"
+	>
+		@Avatar(message.Author.Avatar, "sm", false, false)
+		<div class="flex-1 min-w-0">
+			<div class="flex items-baseline gap-2 mb-0.5">
+				<span class="text-xs font-semibold text-content-primary">{ message.Author.Name }</span>
+				<span class="text-[10px] text-content-faint">{ utils.FormatTimestamp(message.Timestamp) }</span>
+			</div>
+			<p class="text-xs text-content-secondary line-clamp-2 leading-relaxed">{ message.Content }</p>
+		</div>
+	</div>
+}
+
+templ ThreadPanel(parentMessage models.Message, replies []models.Message) {
+	<div class="flex flex-col h-full border-l border-border-divider bg-surface-base">
+		<div class="flex items-center justify-between px-4 py-3 border-b border-border-divider shrink-0">
+			<h3 class="text-sm font-semibold text-content-primary">Thread</h3>
+			@IconButton("fa-solid fa-xmark", "default", templ.Attributes{
+				"type":      "button",
+				"hx-get":    "/thread/close",
+				"hx-target": "#thread-panel",
+				"hx-swap":   "innerHTML",
+			})
+		</div>
+		<div class="flex-1 overflow-y-auto py-2">
+			@MessageBubble(parentMessage)
+			<div class="flex items-center gap-3 px-4 my-3">
+				<div class="flex-1 h-px bg-border-divider"></div>
+				<span class="text-[11px] font-semibold text-content-muted">
+					{ utils.FormatCount(len(replies)) } { utils.Pluralize(len(replies), "reply", "replies") }
+				</span>
+				<div class="flex-1 h-px bg-border-divider"></div>
+			</div>
+			for _, reply := range replies {
+				@MessageBubble(reply)
+			}
+		</div>
+		<div class="shrink-0 border-t border-border-divider">
+			@MessageInput("Reply in thread...", "thread-reply", templ.Attributes{})
+		</div>
+	</div>
+}

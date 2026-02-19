@@ -1,0 +1,18 @@
+package ui
+
+templ ImageUpload(currentImage string, emptyIcon string) {
+	<div class="flex items-center gap-4">
+		<div class="w-16 h-16 bg-surface-sunken rounded-lg flex items-center justify-center overflow-hidden transition-all duration-200 hover:ring-2 hover:ring-brand/30 cursor-pointer group/upload shrink-0">
+			if currentImage != "" {
+				<img
+					src={ currentImage }
+					alt="Upload preview"
+					class="w-full h-full object-cover transition-transform duration-200 group-hover/upload:scale-105"
+				/>
+			} else {
+				<i class={ emptyIcon, "text-content-muted text-xl transition-colors duration-200 group-hover/upload:text-content-secondary" }></i>
+			}
+		</div>
+		@Button("Upload Image", "primary", templ.Attributes{"type": "button"})
+	</div>
+}
