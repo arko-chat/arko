@@ -25,6 +25,7 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/credentials"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
 )
@@ -74,6 +75,13 @@ func (m *Manager) MarkVerified(userID string) {
 	m.mu.Lock()
 	m.verifiedUsers[userID] = true
 	m.mu.Unlock()
+
+	if err := credentials.StoreVerified(userID, true); err != nil {
+		m.logger.Warn("failed to store verified flag in keyring",
+			"user", userID,
+			"err", err,
+		)
+	}
 }
 
 func (m *Manager) IsVerified(userID string) bool {
@@ -81,6 +89,11 @@ func (m *Manager) IsVerified(userID string) bool {
 	defer m.mu.RUnlock()
 
 	if m.verifiedUsers[userID] {
+		return true
+	}
+
+	if credentials.LoadVerified(userID) {
+		m.verifiedUsers[userID] = true
 		return true
 	}
 
@@ -112,6 +125,7 @@ func (m *Manager) IsVerified(userID string) bool {
 
 	if device.Trust == id.TrustStateCrossSignedVerified {
 		m.verifiedUsers[userID] = true
+		_ = credentials.StoreVerified(userID, true)
 		return true
 	}
 
@@ -158,7 +172,7 @@ func (m *Manager) Login(
 		return nil, fmt.Errorf("create client: %w", err)
 	}
 
-	resp, err := client.Login(ctx, &mautrix.ReqLogin{
+	loginReq := &mautrix.ReqLogin{
 		Type: mautrix.AuthTypePassword,
 		Identifier: mautrix.UserIdentifier{
 			Type: mautrix.IdentifierTypeUser,
@@ -167,7 +181,13 @@ func (m *Manager) Login(
 		Password:                 creds.Password,
 		InitialDeviceDisplayName: "Arko Web Client",
 		StoreCredentials:         true,
-	})
+	}
+
+	if creds.DeviceID != "" {
+		loginReq.DeviceID = id.DeviceID(creds.DeviceID)
+	}
+
+	resp, err := client.Login(ctx, loginReq)
 	if err != nil {
 		return nil, fmt.Errorf("login: %w", err)
 	}
@@ -178,6 +198,19 @@ func (m *Manager) Login(
 		AccessToken: resp.AccessToken,
 		DeviceID:    resp.DeviceID.String(),
 	}
+
+	meta := credentials.SessionMetadata{
+		Homeserver: session.Homeserver,
+		UserID:     session.UserID,
+		DeviceID:   session.DeviceID,
+	}
+	if err := credentials.StoreSession(meta, session.AccessToken); err != nil {
+		m.logger.Error("failed to store session in keyring",
+			"user", session.UserID,
+			"err", err,
+		)
+	}
+	_ = credentials.AddKnownUser(session.UserID)
 
 	m.mu.Lock()
 	m.clients[session.UserID] = client
@@ -199,8 +232,47 @@ func (m *Manager) Login(
 	}
 
 	m.startSync(session.UserID, client)
-
 	return session, nil
+}
+
+func (m *Manager) RestoreAllSessions() {
+	users := credentials.GetKnownUsers()
+	for _, userID := range users {
+		meta, token, err := credentials.LoadSession(userID)
+		if err != nil {
+			m.logger.Warn("skipping stored session",
+				"user", userID,
+				"err", err,
+			)
+			continue
+		}
+
+		err = m.RestoreSession(models.MatrixSession{
+			Homeserver:  meta.Homeserver,
+			UserID:      meta.UserID,
+			AccessToken: token,
+			DeviceID:    meta.DeviceID,
+		})
+		if err != nil {
+			m.logger.Error("failed to restore session",
+				"user", userID,
+				"err", err,
+			)
+			continue
+		}
+
+		if credentials.LoadVerified(userID) {
+			m.mu.Lock()
+			m.verifiedUsers[userID] = true
+			m.mu.Unlock()
+		}
+
+		if rk, rkErr := credentials.LoadRecoveryKey(userID); rkErr == nil && rk != "" {
+			m.mu.Lock()
+			m.recoveryKeys[userID] = rk
+			m.mu.Unlock()
+		}
+	}
 }
 
 func (m *Manager) RestoreSession(
@@ -255,10 +327,14 @@ func (m *Manager) Logout(ctx context.Context, userID string) error {
 	if hasHelper && helper != nil {
 		_ = helper.Close()
 	}
-
 	if hasCancel {
 		cancel()
 	}
+
+	credentials.DeleteSession(userID)
+	credentials.DeleteRecoveryKey(userID)
+	credentials.DeleteVerified(userID)
+	_ = credentials.RemoveKnownUser(userID)
 
 	if ok {
 		_, err := client.Logout(ctx)
@@ -293,12 +369,34 @@ func (m *Manager) SetRecoveryKey(userID string, key string) {
 	m.mu.Lock()
 	m.recoveryKeys[userID] = key
 	m.mu.Unlock()
+
+	if err := credentials.StoreRecoveryKey(userID, key); err != nil {
+		m.logger.Warn("failed to store recovery key in keyring",
+			"user", userID,
+			"err", err,
+		)
+	}
 }
 
 func (m *Manager) GetRecoveryKey(userID string) string {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.recoveryKeys[userID]
+	key := m.recoveryKeys[userID]
+	m.mu.RUnlock()
+
+	if key != "" {
+		return key
+	}
+
+	stored, err := credentials.LoadRecoveryKey(userID)
+	if err != nil {
+		return ""
+	}
+
+	m.mu.Lock()
+	m.recoveryKeys[userID] = stored
+	m.mu.Unlock()
+
+	return stored
 }
 
 func (m *Manager) startSync(userID string, client *mautrix.Client) {

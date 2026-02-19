@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/credentials"
 	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/models"
 	loginpage "github.com/arko-chat/arko/pages/login"
@@ -44,6 +46,19 @@ func (h *Handler) HandleLoginSubmit(
 		w.WriteHeader(http.StatusBadRequest)
 		_ = ui.Alert("All fields are required.").Render(r.Context(), w)
 		return
+	}
+
+	knownUsers := credentials.GetKnownUsers()
+	for _, uid := range knownUsers {
+		meta, _, err := credentials.LoadSession(uid)
+		if err != nil {
+			continue
+		}
+		if meta.DeviceID != "" &&
+			strings.Contains(uid, creds.Username) {
+			creds.DeviceID = meta.DeviceID
+			break
+		}
 	}
 
 	sess, err := h.svc.Login(r.Context(), creds)

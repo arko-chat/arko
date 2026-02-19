@@ -24,6 +24,7 @@ func New(
 	r.Use(chimw.RealIP)
 	r.Use(chimw.RequestID)
 	r.Use(middleware.Session(sessionStore))
+	r.Use(middleware.AutoRestore(sessionStore))
 
 	if dist := assets.DistFS(); dist != nil {
 		r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(dist))))

@@ -58,3 +58,16 @@ func (s *Store) Load(r *http.Request) State {
 
 	return state
 }
+
+func (s *Store) SaveState(
+	w http.ResponseWriter,
+	r *http.Request,
+	state State,
+) error {
+	sess, err := s.inner.Get(r, cookieName)
+	if err != nil {
+		sess, _ = s.inner.New(r, cookieName)
+	}
+	state.sess = sess
+	return state.Save(w, r)
+}

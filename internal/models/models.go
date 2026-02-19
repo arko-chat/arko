@@ -102,6 +102,7 @@ type LoginCredentials struct {
 	Homeserver string
 	Username   string
 	Password   string
+	DeviceID   string
 }
 
 type MatrixSession struct {

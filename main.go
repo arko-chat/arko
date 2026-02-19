@@ -44,6 +44,8 @@ func main() {
 		[]byte(cfg.PickleKey),
 	)
 
+	mgr.RestoreAllSessions()
+
 	svc := service.NewChatService(mgr, hub)
 	h := handlers.New(svc, slogger)
 	mux := router.New(h, sessionStore, mgr)
