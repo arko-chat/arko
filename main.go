@@ -23,7 +23,11 @@ func main() {
 		Level: slog.LevelDebug,
 	}))
 
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		slogger.Error("failed to generate config", "err", err)
+		os.Exit(1)
+	}
 
 	if err := os.MkdirAll(cfg.CryptoDBPath, 0700); err != nil {
 		slogger.Error("failed to create crypto db directory", "err", err)
