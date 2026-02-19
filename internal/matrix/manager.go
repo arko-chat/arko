@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +46,7 @@ type Manager struct {
 	verificationStates map[string]*VerificationState
 	sasSessions        map[string]*sasSession
 	verifiedUsers      map[string]bool
+	recoveryKeys       map[string]string
 }
 
 func NewManager(
@@ -66,6 +66,7 @@ func NewManager(
 		verificationStates: make(map[string]*VerificationState),
 		sasSessions:        make(map[string]*sasSession),
 		verifiedUsers:      make(map[string]bool),
+		recoveryKeys:       make(map[string]string),
 	}
 }
 
@@ -188,8 +189,6 @@ func (m *Manager) Login(
 		url.PathEscape(session.UserID),
 	)
 
-	_ = os.Remove(dbPath)
-
 	if err := m.setupCrypto(
 		ctx, session.UserID, dbPath, m.pickleKey,
 	); err != nil {
@@ -266,6 +265,40 @@ func (m *Manager) Logout(ctx context.Context, userID string) error {
 		return err
 	}
 	return nil
+}
+
+func (m *Manager) Shutdown() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for userID, cancel := range m.cancels {
+		cancel()
+		delete(m.cancels, userID)
+	}
+
+	for userID, helper := range m.cryptoHelpers {
+		if helper != nil {
+			if err := helper.Close(); err != nil {
+				m.logger.Error("failed to close crypto helper",
+					"user", userID,
+					"err", err,
+				)
+			}
+		}
+		delete(m.cryptoHelpers, userID)
+	}
+}
+
+func (m *Manager) SetRecoveryKey(userID string, key string) {
+	m.mu.Lock()
+	m.recoveryKeys[userID] = key
+	m.mu.Unlock()
+}
+
+func (m *Manager) GetRecoveryKey(userID string) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.recoveryKeys[userID]
 }
 
 func (m *Manager) startSync(userID string, client *mautrix.Client) {

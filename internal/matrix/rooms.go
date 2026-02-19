@@ -353,7 +353,9 @@ func (m *Manager) GetRoomMessages(
 	for _, evt := range resp.Chunk {
 		if evt.Type == event.EventEncrypted && helper != nil {
 			_ = evt.Content.ParseRaw(evt.Type)
+
 			decrypted, decErr := helper.Decrypt(ctx, evt)
+
 			if decErr != nil {
 				encContent, ok := evt.Content.Parsed.(*event.EncryptedEventContent)
 				if ok {
@@ -365,8 +367,27 @@ func (m *Manager) GetRoomMessages(
 						evt.Sender,
 						encContent.DeviceID,
 					)
-				}
 
+					m.tryImportKeyFromBackup(
+						ctx, userID,
+						id.RoomID(actualRoomID),
+						encContent.SessionID,
+					)
+
+					waited := helper.WaitForSession(
+						ctx,
+						id.RoomID(actualRoomID),
+						encContent.SenderKey,
+						encContent.SessionID,
+						10*time.Second,
+					)
+					if waited {
+						decrypted, decErr = helper.Decrypt(ctx, evt)
+					}
+				}
+			}
+
+			if decErr != nil {
 				messages = append(messages, models.Message{
 					ID:      evt.ID.String(),
 					Content: "🔒 Unable to decrypt this message.",

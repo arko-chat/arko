@@ -69,4 +69,7 @@ func main() {
 	w.SetSize(1280, 800, webview.HintMax)
 	w.Navigate(addr)
 	w.Run()
+
+	slogger.Info("window closed, shutting down")
+	mgr.Shutdown()
 }
