@@ -9,9 +9,9 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"github.com/arko-chat/arko/components/layout"
+	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/web/templates/layout"
-	"github.com/arko-chat/arko/web/templates/ui"
 )
 
 func View(spaceDetail models.SpaceDetail, currentChannel *models.Channel) templ.Component {

@@ -19,9 +19,7 @@
       })();
     </script>
     <link rel="stylesheet" href="src/assets/css/app.css" />
-    <script src="https://unpkg.com/htmx.org@2.0.8"></script>
-    <script src="https://unpkg.com/htmx-ext-ws@2.0.2/ws.js"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.8/dist/ext/loading-states.js"></script>
+    <script type="module" src="src/assets/js/index.js"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -35,10 +33,6 @@
       href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap"
       rel="stylesheet"
     />
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
-    ></script>
     <style>
       [x-cloak] {
         display: none !important;
@@ -88,43 +82,6 @@
       hx-target="#initial"
       hx-swap="outerHTML"
     ></div>
-    <script>
-      document.addEventListener("alpine:init", () => {
-        console.log("Alpine.js initialized");
-      });
-
-      window.addEventListener("load", () => {
-        console.log(
-          "Window loaded. Alpine available:",
-          typeof Alpine !== "undefined",
-        );
-      });
-
-      document.body.addEventListener("htmx:afterSettle", function (evt) {
-        var t = document.querySelector("title");
-        if (t) document.title = t.textContent;
-      });
-
-      document.addEventListener("htmx:wsBeforeMessage", function (e) {
-        const socketEl = e.target;
-        if (socketEl && socketEl.closest("[hx-swap-oob]")) {
-          return;
-        }
-      });
-
-      document.addEventListener("htmx:beforeSwap", function (e) {
-        const currentWs = document.querySelector("[ws-connect]");
-        if (!currentWs) return;
-
-        const target = e.detail.target;
-        if (target && target.contains(currentWs)) return;
-
-        const ext = currentWs.getAttribute("ws-connect");
-        if (ext) {
-          htmx.trigger(currentWs, "htmx:wsClose");
-        }
-      });
-    </script>
   </body>
 </html>
 

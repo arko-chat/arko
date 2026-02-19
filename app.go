@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 
-	"github.com/a-h/templ"
-	"github.com/arko-chat/arko/components"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -47,20 +45,20 @@ func NewChiRouter() *chi.Mux {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/initial", templ.Handler(components.Pages([]struct {
-		Path  string
-		Label string
-	}{
-		{"/greet", "Greet form"},
-	}, struct {
-		Version string
-		Text    string
-	}{
-		version, "No update available",
-	})).ServeHTTP)
-	r.Get("/greet", templ.Handler(components.GreetForm("/greet")).ServeHTTP)
-	r.Post("/greet", components.Greet)
-	r.Get("/modal", templ.Handler(components.TestPage("#modal", "outerHTML")).ServeHTTP)
-	r.Post("/modal", templ.Handler(components.ModalPreview("Title for the modal", "Sample Data")).ServeHTTP)
+	//r.Get("/initial", templ.Handler(components.Pages([]struct {
+	//	Path  string
+	//	Label string
+	//}{
+	//	{"/greet", "Greet form"},
+	//}, struct {
+	//	Version string
+	//	Text    string
+	//}{
+	//	version, "No update available",
+	//})).ServeHTTP)
+	//r.Get("/greet", templ.Handler(components.GreetForm("/greet")).ServeHTTP)
+	//r.Post("/greet", components.Greet)
+	//r.Get("/modal", templ.Handler(components.TestPage("#modal", "outerHTML")).ServeHTTP)
+	//r.Post("/modal", templ.Handler(components.ModalPreview("Title for the modal", "Sample Data")).ServeHTTP)
 	return r
 }

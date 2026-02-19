@@ -8,7 +8,7 @@ package spaces
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/arko-chat/arko/web/templates/ui"
+import "github.com/arko-chat/arko/components/ui"
 
 func CreateCategory() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

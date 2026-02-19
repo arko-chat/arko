@@ -9,9 +9,9 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"github.com/arko-chat/arko/components/features/dm"
+	"github.com/arko-chat/arko/components/layout"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/web/templates/features/dm"
-	"github.com/arko-chat/arko/web/templates/layout"
 )
 
 func View(currentFilter string) templ.Component {

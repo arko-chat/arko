@@ -9,8 +9,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"github.com/arko-chat/arko/components/utils"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/web/templates/utils"
 )
 
 func MessageActions(messageID string) templ.Component {

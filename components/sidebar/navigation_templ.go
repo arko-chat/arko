@@ -9,9 +9,9 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"github.com/arko-chat/arko/components/modals/spaces"
+	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/web/templates/modals/spaces"
-	"github.com/arko-chat/arko/web/templates/ui"
 )
 
 func NavigationSidebar(viewType string, user models.User, data interface{}) templ.Component {

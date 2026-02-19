@@ -8,7 +8,10 @@ package sidebar
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/arko-chat/arko/components/ui"
+import (
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/models"
+)
 
 func ChannelsSection(channels []models.Channel) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -83,7 +86,7 @@ func channelGroup(title string, channels []models.Channel, channelType models.Ch
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/sidebar/channels.templ`, Line: 19, Col: 12}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/sidebar/channels.templ`, Line: 22, Col: 12}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -137,7 +140,7 @@ func channelItem(channel models.Channel) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(templ.SafeURL("/space/" + channel.SpaceID + "/channel/" + channel.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/sidebar/channels.templ`, Line: 37, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/sidebar/channels.templ`, Line: 40, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -165,7 +168,7 @@ func channelItem(channel models.Channel) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(channel.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/sidebar/channels.templ`, Line: 49, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/sidebar/channels.templ`, Line: 52, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
