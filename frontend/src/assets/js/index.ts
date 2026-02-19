@@ -1,7 +1,26 @@
-import "htmx.org";
+import "../css/app.css";
+
 import "htmx-ext-ws";
 import "htmx-ext-loading-states";
-import "alpinejs";
+import htmx from "htmx.org";
+import type { Alpine as AlpineType } from "alpinejs";
+
+declare global {
+  interface Window {
+    Alpine: AlpineType;
+  }
+}
+
+var s = document.documentElement.style;
+var keys = [
+  "nav-sidebar-width",
+  "activity-sidebar-width",
+  "members-sidebar-width",
+];
+keys.forEach(function(k) {
+  var v = localStorage.getItem(k);
+  if (v) s.setProperty("--" + k, v + "px");
+});
 
 document.addEventListener("alpine:init", () => {
   console.log("Alpine.js initialized");
@@ -10,27 +29,28 @@ document.addEventListener("alpine:init", () => {
 window.addEventListener("load", () => {
   console.log(
     "Window loaded. Alpine available:",
-    typeof Alpine !== "undefined",
+    typeof window.Alpine !== "undefined",
   );
 });
 
-document.body.addEventListener("htmx:afterSettle", function(evt) {
-  var t = document.querySelector("title");
-  if (t) document.title = t.textContent;
+document.body.addEventListener("htmx:afterSettle", (evt: Event) => {
+  const t = document.querySelector("title");
+  if (t) document.title = t.textContent ?? "";
 });
 
-document.addEventListener("htmx:wsBeforeMessage", function(e) {
-  const socketEl = e.target;
+document.addEventListener("htmx:wsBeforeMessage", (e: Event) => {
+  const socketEl = e.target as HTMLElement | null;
   if (socketEl && socketEl.closest("[hx-swap-oob]")) {
     return;
   }
 });
 
-document.addEventListener("htmx:beforeSwap", function(e) {
-  const currentWs = document.querySelector("[ws-connect]");
+document.addEventListener("htmx:beforeSwap", (e: Event) => {
+  const detail = (e as CustomEvent).detail as { target: HTMLElement | null };
+  const currentWs = document.querySelector<HTMLElement>("[ws-connect]");
   if (!currentWs) return;
 
-  const target = e.detail.target;
+  const target = detail.target;
   if (target && target.contains(currentWs)) return;
 
   const ext = currentWs.getAttribute("ws-connect");
@@ -38,3 +58,5 @@ document.addEventListener("htmx:beforeSwap", function(e) {
     htmx.trigger(currentWs, "htmx:wsClose");
   }
 });
+
+

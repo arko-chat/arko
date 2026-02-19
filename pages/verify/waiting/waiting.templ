@@ -1,0 +1,76 @@
+package verifywaitingpage
+
+import (
+	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/internal/models"
+)
+
+templ Page(user models.User) {
+	@components.Base("Arko | Waiting for Verification") {
+		@Content(user)
+	}
+}
+
+templ Content(user models.User) {
+	<main
+		class="flex items-center justify-center w-full h-screen bg-surface-overlay"
+		hx-get="/verify/waiting"
+		hx-trigger="every 3s"
+		hx-swap="outerHTML"
+		hx-target="this"
+	>
+		<div class="w-full max-w-md mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				<div class="px-8 pt-8 pb-2 text-center">
+					<div class="w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4 relative">
+						<i class="fa-solid fa-spinner spinner text-brand text-2xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-content-primary mb-1">Waiting for Verification</h1>
+					<p class="text-sm text-content-muted">
+						Cross-signing keys have been set up. Now verify this device from another Matrix session to start using encrypted conversations.
+					</p>
+				</div>
+				<div class="px-8 pt-2 pb-2">
+					<div class="flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle">
+						<img
+							src={ user.Avatar }
+							class="w-9 h-9 rounded-full"
+							alt={ user.Name }
+						/>
+						<div class="flex flex-col min-w-0">
+							<span class="text-sm font-semibold text-content-primary truncate">{ user.Name }</span>
+							<span class="text-xs text-content-faint truncate">{ user.ID }</span>
+						</div>
+					</div>
+				</div>
+				<div class="px-8 pt-4 pb-8">
+					<div class="space-y-4">
+						<div class="flex items-start gap-3 p-3 rounded-md bg-info/5 border border-info/15">
+							<i class="fa-solid fa-circle-info text-info text-sm shrink-0 mt-0.5"></i>
+							<div class="text-xs text-content-secondary leading-relaxed space-y-2">
+								<p class="font-semibold text-content-primary">How to verify:</p>
+								<ol class="list-decimal list-inside space-y-1">
+									<li>Open Element or another Matrix client where you're already signed in</li>
+									<li>You should see a verification request for this new session</li>
+									<li>Approve and compare emojis or scan the QR code</li>
+									<li>Once confirmed, this page will redirect automatically</li>
+								</ol>
+							</div>
+						</div>
+						<div class="flex items-center justify-center gap-2 py-2">
+							<span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
+							<span class="text-xs text-content-muted font-medium">Polling for verification status…</span>
+						</div>
+					</div>
+				</div>
+				<div class="px-8 py-4 bg-surface-alt border-t border-border-divider">
+					<p class="text-[11px] text-content-faint text-center leading-relaxed">
+						Don't have another session?
+						<a href="/logout" class="text-brand hover:underline">Log out</a>
+						and sign in on Element first.
+					</p>
+				</div>
+			</div>
+		</div>
+	</main>
+}

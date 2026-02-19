@@ -24,7 +24,7 @@ templ SpaceList(spaces []models.Space) {
 templ spaceButton(space models.Space) {
 	<button
 		class="shrink-0 relative w-full flex justify-center"
-		hx-get={ templ.SafeURL("/space/" + space.ID) }
+		hx-get={ templ.SafeURL("/spaces/" + space.ID) }
 		hx-target="body"
 		hx-swap="innerHTML"
 		hx-push-url="true"

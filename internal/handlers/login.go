@@ -3,8 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/arko-chat/arko/components/pages"
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/models"
+	loginpage "github.com/arko-chat/arko/pages/login"
 )
 
 func (h *Handler) HandleLoginPage(
@@ -13,11 +15,11 @@ func (h *Handler) HandleLoginPage(
 ) {
 	state := h.state(r)
 	if state.LoggedIn && state.UserID != "" {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		htmx.Redirect(w, r, "/")
 		return
 	}
 
-	if err := pages.LoginPage().Render(r.Context(), w); err != nil {
+	if err := loginpage.Page().Render(r.Context(), w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -28,7 +30,7 @@ func (h *Handler) HandleLoginSubmit(
 ) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = pages.LoginError("Invalid form data.").Render(r.Context(), w)
+		_ = ui.Alert("Invalid form data.").Render(r.Context(), w)
 		return
 	}
 
@@ -40,7 +42,7 @@ func (h *Handler) HandleLoginSubmit(
 
 	if creds.Homeserver == "" || creds.Username == "" || creds.Password == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = pages.LoginError("All fields are required.").Render(r.Context(), w)
+		_ = ui.Alert("All fields are required.").Render(r.Context(), w)
 		return
 	}
 
@@ -52,7 +54,7 @@ func (h *Handler) HandleLoginSubmit(
 			"err", err,
 		)
 		w.WriteHeader(http.StatusUnauthorized)
-		_ = pages.LoginError(
+		_ = ui.Alert(
 			"Login failed. Check your homeserver, username, and password.",
 		).Render(r.Context(), w)
 		return
@@ -91,5 +93,5 @@ func (h *Handler) HandleLogout(
 	state.Homeserver = ""
 	_ = state.Clear(w, r)
 
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	htmx.Redirect(w, r, "/login")
 }

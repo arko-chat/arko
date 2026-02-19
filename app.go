@@ -2,9 +2,6 @@ package main
 
 import (
 	"context"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 // App struct
@@ -38,27 +35,4 @@ func (a *App) beforeClose(ctx context.Context) (prevent bool) {
 // shutdown is called at application termination
 func (a *App) shutdown(ctx context.Context) {
 	// Perform your teardown here
-}
-
-func NewChiRouter() *chi.Mux {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-
-	//r.Get("/initial", templ.Handler(components.Pages([]struct {
-	//	Path  string
-	//	Label string
-	//}{
-	//	{"/greet", "Greet form"},
-	//}, struct {
-	//	Version string
-	//	Text    string
-	//}{
-	//	version, "No update available",
-	//})).ServeHTTP)
-	//r.Get("/greet", templ.Handler(components.GreetForm("/greet")).ServeHTTP)
-	//r.Post("/greet", components.Greet)
-	//r.Get("/modal", templ.Handler(components.TestPage("#modal", "outerHTML")).ServeHTTP)
-	//r.Post("/modal", templ.Handler(components.ModalPreview("Title for the modal", "Sample Data")).ServeHTTP)
-	return r
 }

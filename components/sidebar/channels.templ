@@ -37,7 +37,7 @@ templ channelGroup(title string, channels []models.Channel, channelType models.C
 templ channelItem(channel models.Channel) {
 	<div
 		class="flex items-center gap-2.5 pl-6 pr-3 mx-2 cursor-pointer rounded-md hover:bg-hover-primary group transition-colors text-content-muted relative"
-		hx-get={ templ.SafeURL("/space/" + channel.SpaceID + "/channel/" + channel.ID) }
+		hx-get={ templ.SafeURL("/spaces/" + channel.SpaceID + "/channels/" + channel.ID) }
 		hx-target="body"
 		hx-swap="innerHTML"
 		hx-push-url="true"

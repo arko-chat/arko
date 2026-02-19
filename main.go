@@ -1,94 +1,68 @@
 package main
 
 import (
-	"embed"
+	"fmt"
 	"log"
+	"log/slog"
+	"net"
 	"net/http"
+	"os"
 
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/logger"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
-	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	"github.com/arko-chat/arko/internal/config"
+	"github.com/arko-chat/arko/internal/handlers"
+	"github.com/arko-chat/arko/internal/matrix"
+	"github.com/arko-chat/arko/internal/router"
+	"github.com/arko-chat/arko/internal/service"
+	"github.com/arko-chat/arko/internal/session"
+	"github.com/arko-chat/arko/internal/ws"
+	webview "github.com/webview/webview_go"
 )
 
-//go:embed all:frontend/dist components
-var assets embed.FS
-
-//go:embed build/appicon.png
-var icon []byte
-var version = "0.0.0"
-
 func main() {
-	// Create an instance of the app structure and custom Middleware
-	app := NewApp()
-	r := NewChiRouter()
+	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 
-	// Create application with options
-	err := wails.Run(&options.App{
-		Title:             "arko",
-		Width:             1040,
-		Height:            768,
-		MinWidth:          1040,
-		MinHeight:         768,
-		MaxWidth:          1280,
-		MaxHeight:         800,
-		DisableResize:     false,
-		Fullscreen:        false,
-		Frameless:         false,
-		StartHidden:       false,
-		HideWindowOnClose: false,
-		BackgroundColour:  &options.RGBA{R: 255, G: 255, B: 255, A: 255},
-		AssetServer:       &assetserver.Options{
-			Assets: assets,			
-			Middleware: func(next http.Handler) http.Handler {
-				r.NotFound(next.ServeHTTP)
-				return r
-			},
-		},
-		Menu:              nil,
-		Logger:            nil,
-		LogLevel:          logger.DEBUG,
-		OnStartup:         app.startup,
-		OnDomReady:        app.domReady,
-		OnBeforeClose:     app.beforeClose,
-		OnShutdown:        app.shutdown,
-		WindowStartState:  options.Normal,
-		Bind: []interface{}{
-			app,
-		},
-		// Windows platform specific options
-		Windows: &windows.Options{
-			WebviewIsTransparent: false,
-			WindowIsTranslucent:  false,
-			DisableWindowIcon:    false,
-			// DisableFramelessWindowDecorations: false,
-			WebviewUserDataPath: "",
-			ZoomFactor: 1.0,
-		},
-		// Mac platform specific options
-		Mac: &mac.Options{
-			TitleBar: &mac.TitleBar{
-				TitlebarAppearsTransparent: true,
-				HideTitle:                  false,
-				HideTitleBar:               false,
-				FullSizeContent:            false,
-				UseToolbar:                 false,
-				HideToolbarSeparator:       true,
-			},
-			Appearance:           mac.NSAppearanceNameDarkAqua,
-			WebviewIsTransparent: true,
-			WindowIsTranslucent:  true,
-			About: &mac.AboutInfo{
-				Title:   "arko",
-				Message: "",
-				Icon:    icon,
-			},
-		},
-	})
+	cfg := config.Load()
 
+	if err := os.MkdirAll(cfg.CryptoDBPath, 0700); err != nil {
+		slogger.Error("failed to create crypto db directory", "err", err)
+		os.Exit(1)
+	}
+
+	hub := ws.NewHub(slogger)
+	sessionStore := session.NewStore([]byte(cfg.SessionSecret))
+
+	mgr := matrix.NewManager(
+		hub,
+		slogger,
+		cfg.CryptoDBPath,
+		[]byte(cfg.PickleKey),
+	)
+
+	svc := service.NewChatService(mgr, hub)
+	h := handlers.New(svc, slogger)
+	mux := router.New(h, sessionStore, mgr)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	addr := fmt.Sprintf("http://127.0.0.1:%d", listener.Addr().(*net.TCPAddr).Port)
+	slogger.Info("server starting", "addr", addr)
+
+	go func() {
+		if err := http.Serve(listener, mux); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	w := webview.New(true)
+	defer w.Destroy()
+	w.SetTitle("Arko")
+	w.SetSize(1040, 768, webview.HintMin)
+	w.SetSize(1280, 800, webview.HintMax)
+	w.Navigate(addr)
+	w.Run()
 }

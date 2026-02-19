@@ -1,0 +1,65 @@
+package verifysaspage
+
+import (
+	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/internal/models"
+)
+
+type EmojiItem struct {
+	Emoji       string
+	Description string
+}
+
+templ Page(user models.User, emojis []EmojiItem) {
+	@components.Base("Arko | Confirm Verification") {
+		@Content(user, emojis)
+	}
+}
+
+templ Content(user models.User, emojis []EmojiItem) {
+	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+		<div class="w-full max-w-lg mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				<div class="px-8 pt-8 pb-2 text-center">
+					<div class="w-14 h-14 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4">
+						<i class="fa-solid fa-shield-check text-success text-2xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-content-primary mb-1">Confirm Emojis</h1>
+					<p class="text-sm text-content-muted">
+						Verify that the following emojis match what is shown on your other device.
+					</p>
+				</div>
+				<div class="px-8 pt-4 pb-4">
+					<div class="grid grid-cols-7 gap-2">
+						for _, e := range emojis {
+							<div class="flex flex-col items-center gap-1 p-2 rounded-md bg-surface-sunken border border-border-subtle">
+								<span class="text-2xl">{ e.Emoji }</span>
+								<span class="text-[10px] text-content-faint leading-tight text-center">{ e.Description }</span>
+							</div>
+						}
+					</div>
+				</div>
+				<div class="px-8 pt-2 pb-8">
+					<div class="flex gap-3">
+						<button
+							hx-post="/verify/cancel"
+							hx-swap="none"
+							class="flex-1 outline-none border border-border-subtle rounded-md px-3 py-2.5 text-sm font-semibold bg-surface-sunken text-content-secondary hover:bg-surface-alt cursor-pointer transition-all duration-150 active:scale-[0.98]"
+						>
+							<i class="fa-solid fa-xmark text-xs mr-1"></i>
+							They Don't Match
+						</button>
+						<button
+							hx-post="/verify/confirm"
+							hx-swap="none"
+							class="flex-1 outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-success text-white hover:bg-success/90 cursor-pointer transition-all duration-150 active:scale-[0.98]"
+						>
+							<i class="fa-solid fa-check text-xs mr-1"></i>
+							They Match
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}

@@ -5,17 +5,23 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 )
 
-func Auth(mgr *matrix.Manager) func(http.Handler) http.Handler {
+type AuthPages struct {
+	Login  http.HandlerFunc
+	Verify http.HandlerFunc
+}
+
+func Auth(mgr *matrix.Manager, pages AuthPages) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			state := GetState(r.Context())
 
 			if !state.LoggedIn || state.UserID == "" {
-				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				authRedirect(w, r, "/login", pages.Login)
 				return
 			}
 
@@ -24,7 +30,7 @@ func Auth(mgr *matrix.Manager) func(http.Handler) http.Handler {
 					state.LoggedIn = false
 					state.UserID = ""
 					_ = state.Clear(w, r)
-					http.Redirect(w, r, "/login", http.StatusSeeOther)
+					authRedirect(w, r, "/login", pages.Login)
 					return
 				}
 
@@ -41,7 +47,7 @@ func Auth(mgr *matrix.Manager) func(http.Handler) http.Handler {
 					state.DeviceID = ""
 					state.Homeserver = ""
 					_ = state.Clear(w, r)
-					http.Redirect(w, r, "/login", http.StatusSeeOther)
+					authRedirect(w, r, "/login", pages.Login)
 					return
 				}
 
@@ -52,9 +58,7 @@ func Auth(mgr *matrix.Manager) func(http.Handler) http.Handler {
 
 			if !state.Verified && !mgr.IsVerified(state.UserID) {
 				if !strings.HasPrefix(r.URL.Path, "/verify") {
-					http.Redirect(
-						w, r, "/verify", http.StatusSeeOther,
-					)
+					authRedirect(w, r, "/verify", pages.Verify)
 					return
 				}
 			}
@@ -63,4 +67,12 @@ func Auth(mgr *matrix.Manager) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func authRedirect(w http.ResponseWriter, r *http.Request, url string, page http.HandlerFunc) {
+	if htmx.IsHTMX(r) {
+		htmx.Redirect(w, r, url)
+		return
+	}
+	page(w, r)
 }

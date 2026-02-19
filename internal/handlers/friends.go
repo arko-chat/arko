@@ -4,8 +4,9 @@ import (
 	"net/http"
 
 	"github.com/arko-chat/arko/components/features/friends"
-	"github.com/arko-chat/arko/components/pages"
 	"github.com/arko-chat/arko/components/sidebar"
+	"github.com/arko-chat/arko/internal/htmx"
+	friendspage "github.com/arko-chat/arko/pages/friends"
 )
 
 func (h *Handler) HandleFriends(w http.ResponseWriter, r *http.Request) {
@@ -30,10 +31,16 @@ func (h *Handler) HandleFriends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := pages.FriendsPageContent(user, spaces, fl).Render(ctx, w); err != nil {
+	if htmx.IsHTMX(r) {
+		if err := friendspage.Content(user, spaces, fl).Render(ctx, w); err != nil {
+			h.serverError(w, r, err)
+		}
+		return
+	}
+
+	if err := friendspage.Page(user, spaces, fl).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
-	return
 }
 
 func (h *Handler) HandleFriendsFilter(

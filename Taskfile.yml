@@ -1,0 +1,92 @@
+version: "3"
+
+vars:
+  APP_NAME: arko
+  BUILD_DIR: build/bin
+
+dotenv: [".env"]
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install dev tooling
+    cmds:
+      - go install github.com/a-h/templ/cmd/templ@latest
+      - go install github.com/bokwoon95/wgo@latest
+      - cd frontend && bun install
+
+  generate:
+    desc: Generate templ files
+    sources:
+      - "**/*.templ"
+    cmds:
+      - templ generate
+
+  dev:
+    desc: Run dev mode (Vite + Go with hot reload)
+    deps:
+      - dev:vite
+      - dev:go
+
+  dev:vite:
+    internal: true
+    dir: frontend
+    cmds:
+      - bun run vite dev
+
+  dev:go:
+    internal: true
+    cmds:
+      - sleep 2
+      - "wgo -file .go -file .templ -xfile _templ.go templ generate :: go run -tags dev . {{.CLI_ARGS}}"
+
+  build:frontend:
+    desc: Build frontend assets
+    dir: frontend
+    cmds:
+      - bun run vite build
+    sources:
+      - src/**/*
+      - vite.config.*
+      - postcss.config.*
+    generates:
+      - ../components/assets/dist/**/*
+
+  build:
+    desc: Build production binary
+    deps:
+      - generate
+      - build:frontend
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - >
+        go build
+        -ldflags="-s -w -X main.version={{.VERSION}}"
+        -o {{.BUILD_DIR}}/{{.APP_NAME}}
+        .
+    vars:
+      VERSION:
+        sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - rm -rf components/assets/dist
+      - find . -name "*_templ.go" -delete
+
+  lint:
+    desc: Run linters
+    cmds:
+      - go vet ./...
+      - templ generate
+      - go build ./...
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./... {{.CLI_ARGS}}

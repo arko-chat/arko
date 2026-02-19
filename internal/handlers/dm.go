@@ -3,7 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/arko-chat/arko/components/pages"
+	"github.com/arko-chat/arko/internal/htmx"
+	dmpage "github.com/arko-chat/arko/pages/dm"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -47,8 +48,14 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		roomID = "dm-" + otherID
 	}
 
-	if err := pages.DMPageContent(user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
+	if htmx.IsHTMX(r) {
+		if err := dmpage.Content(user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
+			h.serverError(w, r, err)
+		}
+		return
+	}
+
+	if err := dmpage.Page(user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
-	return
 }

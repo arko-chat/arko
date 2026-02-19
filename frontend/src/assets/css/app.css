@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@source "../../../../components/**/*.templ";
+@source "../../../../pages/**/*.templ";
+
 @theme {
   --font-sans: "Inter", sans-serif;
 
@@ -104,3 +107,38 @@
   --status-shadow: #1c1c1a;
 }
 
+[x-cloak] {
+  display: none !important;
+}
+.htmx-indicator {
+  display: none;
+}
+.htmx-request .htmx-indicator {
+  display: inline-block;
+}
+.htmx-request.htmx-indicator {
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-down {
+  animation: slideDown 0.15s ease-out both;
+}

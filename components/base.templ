@@ -1,0 +1,40 @@
+package components
+
+import "github.com/arko-chat/arko/components/assets"
+
+templ Base(title string) {
+	<!DOCTYPE html>
+	<html lang="en" class="h-full">
+		<head>
+			if assets.IsDev() {
+				<script type="module" src={ assets.ViteClientURL() }></script>
+			}
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+			for _, css := range assets.CSS("src/assets/css/app.css") {
+				<link rel="stylesheet" href={ css }/>
+			}
+			<link
+				rel="stylesheet"
+				href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+				integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+				crossorigin="anonymous"
+				referrerpolicy="no-referrer"
+			/>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link
+				href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap"
+				rel="stylesheet"
+			/>
+		</head>
+		<body
+			class="h-full overflow-hidden font-sans bg-surface-overlay"
+			hx-ext="loading-states"
+		>
+			{ children... }
+			<script type="module" src={ assets.JS("src/assets/js/index.ts") }></script>
+		</body>
+	</html>
+}

@@ -18,7 +18,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (h *Handler) HandleRoomWS(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := chi.URLParam(r, "roomID")
 	state := h.state(r)
 

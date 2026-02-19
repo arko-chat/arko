@@ -1,0 +1,108 @@
+package loginpage
+
+import "github.com/arko-chat/arko/components/ui"
+import "github.com/arko-chat/arko/components"
+
+templ Page() {
+	@components.Base("Arko | Login") {
+		@Content()
+	}
+}
+
+templ Content() {
+	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+		<div class="w-full max-w-md mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				<div class="px-8 pt-8 pb-2 text-center">
+					<div class="w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4">
+						<i class="fa-solid fa-comments text-brand text-2xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-content-primary mb-1">Welcome to Arko</h1>
+					<p class="text-sm text-content-muted">Sign in with your Matrix account</p>
+				</div>
+				<div class="px-8 pt-4 pb-8">
+					<form
+						hx-post="/login/submit"
+						hx-target="#login-error"
+						hx-swap="innerHTML"
+						hx-indicator="#login-spinner"
+						class="space-y-4"
+					>
+						<div id="login-error"></div>
+						@ui.InputGroup("Homeserver", true, "e.g. matrix.org or your-server.com", ui.TextInputWithIcon(
+							"matrix.org",
+							"🌐",
+							"left",
+							templ.Attributes{
+								"name":         "homeserver",
+								"required":     true,
+								"autocomplete": "url",
+								"value":        "matrix.org",
+							},
+						))
+						@ui.InputGroup("Username", true, "", ui.TextInputWithIcon(
+							"your_username",
+							"@",
+							"left",
+							templ.Attributes{
+								"name":         "username",
+								"required":     true,
+								"autocomplete": "username",
+							},
+						))
+						<div>
+							@ui.Label("Password", true)
+							<input
+								type="password"
+								name="password"
+								placeholder="••••••••"
+								required
+								autocomplete="current-password"
+								class="w-full px-3 py-2 bg-surface-sunken text-sm text-content-primary rounded-md border border-border-subtle outline-none placeholder-content-placeholder transition-all duration-150 focus:border-brand focus:ring-1 focus:ring-brand/20"
+							/>
+						</div>
+						<div class="pt-2">
+							<button
+								type="submit"
+								class="w-full outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-brand text-white hover:bg-brand-hover cursor-pointer transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 relative"
+							>
+								<span id="login-spinner" class="htmx-indicator absolute inset-0 flex items-center justify-center">
+									<i class="fa-solid fa-spinner spinner text-sm"></i>
+								</span>
+								<span class="[.htmx-request_&]:invisible flex items-center gap-2">
+									<i class="fa-solid fa-right-to-bracket text-xs"></i>
+									Sign In
+								</span>
+							</button>
+						</div>
+					</form>
+				</div>
+				<div class="px-8 py-4 bg-surface-alt border-t border-border-divider">
+					<p class="text-[11px] text-content-faint text-center leading-relaxed">
+						Arko connects to any Matrix homeserver.
+						<a
+							href="https://matrix.org/try-matrix/"
+							target="_blank"
+							class="text-brand hover:underline"
+						>
+							Don't have an account?
+						</a>
+					</p>
+				</div>
+			</div>
+			<div class="mt-4 text-center">
+				<p class="text-[11px] text-content-faint">
+					Powered by the
+					<a
+						href="https://matrix.org"
+						target="_blank"
+						class="text-brand hover:underline"
+					>
+						Matrix
+					</a>
+					protocol
+				</p>
+			</div>
+		</div>
+	</main>
+}

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/middleware"
 	"github.com/arko-chat/arko/internal/service"
@@ -31,10 +32,9 @@ func (h *Handler) serverError(
 ) {
 	if errors.Is(err, matrix.ErrNoClient) {
 		h.logger.Warn("no matrix client, forcing logout", "err", err)
-		http.Redirect(w, r, "/logout", http.StatusSeeOther)
+		htmx.Redirect(w, r, "/logout")
 		return
 	}
 	h.logger.Error("handler error", "err", err)
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
-
