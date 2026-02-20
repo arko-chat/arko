@@ -198,12 +198,6 @@ func (s *ChatService) Login(
 	return s.matrix.Login(ctx, creds)
 }
 
-func (s *ChatService) RestoreSession(
-	sess session.Session,
-) error {
-	return s.matrix.RestoreSession(sess)
-}
-
 func (s *ChatService) Logout(
 	ctx context.Context,
 	userID string,

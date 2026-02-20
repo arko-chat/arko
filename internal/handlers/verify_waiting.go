@@ -16,7 +16,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.IsVerified(state.UserID)
+	verified := h.svc.IsVerified(ctx, state.UserID)
 	if verified {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/")
@@ -38,7 +38,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 	}
 
 	vs := h.svc.GetVerificationState(state.UserID)
-	if vState, ok := vs.(*matrix.VerificationState); ok && vState != nil {
+	if vState, ok := vs.(*matrix.VerificationUIState); ok && vState != nil {
 		if vState.Cancelled {
 			h.svc.ClearVerificationState(state.UserID)
 			if isHtmx {

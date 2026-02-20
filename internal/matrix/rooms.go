@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"sync"
 	"time"
 
 	"maunium.net/go/mautrix"
@@ -328,50 +329,77 @@ func (m *Manager) GetRoomMessages(
 	}
 
 	actualRoomID := decodeRoomID(roomID)
+	rid := id.RoomID(actualRoomID)
 
-	m.mu.RLock()
-	helper := m.cryptoHelpers[userID]
-	m.mu.RUnlock()
+	mSess, ok := m.matrixSessions.Load(userID)
+	if !ok {
+		return nil, fmt.Errorf(
+			"no existing matrix session of user: %s", userID,
+		)
+	}
 
-	resp, err := client.Messages(
-		ctx,
-		id.RoomID(actualRoomID),
-		"",
-		"",
-		'b',
-		nil,
-		limit,
-	)
+	i, err := mSess.keyBackupMgr.RestoreRoomKeys(ctx, rid)
+	if err != nil {
+		m.logger.Error("failed to restore room keys", "userID", userID, "roomID", roomID, "error", err)
+	}
+	m.logger.Debug("restored room keys", "number", i)
+
+	cryptoHelper := mSess.GetCryptoHelper()
+
+	resp, err := client.Messages(ctx, rid, "", "", mautrix.DirectionBackward, nil, limit)
 	if err != nil {
 		return nil, fmt.Errorf("messages: %w", err)
 	}
+	m.logger.Debug("got messages", "start", resp.Start, "end", resp.End)
 
-	var messages []models.Message
+	messages := make([]models.Message, 0, len(resp.Chunk))
+	var messagesMu sync.Mutex
+	var decryptionWg sync.WaitGroup
+	var failedEvts []*event.Event
+	var failedMu sync.Mutex
+
 	for _, evt := range resp.Chunk {
-		if evt.Type == event.EventEncrypted && helper != nil {
-			_ = evt.Content.ParseRaw(evt.Type)
-
-			decrypted, decErr := helper.Decrypt(ctx, evt)
-
-			if decErr != nil {
-				encContent, ok := evt.Content.Parsed.(*event.EncryptedEventContent)
+		decryptionWg.Go(func() {
+			if evt.Type != event.EventEncrypted {
+				msg, ok := m.parseMessageEvent(ctx, client, evt, actualRoomID)
 				if ok {
-					helper.RequestSession(
+					messagesMu.Lock()
+					messages = append(messages, msg)
+					messagesMu.Unlock()
+				}
+				return
+			}
+
+			_ = evt.Content.ParseRaw(evt.Type)
+			m.logger.Debug("decrypting message", "timestamp", evt.Timestamp, "senderID", evt.Sender)
+			decrypted, decErr := cryptoHelper.Decrypt(ctx, evt)
+			if decErr == nil {
+				msg, ok := m.parseMessageEvent(
+					ctx, client, decrypted, actualRoomID,
+				)
+				if ok {
+					messagesMu.Lock()
+					messages = append(messages, msg)
+					messagesMu.Unlock()
+				}
+				return
+			}
+
+			encContent, ok := evt.Content.Parsed.(*event.EncryptedEventContent)
+			if ok {
+				go func() {
+					m.logger.Debug("requesting session, no keys found", "timestamp", evt.Timestamp, "senderID", evt.Sender)
+					cryptoHelper.RequestSession(
 						ctx,
 						id.RoomID(actualRoomID),
 						encContent.SenderKey,
 						encContent.SessionID,
 						evt.Sender,
-						encContent.DeviceID,
+						"",
 					)
 
-					m.tryImportKeyFromBackup(
-						ctx, userID,
-						id.RoomID(actualRoomID),
-						encContent.SessionID,
-					)
-
-					waited := helper.WaitForSession(
+					m.logger.Debug("waiting for session", "timestamp", evt.Timestamp, "senderID", evt.Sender)
+					waited := cryptoHelper.WaitForSession(
 						ctx,
 						id.RoomID(actualRoomID),
 						encContent.SenderKey,
@@ -379,71 +407,40 @@ func (m *Manager) GetRoomMessages(
 						10*time.Second,
 					)
 					if waited {
-						decrypted, decErr = helper.Decrypt(ctx, evt)
+						decrypted, decErr = cryptoHelper.Decrypt(ctx, evt)
+						msg, ok := m.parseMessageEvent(
+							ctx, client, decrypted, actualRoomID,
+						)
+						if ok {
+							messagesMu.Lock()
+							messages = append(messages, msg)
+							messagesMu.Unlock()
+						}
+
+						err = mSess.keyBackupMgr.BackupRoomKeys(ctx, decrypted.RoomID, id.UserID(userID), encContent.SessionID)
+						if err != nil {
+							m.logger.Error("failed to backup room keys", "userID", userID, "roomID", decrypted.RoomID, "sessionID", encContent.SessionID, "error", err)
+						}
+						m.logger.Debug("backed up new room key", "userID", userID, "roomID", decrypted.RoomID, "sessionID", encContent.SessionID)
 					}
-				}
+				}()
 			}
-
-			if decErr != nil {
-				messages = append(messages, models.Message{
-					ID:      evt.ID.String(),
-					Content: "🔒 Unable to decrypt this message.",
-					Author: models.User{
-						ID:   evt.Sender.String(),
-						Name: evt.Sender.Localpart(),
-						Avatar: fmt.Sprintf(
-							"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-							evt.Sender.Localpart(),
-						),
-						Status: models.StatusOnline,
-					},
-					Timestamp: time.UnixMilli(evt.Timestamp),
-					ChannelID: actualRoomID,
-				})
-				continue
-			}
-			evt = decrypted
-		}
-
-		if evt.Type != event.EventMessage {
-			continue
-		}
-
-		_ = evt.Content.ParseRaw(evt.Type)
-
-		content, ok := evt.Content.Parsed.(*event.MessageEventContent)
-		if !ok {
-			continue
-		}
-
-		senderName := evt.Sender.Localpart()
-		avatarURL := fmt.Sprintf(
-			"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-			senderName,
-		)
-
-		profile, _ := client.GetProfile(ctx, evt.Sender)
-		if profile != nil {
-			if profile.DisplayName != "" {
-				senderName = profile.DisplayName
-			}
-			avatarURL = resolveContentURI(
-				profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
-			)
-		}
-
-		messages = append(messages, models.Message{
-			ID:      evt.ID.String(),
-			Content: content.Body,
-			Author: models.User{
-				ID:     evt.Sender.String(),
-				Name:   senderName,
-				Avatar: avatarURL,
-				Status: models.StatusOnline,
-			},
-			Timestamp: time.UnixMilli(evt.Timestamp),
-			ChannelID: actualRoomID,
+			failedMu.Lock()
+			failedEvts = append(failedEvts, evt)
+			failedMu.Unlock()
 		})
+	}
+
+	decryptionWg.Wait()
+
+	if len(failedEvts) > 0 {
+		writeIdx := len(messages) - len(failedEvts)
+		for _, evt := range failedEvts {
+			messages[writeIdx] = m.undecryptableMessage(
+				evt, actualRoomID,
+			)
+			writeIdx++
+		}
 	}
 
 	sort.Slice(messages, func(i, j int) bool {
@@ -451,6 +448,73 @@ func (m *Manager) GetRoomMessages(
 	})
 
 	return messages, nil
+}
+
+func (m *Manager) parseMessageEvent(
+	ctx context.Context,
+	client *mautrix.Client,
+	evt *event.Event,
+	channelID string,
+) (models.Message, bool) {
+	if evt.Type != event.EventMessage {
+		return models.Message{}, false
+	}
+
+	_ = evt.Content.ParseRaw(evt.Type)
+	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
+	if !ok {
+		return models.Message{}, false
+	}
+
+	senderName := evt.Sender.Localpart()
+	avatarURL := fmt.Sprintf(
+		"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
+		senderName,
+	)
+
+	profile, _ := client.GetProfile(ctx, evt.Sender)
+	if profile != nil {
+		if profile.DisplayName != "" {
+			senderName = profile.DisplayName
+		}
+		avatarURL = resolveContentURI(
+			profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
+		)
+	}
+
+	return models.Message{
+		ID:      evt.ID.String(),
+		Content: content.Body,
+		Author: models.User{
+			ID:     evt.Sender.String(),
+			Name:   senderName,
+			Avatar: avatarURL,
+			Status: models.StatusOnline,
+		},
+		Timestamp: time.UnixMilli(evt.Timestamp),
+		ChannelID: channelID,
+	}, true
+}
+
+func (m *Manager) undecryptableMessage(
+	evt *event.Event,
+	channelID string,
+) models.Message {
+	return models.Message{
+		ID:      evt.ID.String(),
+		Content: "🔒 Unable to decrypt this message.",
+		Author: models.User{
+			ID:   evt.Sender.String(),
+			Name: evt.Sender.Localpart(),
+			Avatar: fmt.Sprintf(
+				"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
+				evt.Sender.Localpart(),
+			),
+			Status: models.StatusOnline,
+		},
+		Timestamp: time.UnixMilli(evt.Timestamp),
+		ChannelID: channelID,
+	}
 }
 
 func (m *Manager) SendMessage(
@@ -472,33 +536,67 @@ func (m *Manager) SendMessage(
 		Body:    body,
 	}
 
-	m.mu.RLock()
-	helper := m.cryptoHelpers[userID]
-	m.mu.RUnlock()
-
-	if helper != nil {
-		var encEvt event.EncryptionEventContent
-		err := client.StateEvent(
-			ctx, rid, event.StateEncryption, "", &encEvt,
-		)
-		if err == nil && encEvt.Algorithm != "" {
-			encrypted, encErr := helper.Encrypt(
-				ctx, rid, event.EventMessage, content,
-			)
-			if encErr != nil {
-				return fmt.Errorf("encrypt: %w", encErr)
-			}
-			_, err = client.SendMessageEvent(
-				ctx, rid, event.EventEncrypted, encrypted,
-			)
-			return err
-		}
+	mSess, ok := m.matrixSessions.Load(userID)
+	if !ok {
+		return fmt.Errorf("no existing matrix session of user: %s", userID)
 	}
 
-	_, err = client.SendMessageEvent(
+	var encEvt event.EncryptionEventContent
+	err = client.StateEvent(
+		ctx, rid, event.StateEncryption, "", &encEvt,
+	)
+	if err == nil && encEvt.Algorithm != "" {
+		machine := mSess.GetCryptoHelper().Machine()
+		if machine != nil {
+			members, memberErr := client.Members(ctx, rid)
+			if memberErr == nil {
+				var memberIDs []id.UserID
+				for _, evt := range members.Chunk {
+					c, ok := evt.Content.Parsed.(*event.MemberEventContent)
+					if !ok || c.Membership != event.MembershipJoin {
+						continue
+					}
+					memberIDs = append(
+						memberIDs, id.UserID(evt.GetStateKey()),
+					)
+				}
+				if shareErr := machine.ShareGroupSession(
+					ctx, rid, memberIDs,
+				); shareErr != nil {
+					m.logger.Warn("share group session failed",
+						"user", userID,
+						"room", rid,
+						"err", shareErr,
+					)
+				}
+			}
+		}
+
+		encrypted, encErr := mSess.GetCryptoHelper().Encrypt(
+			ctx, rid, event.EventMessage, content,
+		)
+		if encErr != nil {
+			return fmt.Errorf("encrypt: %w", encErr)
+		}
+
+		resp, sendErr := client.SendMessageEvent(
+			ctx, rid, event.EventEncrypted, encrypted,
+		)
+		if sendErr != nil {
+			return sendErr
+		}
+		m.sentMsgIds.Add(resp.EventID.String(), struct{}{})
+		return nil
+	}
+
+	resp, err := client.SendMessageEvent(
 		ctx, rid, event.EventMessage, content,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	m.sentMsgIds.Add(resp.EventID.String(), struct{}{})
+	return nil
 }
 
 func (m *Manager) GetUserProfile(

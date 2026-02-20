@@ -16,7 +16,7 @@ func (h *Handler) HandleVerifySASPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.IsVerified(state.UserID)
+	verified := h.svc.IsVerified(ctx, state.UserID)
 	if verified {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/")
@@ -38,7 +38,7 @@ func (h *Handler) HandleVerifySASPage(
 	}
 
 	vs := h.svc.GetVerificationState(state.UserID)
-	vState, ok := vs.(*matrix.VerificationState)
+	vState, ok := vs.(*matrix.VerificationUIState)
 	if !ok || vState == nil || len(vState.Emojis) == 0 {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/verify/waiting")

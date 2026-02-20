@@ -40,8 +40,6 @@ func main() {
 		cfg.CryptoDBPath,
 	)
 
-	mgr.RestoreAllSessions()
-
 	svc := service.NewChatService(mgr, hub)
 	h := handlers.New(svc, slogger)
 	mux := router.New(h, mgr)

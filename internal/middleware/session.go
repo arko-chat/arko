@@ -15,13 +15,17 @@ func SessionMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userID := session.ReadCookie(r)
-			var sess session.Session
+			var sess *session.Session
 
 			if userID != "" {
 				loaded, err := session.Get(userID)
 				if err == nil {
 					sess = loaded
 				}
+			}
+
+			if sess == nil {
+				sess = session.Default()
 			}
 
 			if !sess.LoggedIn && userID == "" {
@@ -35,11 +39,7 @@ func SessionMiddleware() func(http.Handler) http.Handler {
 				}
 			}
 
-			if sess.UserID == "" {
-				sess = session.Default()
-			}
-
-			ctx := context.WithValue(r.Context(), stateKey, &sess)
+			ctx := context.WithValue(r.Context(), stateKey, sess)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -50,5 +50,5 @@ func GetSession(ctx context.Context) *session.Session {
 		return s
 	}
 	def := session.Default()
-	return &def
+	return def
 }

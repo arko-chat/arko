@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"slices"
 	"sync"
@@ -14,30 +13,39 @@ import (
 )
 
 const (
-	serviceName   = "arko"
-	knownUsersKey = "app:known_users"
-	cookieName    = "arko_uid"
+	serviceName       = "arko"
+	knownUsersKey     = "app:known_users"
+	globalSettingsKey = "app:global_settings"
+	cookieName        = "arko_uid"
 )
 
 var (
 	ErrNotFound = errors.New("session: not found")
 
-	mu           sync.RWMutex
-	cache        = make(map[string]Session)
-	secureCookie *securecookie.SecureCookie
+	mu            sync.RWMutex
+	cache         = make(map[string]*Session)
+	globalCache   *GlobalSettings
+	globalCacheMu sync.RWMutex
+	secureCookie  *securecookie.SecureCookie
 )
 
 type Session struct {
-	UserID      string `json:"user_id"`
-	Homeserver  string `json:"homeserver"`
-	AccessToken string `json:"access_token"`
-	DeviceID    string `json:"device_id"`
-	PickleKey   []byte `json:"pickle_key"`
-	RecoveryKey string `json:"recovery_key,omitempty"`
-	Verified    bool   `json:"verified"`
-	Theme       string `json:"theme"`
-	SidebarOpen bool   `json:"sidebar_open"`
-	LoggedIn    bool   `json:"logged_in"`
+	UserID         string `json:"user_id"`
+	Homeserver     string `json:"homeserver"`
+	Identityserver string `json:"identityserver"`
+	AccessToken    string `json:"access_token"`
+	RefreshToken   string `json:"refresh_token"`
+	PickleKey      []byte `json:"pickle_key"`
+	RecoveryKey    string `json:"recovery_key,omitempty"`
+	Theme          string `json:"theme"`
+	SidebarOpen    bool   `json:"sidebar_open"`
+	LoggedIn       bool   `json:"logged_in"`
+	DeviceID       string `json:"device_id"`
+	ExpiresInMs    int64  `json:"expires_ms"`
+}
+
+type GlobalSettings struct {
+	LastUserID string `json:"last_user_id,omitempty"`
 }
 
 func init() {
@@ -46,14 +54,18 @@ func init() {
 	secureCookie = securecookie.New(cookieKey, nil)
 }
 
-func Default() Session {
-	return Session{
+func Default() *Session {
+	return &Session{
 		Theme:       "dark",
 		SidebarOpen: true,
 	}
 }
 
-func save(sess Session) error {
+func DefaultGlobalSettings() *GlobalSettings {
+	return &GlobalSettings{}
+}
+
+func save(sess *Session) error {
 	data, err := json.Marshal(sess)
 	if err != nil {
 		return err
@@ -66,10 +78,13 @@ func save(sess Session) error {
 	mu.Unlock()
 
 	addKnownUser(sess.UserID)
+	UpdateGlobalSettings(func(gs *GlobalSettings) {
+		gs.LastUserID = sess.UserID
+	})
 	return nil
 }
 
-func Get(userID string) (Session, error) {
+func Get(userID string) (sess *Session, err error) {
 	mu.RLock()
 	if sess, ok := cache[userID]; ok {
 		mu.RUnlock()
@@ -79,25 +94,10 @@ func Get(userID string) (Session, error) {
 
 	raw, err := keyring.Get(serviceName, userID)
 	if err != nil {
-		return Session{}, ErrNotFound
+		return nil, ErrNotFound
 	}
-	var sess Session
 	if err := json.Unmarshal([]byte(raw), &sess); err != nil {
-		return Session{}, err
-	}
-
-	updated := false
-	if len(sess.PickleKey) < 32 {
-		sess.PickleKey = make([]byte, 32)
-		_, err := rand.Read(sess.PickleKey)
-		if err != nil {
-			return Session{}, fmt.Errorf("failed to generate pickle key: %w", err)
-		}
-		updated = true
-	}
-
-	if updated {
-		_ = save(sess)
+		return nil, err
 	}
 
 	mu.Lock()
@@ -107,7 +107,7 @@ func Get(userID string) (Session, error) {
 	return sess, nil
 }
 
-func Put(sess Session) error {
+func Put(sess *Session) error {
 	return save(sess)
 }
 
@@ -117,10 +117,26 @@ func Update(userID string, fn func(*Session)) error {
 		if !errors.Is(err, ErrNotFound) {
 			return err
 		}
-		sess = Session{UserID: userID}
+		sess = &Session{UserID: userID}
 	}
-	fn(&sess)
+	fn(sess)
 	return save(sess)
+}
+
+func UpdateAndGet(userID string, fn func(*Session)) (*Session, error) {
+	sess, err := Get(userID)
+	if err != nil {
+		if !errors.Is(err, ErrNotFound) {
+			return nil, err
+		}
+		sess = &Session{UserID: userID}
+	}
+	fn(sess)
+	if err := save(sess); err != nil {
+		return nil, err
+	}
+
+	return sess, nil
 }
 
 func Delete(userID string) {
@@ -129,6 +145,56 @@ func Delete(userID string) {
 	delete(cache, userID)
 	mu.Unlock()
 	removeKnownUser(userID)
+}
+
+func GetGlobalSettings() (*GlobalSettings, error) {
+	globalCacheMu.RLock()
+	if globalCache != nil {
+		gs := globalCache
+		globalCacheMu.RUnlock()
+		return gs, nil
+	}
+	globalCacheMu.RUnlock()
+
+	raw, err := keyring.Get(serviceName, globalSettingsKey)
+	if err != nil {
+		return DefaultGlobalSettings(), nil
+	}
+	var gs GlobalSettings
+	if err := json.Unmarshal([]byte(raw), &gs); err != nil {
+		return nil, err
+	}
+
+	globalCacheMu.Lock()
+	globalCache = &gs
+	globalCacheMu.Unlock()
+
+	return &gs, nil
+}
+
+func PutGlobalSettings(gs *GlobalSettings) error {
+	data, err := json.Marshal(gs)
+	if err != nil {
+		return err
+	}
+	if err := keyring.Set(serviceName, globalSettingsKey, string(data)); err != nil {
+		return err
+	}
+
+	globalCacheMu.Lock()
+	globalCache = gs
+	globalCacheMu.Unlock()
+
+	return nil
+}
+
+func UpdateGlobalSettings(fn func(*GlobalSettings)) error {
+	gs, err := GetGlobalSettings()
+	if err != nil {
+		return err
+	}
+	fn(gs)
+	return PutGlobalSettings(gs)
 }
 
 func addKnownUser(userID string) error {
@@ -163,7 +229,7 @@ func GetKnownUsers() []string {
 	return users
 }
 
-func SetCookie(w http.ResponseWriter, session Session) {
+func SetCookie(w http.ResponseWriter, session *Session) {
 	encoded, _ := secureCookie.Encode(cookieName, session.UserID)
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,

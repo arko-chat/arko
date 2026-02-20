@@ -44,7 +44,7 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roomID := channelID
+	roomID := ch.ID
 
 	if htmx.IsHTMX(r) {
 		if err := channelspage.Content(user, spaces, detail, ch, messages, roomID).Render(ctx, w); err != nil {

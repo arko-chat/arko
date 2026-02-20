@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/htmx"
@@ -48,18 +47,6 @@ func (h *Handler) HandleLoginSubmit(
 		return
 	}
 
-	for _, uid := range session.GetKnownUsers() {
-		saved, err := session.Get(uid)
-		if err != nil {
-			continue
-		}
-		if saved.DeviceID != "" &&
-			strings.Contains(uid, creds.Username) {
-			creds.DeviceID = saved.DeviceID
-			break
-		}
-	}
-
 	result, err := h.svc.Login(r.Context(), creds)
 	if err != nil {
 		h.logger.Error("login failed",
@@ -74,18 +61,18 @@ func (h *Handler) HandleLoginSubmit(
 		return
 	}
 
-	if err := session.Update(result.UserID, func(s *session.Session) {
+	result, err = session.UpdateAndGet(result.UserID, func(s *session.Session) {
 		s.UserID = result.UserID
 		s.Homeserver = result.Homeserver
 		s.AccessToken = result.AccessToken
-		s.DeviceID = result.DeviceID
 		s.LoggedIn = true
-	}); err != nil {
+	})
+	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	session.SetCookie(w, *result)
+	session.SetCookie(w, result)
 
 	w.Header().Set("HX-Redirect", "/")
 	w.WriteHeader(http.StatusOK)

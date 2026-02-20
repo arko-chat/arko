@@ -38,7 +38,6 @@ func New(
 		}))
 
 		r.Get("/verify", h.HandleVerifyPage)
-		r.Post("/verify/submit", h.HandleVerifySubmit)
 		r.Get("/verify/waiting", h.HandleVerifyWaitingPage)
 		r.Get("/verify/sas", h.HandleVerifySASPage)
 		r.Post("/verify/confirm", h.HandleVerifyConfirm)

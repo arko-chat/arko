@@ -2,22 +2,12 @@ package service
 
 import "context"
 
-func (s *ChatService) IsVerified(userID string) bool {
-	return s.matrix.IsVerified(userID)
+func (s *ChatService) IsVerified(ctx context.Context, userID string) bool {
+	return s.matrix.IsVerified(ctx, userID)
 }
 
 func (s *ChatService) HasCrossSigningKeys(userID string) bool {
 	return s.matrix.HasCrossSigningKeys(userID)
-}
-
-func (s *ChatService) SetupCrossSigning(
-	ctx context.Context,
-	userID string,
-	password string,
-) error {
-	return s.matrix.SetupCrossSigningInteractive(
-		ctx, userID, password,
-	)
 }
 
 func (s *ChatService) GetVerificationState(

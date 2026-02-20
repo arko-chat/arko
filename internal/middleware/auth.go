@@ -25,29 +25,14 @@ func Auth(mgr *matrix.Manager, pages AuthPages) func(http.Handler) http.Handler 
 			}
 
 			if !mgr.HasClient(sess.UserID) {
-				if sess.AccessToken == "" || sess.Homeserver == "" {
-					sess.LoggedIn = false
-					session.Delete(sess.UserID)
-					session.ClearCookie(w)
-					authRedirect(w, r, "/login", pages.Login)
-					return
-				}
-
-				err := mgr.RestoreSession(*sess)
-				if err != nil {
-					sess.LoggedIn = false
-					session.Delete(sess.UserID)
-					session.ClearCookie(w)
-					authRedirect(w, r, "/login", pages.Login)
-					return
-				}
-
-				if sess.Verified {
-					mgr.MarkVerified(sess.UserID)
-				}
+				sess.LoggedIn = false
+				session.Delete(sess.UserID)
+				session.ClearCookie(w)
+				authRedirect(w, r, "/login", pages.Login)
+				return
 			}
 
-			if !sess.Verified && !mgr.IsVerified(sess.UserID) {
+			if !mgr.IsVerified(r.Context(), sess.UserID) {
 				if !strings.HasPrefix(r.URL.Path, "/verify") {
 					authRedirect(w, r, "/verify", pages.Verify)
 					return

@@ -1,3 +1,4 @@
+// TODO: fix crypto race conditions, maybe use xsync
 // TODO: fix messages from other clients not received in real time
 // TODO: aggressive caching for a more responsive experience
 
@@ -9,13 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"maunium.net/go/mautrix"
-	"maunium.net/go/mautrix/crypto/cryptohelper"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
@@ -23,6 +21,8 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/arko-chat/arko/internal/ws"
+	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/puzpuzpuz/xsync/v4"
 )
 
 var ErrNoClient = errors.New("no client for user")
@@ -31,15 +31,12 @@ var ErrNotVerified = errors.New(
 )
 
 type Manager struct {
-	mu                 sync.RWMutex
-	clients            map[string]*mautrix.Client
-	cryptoHelpers      map[string]*cryptohelper.CryptoHelper
-	hub                *ws.Hub
-	logger             *slog.Logger
-	cancels            map[string]context.CancelFunc
-	cryptoDBPath       string
-	verificationStates map[string]*VerificationState
-	sasSessions        map[string]*sasSession
+	hub            *ws.Hub
+	logger         *slog.Logger
+	cryptoDBPath   string
+	sentMsgIds     *lru.Cache[string, struct{}]
+	matrixSessions *xsync.Map[string, *MatrixSession]
+	verifiedCache  bool
 }
 
 func NewManager(
@@ -47,97 +44,42 @@ func NewManager(
 	logger *slog.Logger,
 	cryptoDBPath string,
 ) *Manager {
-	return &Manager{
-		clients:            make(map[string]*mautrix.Client),
-		cryptoHelpers:      make(map[string]*cryptohelper.CryptoHelper),
-		cancels:            make(map[string]context.CancelFunc),
-		hub:                hub,
-		logger:             logger,
-		cryptoDBPath:       cryptoDBPath,
-		verificationStates: make(map[string]*VerificationState),
-		sasSessions:        make(map[string]*sasSession),
-	}
-}
+	newLru, _ := lru.New[string, struct{}](50)
 
-func (m *Manager) MarkVerified(userID string) {
-	if err := session.Update(userID, func(s *session.Session) {
-		s.Verified = true
-	}); err != nil {
-		m.logger.Warn("failed to store verified flag in keyring",
-			"user", userID,
-			"err", err,
-		)
-	}
-}
-
-func (m *Manager) IsVerified(userID string) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if s, err := session.Get(userID); err == nil && s.Verified {
-		return true
+	m := &Manager{
+		hub:            hub,
+		logger:         logger,
+		cryptoDBPath:   cryptoDBPath,
+		sentMsgIds:     newLru,
+		matrixSessions: xsync.NewMap[string, *MatrixSession](),
 	}
 
-	helper, ok := m.cryptoHelpers[userID]
-	client := m.clients[userID]
+	m.restoreAllSessions()
 
-	if !ok || helper == nil || client == nil {
-		return false
-	}
-
-	machine := helper.Machine()
-	if machine == nil {
-		return false
-	}
-
-	ctx := context.Background()
-
-	pubkeys := machine.GetOwnCrossSigningPublicKeys(ctx)
-	if pubkeys == nil {
-		return false
-	}
-
-	device, err := machine.CryptoStore.GetDevice(
-		ctx, id.UserID(userID), client.DeviceID,
-	)
-	if err != nil || device == nil {
-		return false
-	}
-
-	if device.Trust == id.TrustStateCrossSignedVerified {
-		session.Update(userID, func(s *session.Session) {
-			s.Verified = true
-		})
-		return true
-	}
-
-	return false
+	return m
 }
 
 func (m *Manager) HasClient(userID string) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	_, ok := m.clients[userID]
+	_, ok := m.matrixSessions.Load(userID)
 	return ok
 }
 
 func (m *Manager) GetClient(userID string) (*mautrix.Client, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	client, ok := m.clients[userID]
+	session, ok := m.matrixSessions.Load(userID)
 	if !ok {
 		return nil, ErrNoClient
 	}
-	return client, nil
+	return session.GetClient(), nil
 }
 
 func (m *Manager) GetVerificationState(
 	userID string,
-) *VerificationState {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.verificationStates[userID]
+) *VerificationUIState {
+	session, ok := m.matrixSessions.Load(userID)
+	if !ok {
+		return nil
+	}
+	return session.GetVerificationUIState()
 }
 
 func (m *Manager) Login(
@@ -149,71 +91,90 @@ func (m *Manager) Login(
 		homeserver = "https://" + homeserver
 	}
 
-	client, err := mautrix.NewClient(homeserver, "", "")
+	globalConf, err := session.GetGlobalSettings()
+	if err != nil {
+		return nil, fmt.Errorf("get global settings: %w", err)
+	}
+
+	var newSession *session.Session
+	userID := ""
+	accessToken := ""
+
+	if globalConf.LastUserID != "" {
+		userID = globalConf.LastUserID
+		newSession, err = session.Get(userID)
+		if err == nil {
+			accessToken = newSession.AccessToken
+		}
+	}
+
+	client, err := mautrix.NewClient(homeserver, id.UserID(userID), accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
 	}
 
-	loginReq := &mautrix.ReqLogin{
-		Type: mautrix.AuthTypePassword,
-		Identifier: mautrix.UserIdentifier{
-			Type: mautrix.IdentifierTypeUser,
-			User: creds.Username,
-		},
-		Password:                 creds.Password,
-		InitialDeviceDisplayName: "Arko Web Client",
-		StoreCredentials:         true,
+	if userID == "" || accessToken == "" {
+		loginReq := &mautrix.ReqLogin{
+			Type: mautrix.AuthTypePassword,
+			Identifier: mautrix.UserIdentifier{
+				Type: mautrix.IdentifierTypeUser,
+				User: creds.Username,
+			},
+			Password:                 creds.Password,
+			InitialDeviceDisplayName: "Arko Desktop Client",
+			StoreCredentials:         true,
+		}
+
+		if creds.DeviceID != "" {
+			loginReq.DeviceID = id.DeviceID(creds.DeviceID)
+		}
+
+		resp, err := client.Login(ctx, loginReq)
+		if err != nil {
+			return nil, fmt.Errorf("login: %w", err)
+		}
+
+		idServer := ""
+		if resp.WellKnown != nil {
+			idServer = resp.WellKnown.IdentityServer.BaseURL
+		}
+
+		newSession = &session.Session{
+			Homeserver:     homeserver,
+			Identityserver: idServer,
+			UserID:         resp.UserID.String(),
+			AccessToken:    resp.AccessToken,
+			RefreshToken:   resp.RefreshToken,
+			ExpiresInMs:    resp.ExpiresInMS,
+			DeviceID:       string(resp.DeviceID),
+		}
+
+		newSession, err = session.UpdateAndGet(newSession.UserID, func(s *session.Session) {
+			s.Homeserver = newSession.Homeserver
+			s.Identityserver = newSession.Identityserver
+			s.AccessToken = newSession.AccessToken
+			s.RefreshToken = newSession.RefreshToken
+			s.ExpiresInMs = newSession.ExpiresInMs
+		})
+		if err != nil {
+			m.logger.Error("failed to store session in keyring",
+				"user", newSession.UserID,
+				"err", err,
+			)
+		}
 	}
 
-	if creds.DeviceID != "" {
-		loginReq.DeviceID = id.DeviceID(creds.DeviceID)
-	}
-
-	resp, err := client.Login(ctx, loginReq)
-	if err != nil {
-		return nil, fmt.Errorf("login: %w", err)
-	}
-
-	newSession := session.Session{
-		Homeserver:  homeserver,
-		UserID:      resp.UserID.String(),
-		AccessToken: resp.AccessToken,
-		DeviceID:    resp.DeviceID.String(),
-	}
-
-	if err := session.Put(newSession); err != nil {
-		m.logger.Error("failed to store session in keyring",
-			"user", newSession.UserID,
-			"err", err,
-		)
-	}
-
-	m.mu.Lock()
-	m.clients[newSession.UserID] = client
-	m.mu.Unlock()
-
-	dbPath := fmt.Sprintf(
-		"%s/%s.db",
-		m.cryptoDBPath,
-		url.PathEscape(newSession.UserID),
-	)
-
-	if err := m.setupCrypto(
-		ctx, newSession.UserID, dbPath,
-	); err != nil {
-		m.logger.Error("crypto setup failed",
-			"user", newSession.UserID,
-			"err", err,
-		)
-	}
-
-	m.startSync(newSession.UserID, client)
-	return &newSession, nil
+	m.startSync(newSession, client)
+	return newSession, nil
 }
 
-func (m *Manager) RestoreAllSessions() {
+func (m *Manager) restoreAllSessions() {
 	users := session.GetKnownUsers()
 	for _, userID := range users {
+		m.logger.Info("restoring session",
+			"user", userID,
+		)
+
 		session, err := session.Get(userID)
 		if err != nil {
 			m.logger.Warn("skipping stored session",
@@ -223,7 +184,7 @@ func (m *Manager) RestoreAllSessions() {
 			continue
 		}
 
-		err = m.RestoreSession(session)
+		err = m.restoreSession(session)
 		if err != nil {
 			m.logger.Error("failed to restore session",
 				"user", userID,
@@ -234,8 +195,8 @@ func (m *Manager) RestoreAllSessions() {
 	}
 }
 
-func (m *Manager) RestoreSession(
-	sess session.Session,
+func (m *Manager) restoreSession(
+	sess *session.Session,
 ) error {
 	client, err := mautrix.NewClient(
 		sess.Homeserver,
@@ -245,79 +206,56 @@ func (m *Manager) RestoreSession(
 	if err != nil {
 		return fmt.Errorf("create client: %w", err)
 	}
-	client.DeviceID = id.DeviceID(sess.DeviceID)
 
-	m.mu.Lock()
-	m.clients[sess.UserID] = client
-	m.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	ctx := context.Background()
-	dbPath := fmt.Sprintf(
-		"%s/%s.db",
-		m.cryptoDBPath,
-		url.PathEscape(sess.UserID),
-	)
-	if err := m.setupCrypto(
-		ctx, sess.UserID, dbPath,
-	); err != nil {
-		m.logger.Error("crypto setup failed on restore",
-			"user", sess.UserID,
-			"err", err,
-		)
+	whoami, err := client.Whoami(ctx)
+	if err != nil {
+		if sess.RefreshToken != "" {
+			resp, refreshErr := m.doRefreshToken(ctx, client, sess.RefreshToken)
+			if refreshErr != nil {
+				session.Delete(sess.UserID)
+				return fmt.Errorf("token expired and refresh failed: %w", refreshErr)
+			}
+			client.AccessToken = resp.AccessToken
+			newSess, _ := session.UpdateAndGet(sess.UserID, func(s *session.Session) {
+				s.AccessToken = resp.AccessToken
+				if resp.RefreshToken != "" {
+					s.RefreshToken = resp.RefreshToken
+				}
+				if resp.ExpiresInMs > 0 {
+					s.ExpiresInMs = resp.ExpiresInMs
+				}
+			})
+			if newSess != nil {
+				sess = newSess
+			}
+		} else {
+			session.Delete(sess.UserID)
+			return fmt.Errorf("token invalid and no refresh token: %w", err)
+		}
+	} else if whoami.DeviceID != "" {
+		client.DeviceID = whoami.DeviceID
 	}
 
-	m.startSync(sess.UserID, client)
-
+	m.startSync(sess, client)
 	return nil
 }
 
 func (m *Manager) Logout(ctx context.Context, userID string) error {
-	m.mu.Lock()
-	client, ok := m.clients[userID]
-	cancel, hasCancel := m.cancels[userID]
-	helper, hasHelper := m.cryptoHelpers[userID]
-	delete(m.clients, userID)
-	delete(m.cancels, userID)
-	delete(m.cryptoHelpers, userID)
-	delete(m.verificationStates, userID)
-	delete(m.sasSessions, userID)
-	m.mu.Unlock()
-
-	if hasHelper && helper != nil {
-		_ = helper.Close()
-	}
-	if hasCancel {
-		cancel()
-	}
-
+	mSess, _ := m.matrixSessions.LoadAndDelete(userID)
+	mSess.GetClient().Logout(ctx)
+	mSess.Close()
 	session.Delete(userID)
-	if ok {
-		_, err := client.Logout(ctx)
-		return err
-	}
 	return nil
 }
 
 func (m *Manager) Shutdown() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	for userID, cancel := range m.cancels {
-		cancel()
-		delete(m.cancels, userID)
+	for _, sess := range m.matrixSessions.All() {
+		sess.Close()
 	}
-
-	for userID, helper := range m.cryptoHelpers {
-		if helper != nil {
-			if err := helper.Close(); err != nil {
-				m.logger.Error("failed to close crypto helper",
-					"user", userID,
-					"err", err,
-				)
-			}
-		}
-		delete(m.cryptoHelpers, userID)
-	}
+	m.matrixSessions.Clear()
 }
 
 func (m *Manager) SetRecoveryKey(userID string, key string) {
@@ -340,118 +278,59 @@ func (m *Manager) GetRecoveryKey(userID string) string {
 	return s.RecoveryKey
 }
 
-func (m *Manager) startSync(userID string, client *mautrix.Client) {
-	ctx, cancel := context.WithCancel(context.Background())
-	m.mu.Lock()
-	if oldCancel, ok := m.cancels[userID]; ok {
-		oldCancel()
+func (m *Manager) IsVerified(ctx context.Context, userID string) bool {
+	session, ok := m.matrixSessions.Load(userID)
+	if !ok {
+		return false
 	}
-	m.cancels[userID] = cancel
-	m.mu.Unlock()
 
-	syncer := client.Syncer.(*mautrix.DefaultSyncer)
+	machine := session.GetCryptoHelper().Machine()
+	if machine == nil {
+		return false
+	}
 
-	syncer.OnEventType(
-		event.EventMessage,
-		func(ctx context.Context, evt *event.Event) {
-			if evt.Sender.String() == userID {
-				return
-			}
-			html := m.eventToHTML(client, evt)
-			if html == nil {
-				return
-			}
-			rawRoomID := evt.RoomID.String()
-			m.hub.Broadcast(rawRoomID, html)
-		},
+	device, err := machine.CryptoStore.GetDevice(
+		ctx, id.UserID(userID), machine.Client.DeviceID,
 	)
-
-	m.mu.RLock()
-	helper := m.cryptoHelpers[userID]
-	m.mu.RUnlock()
-
-	if helper != nil {
-		helper.CustomPostDecrypt = func(
-			ctx context.Context, evt *event.Event,
-		) {
-			if evt.Type != event.EventMessage {
-				return
-			}
-			if evt.Sender.String() == userID {
-				return
-			}
-			html := m.eventToHTML(client, evt)
-			if html == nil {
-				return
-			}
-			rawRoomID := evt.RoomID.String()
-			m.hub.Broadcast(rawRoomID, html)
-		}
-
-		syncer.OnEventType(
-			event.EventEncrypted,
-			helper.HandleEncrypted,
+	if err != nil || device == nil {
+		m.logger.Error("failed to get device",
+			"user", userID,
+			"error", err,
 		)
+		return false
 	}
 
-	syncer.OnEventType(
-		event.ToDeviceVerificationRequest,
-		func(ctx context.Context, evt *event.Event) {
-			m.handleVerificationRequest(ctx, userID, client, evt)
-		},
-	)
-	syncer.OnEventType(
-		event.ToDeviceVerificationStart,
-		func(ctx context.Context, evt *event.Event) {
-			m.handleVerificationStart(ctx, userID, client, evt)
-		},
-	)
-	syncer.OnEventType(
-		event.ToDeviceVerificationKey,
-		func(ctx context.Context, evt *event.Event) {
-			m.handleVerificationKey(ctx, userID, client, evt)
-		},
-	)
-	syncer.OnEventType(
-		event.ToDeviceVerificationMAC,
-		func(ctx context.Context, evt *event.Event) {
-			m.handleVerificationMAC(ctx, userID, client, evt)
-		},
-	)
-	syncer.OnEventType(
-		event.ToDeviceVerificationCancel,
-		func(ctx context.Context, evt *event.Event) {
-			m.handleVerificationCancel(userID, evt)
-		},
-	)
-	syncer.OnEventType(
-		event.ToDeviceVerificationDone,
-		func(ctx context.Context, evt *event.Event) {
-			m.handleVerificationDone(userID, evt)
-		},
-	)
+	trust, err := machine.ResolveTrustContext(ctx, device)
+	if err != nil {
+		m.logger.Error("failed to resolve trust",
+			"user", userID,
+			"error", err,
+		)
+		return false
+	}
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				err := client.SyncWithContext(ctx)
-				if err != nil && ctx.Err() == nil {
-					m.logger.Error("sync error",
-						"user", userID,
-						"err", err,
-					)
-					if errors.Is(err, mautrix.MUnknownToken) {
-						_ = m.Logout(ctx, userID)
-						return
-					}
-					time.Sleep(5 * time.Second)
-				}
-			}
-		}
-	}()
+	if trust == id.TrustStateCrossSignedTOFU {
+		return true
+	}
+
+	m.logger.Debug("device not verified",
+		"user", userID,
+		"trust", trust.String(),
+	)
+	return false
+}
+
+func (m *Manager) startSync(sess *session.Session, client *mautrix.Client) {
+	newSession, err := m.NewMatrixSession(client)
+	if err != nil {
+		m.logger.Error("sync error",
+			"user", sess.UserID,
+			"err", err,
+		)
+		return
+	}
+
+	m.matrixSessions.Store(sess.UserID, newSession)
 }
 
 func (m *Manager) eventToHTML(
