@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/arko-chat/arko/internal/session"
 	"golang.org/x/crypto/hkdf"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/crypto/cryptohelper"
@@ -827,7 +828,6 @@ func (m *Manager) setupCrypto(
 	ctx context.Context,
 	userID string,
 	dbPath string,
-	pickleKey []byte,
 ) error {
 	m.mu.RLock()
 	client := m.clients[userID]
@@ -835,6 +835,22 @@ func (m *Manager) setupCrypto(
 
 	if client == nil {
 		return ErrNoClient
+	}
+
+	s, err := session.Get(userID)
+	if err != nil {
+		return err
+	}
+	pickleKey := s.PickleKey
+	if len(pickleKey) == 0 {
+		pickleKey = make([]byte, 32)
+		_, err := rand.Read(pickleKey)
+		if err != nil {
+			return fmt.Errorf("failed to generate pickle key: %w", err)
+		}
+		session.Update(userID, func(s *session.Session) {
+			s.PickleKey = pickleKey
+		})
 	}
 
 	helper, err := cryptohelper.NewCryptoHelper(

@@ -190,7 +190,7 @@ func NavbarActions() templ.Component {
 			ui.IconButton("fa-solid fa-inbox text-[13px]", "default", templ.Attributes{}),
 			ui.IconButton("fa-solid fa-circle-question text-[13px]", "default", templ.Attributes{}),
 			ui.IconButton("fa-solid fa-circle-half-stroke text-[13px]", "default", templ.Attributes{
-				"onclick": "document.documentElement.classList.toggle('dark')",
+				"onclick": "document.documentElement.classList.toggle('dark'); fetch('/api/theme', {method:'POST'})",
 				"title":   "Toggle theme",
 			}),
 		}, true, true).Render(ctx, templ_7745c5c3_Buffer)
@@ -254,7 +254,7 @@ func ServerNavbarActions() templ.Component {
 			ui.IconButton("fa-solid fa-inbox text-[13px]", "default", templ.Attributes{}),
 			ui.IconButton("fa-solid fa-circle-question text-[13px]", "default", templ.Attributes{}),
 			ui.IconButton("fa-solid fa-circle-half-stroke text-[13px]", "default", templ.Attributes{
-				"onclick": "document.documentElement.classList.toggle('dark')",
+				"onclick": "document.documentElement.classList.toggle('dark'); fetch('/api/theme', {method:'POST'})",
 				"title":   "Toggle theme",
 			}),
 		}, true, true).Render(ctx, templ_7745c5c3_Buffer)

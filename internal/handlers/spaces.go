@@ -9,7 +9,7 @@ import (
 )
 
 func (h *Handler) HandleSpaces(w http.ResponseWriter, r *http.Request) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 	spaceID := chi.URLParam(r, "spaceID")
 
@@ -38,7 +38,7 @@ func (h *Handler) HandleSpaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := spacespage.Page(user, spaces, detail).Render(ctx, w); err != nil {
+	if err := spacespage.Page(state, user, spaces, detail).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

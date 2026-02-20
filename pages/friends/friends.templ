@@ -5,10 +5,11 @@ import (
 	"github.com/arko-chat/arko/components/features/friends"
 	"github.com/arko-chat/arko/components/sidebar"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(user models.User, spaces []models.Space, viewData []models.User) {
-	@components.Base("Arko | Friends") {
+templ Page(state *session.Session, user models.User, spaces []models.Space, viewData []models.User) {
+	@components.Base(state, "Arko | Friends") {
 		@Content(user, spaces, viewData)
 	}
 }

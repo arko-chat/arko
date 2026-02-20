@@ -3,10 +3,11 @@ package verifywaitingpage
 import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(user models.User) {
-	@components.Base("Arko | Waiting for Verification") {
+templ Page(state *session.Session, user models.User) {
+	@components.Base(state, "Arko | Waiting for Verification") {
 		@Content(user)
 	}
 }

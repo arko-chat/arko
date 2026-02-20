@@ -1,11 +1,19 @@
 package components
 
-import "github.com/arko-chat/arko/components/assets"
+import (
+	"github.com/arko-chat/arko/components/assets"
+	"github.com/arko-chat/arko/internal/session"
+)
 
-templ Base(title string) {
+templ Base(state *session.Session, title string) {
 	<!DOCTYPE html>
 	<html lang="en" class="h-full">
 		<head>
+			if state != nil && state.Theme != "" {
+				<script>
+          document.documentElement.classList.add({{ state.Theme }});
+        </script>
+			}
 			if assets.IsDev() {
 				<script type="module" src={ assets.ViteClientURL() }></script>
 			}

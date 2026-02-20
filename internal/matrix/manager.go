@@ -25,8 +25,8 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"github.com/arko-chat/arko/components/ui"
-	"github.com/arko-chat/arko/internal/credentials"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 	"github.com/arko-chat/arko/internal/ws"
 )
 
@@ -43,18 +43,14 @@ type Manager struct {
 	logger             *slog.Logger
 	cancels            map[string]context.CancelFunc
 	cryptoDBPath       string
-	pickleKey          []byte
 	verificationStates map[string]*VerificationState
 	sasSessions        map[string]*sasSession
-	verifiedUsers      map[string]bool
-	recoveryKeys       map[string]string
 }
 
 func NewManager(
 	hub *ws.Hub,
 	logger *slog.Logger,
 	cryptoDBPath string,
-	pickleKey []byte,
 ) *Manager {
 	return &Manager{
 		clients:            make(map[string]*mautrix.Client),
@@ -63,20 +59,15 @@ func NewManager(
 		hub:                hub,
 		logger:             logger,
 		cryptoDBPath:       cryptoDBPath,
-		pickleKey:          pickleKey,
 		verificationStates: make(map[string]*VerificationState),
 		sasSessions:        make(map[string]*sasSession),
-		verifiedUsers:      make(map[string]bool),
-		recoveryKeys:       make(map[string]string),
 	}
 }
 
 func (m *Manager) MarkVerified(userID string) {
-	m.mu.Lock()
-	m.verifiedUsers[userID] = true
-	m.mu.Unlock()
-
-	if err := credentials.StoreVerified(userID, true); err != nil {
+	if err := session.Update(userID, func(s *session.Session) {
+		s.Verified = true
+	}); err != nil {
 		m.logger.Warn("failed to store verified flag in keyring",
 			"user", userID,
 			"err", err,
@@ -88,12 +79,7 @@ func (m *Manager) IsVerified(userID string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	if m.verifiedUsers[userID] {
-		return true
-	}
-
-	if credentials.LoadVerified(userID) {
-		m.verifiedUsers[userID] = true
+	if s, err := session.Get(userID); err == nil && s.Verified {
 		return true
 	}
 
@@ -124,8 +110,9 @@ func (m *Manager) IsVerified(userID string) bool {
 	}
 
 	if device.Trust == id.TrustStateCrossSignedVerified {
-		m.verifiedUsers[userID] = true
-		_ = credentials.StoreVerified(userID, true)
+		session.Update(userID, func(s *session.Session) {
+			s.Verified = true
+		})
 		return true
 	}
 
@@ -161,7 +148,7 @@ func (m *Manager) GetVerificationState(
 func (m *Manager) Login(
 	ctx context.Context,
 	creds models.LoginCredentials,
-) (*models.MatrixSession, error) {
+) (*session.Session, error) {
 	homeserver := creds.Homeserver
 	if !strings.HasPrefix(homeserver, "http") {
 		homeserver = "https://" + homeserver
@@ -192,53 +179,47 @@ func (m *Manager) Login(
 		return nil, fmt.Errorf("login: %w", err)
 	}
 
-	session := &models.MatrixSession{
+	newSession := session.Session{
 		Homeserver:  homeserver,
 		UserID:      resp.UserID.String(),
 		AccessToken: resp.AccessToken,
 		DeviceID:    resp.DeviceID.String(),
 	}
 
-	meta := credentials.SessionMetadata{
-		Homeserver: session.Homeserver,
-		UserID:     session.UserID,
-		DeviceID:   session.DeviceID,
-	}
-	if err := credentials.StoreSession(meta, session.AccessToken); err != nil {
+	if err := session.Put(newSession); err != nil {
 		m.logger.Error("failed to store session in keyring",
-			"user", session.UserID,
+			"user", newSession.UserID,
 			"err", err,
 		)
 	}
-	_ = credentials.AddKnownUser(session.UserID)
 
 	m.mu.Lock()
-	m.clients[session.UserID] = client
+	m.clients[newSession.UserID] = client
 	m.mu.Unlock()
 
 	dbPath := fmt.Sprintf(
 		"%s/%s.db",
 		m.cryptoDBPath,
-		url.PathEscape(session.UserID),
+		url.PathEscape(newSession.UserID),
 	)
 
 	if err := m.setupCrypto(
-		ctx, session.UserID, dbPath, m.pickleKey,
+		ctx, newSession.UserID, dbPath,
 	); err != nil {
 		m.logger.Error("crypto setup failed",
-			"user", session.UserID,
+			"user", newSession.UserID,
 			"err", err,
 		)
 	}
 
-	m.startSync(session.UserID, client)
-	return session, nil
+	m.startSync(newSession.UserID, client)
+	return &newSession, nil
 }
 
 func (m *Manager) RestoreAllSessions() {
-	users := credentials.GetKnownUsers()
+	users := session.GetKnownUsers()
 	for _, userID := range users {
-		meta, token, err := credentials.LoadSession(userID)
+		session, err := session.Get(userID)
 		if err != nil {
 			m.logger.Warn("skipping stored session",
 				"user", userID,
@@ -247,12 +228,7 @@ func (m *Manager) RestoreAllSessions() {
 			continue
 		}
 
-		err = m.RestoreSession(models.MatrixSession{
-			Homeserver:  meta.Homeserver,
-			UserID:      meta.UserID,
-			AccessToken: token,
-			DeviceID:    meta.DeviceID,
-		})
+		err = m.RestoreSession(session)
 		if err != nil {
 			m.logger.Error("failed to restore session",
 				"user", userID,
@@ -260,23 +236,11 @@ func (m *Manager) RestoreAllSessions() {
 			)
 			continue
 		}
-
-		if credentials.LoadVerified(userID) {
-			m.mu.Lock()
-			m.verifiedUsers[userID] = true
-			m.mu.Unlock()
-		}
-
-		if rk, rkErr := credentials.LoadRecoveryKey(userID); rkErr == nil && rk != "" {
-			m.mu.Lock()
-			m.recoveryKeys[userID] = rk
-			m.mu.Unlock()
-		}
 	}
 }
 
 func (m *Manager) RestoreSession(
-	sess models.MatrixSession,
+	sess session.Session,
 ) error {
 	client, err := mautrix.NewClient(
 		sess.Homeserver,
@@ -299,7 +263,7 @@ func (m *Manager) RestoreSession(
 		url.PathEscape(sess.UserID),
 	)
 	if err := m.setupCrypto(
-		ctx, sess.UserID, dbPath, m.pickleKey,
+		ctx, sess.UserID, dbPath,
 	); err != nil {
 		m.logger.Error("crypto setup failed on restore",
 			"user", sess.UserID,
@@ -331,11 +295,7 @@ func (m *Manager) Logout(ctx context.Context, userID string) error {
 		cancel()
 	}
 
-	credentials.DeleteSession(userID)
-	credentials.DeleteRecoveryKey(userID)
-	credentials.DeleteVerified(userID)
-	_ = credentials.RemoveKnownUser(userID)
-
+	session.Delete(userID)
 	if ok {
 		_, err := client.Logout(ctx)
 		return err
@@ -366,11 +326,9 @@ func (m *Manager) Shutdown() {
 }
 
 func (m *Manager) SetRecoveryKey(userID string, key string) {
-	m.mu.Lock()
-	m.recoveryKeys[userID] = key
-	m.mu.Unlock()
-
-	if err := credentials.StoreRecoveryKey(userID, key); err != nil {
+	if err := session.Update(userID, func(s *session.Session) {
+		s.RecoveryKey = key
+	}); err != nil {
 		m.logger.Warn("failed to store recovery key in keyring",
 			"user", userID,
 			"err", err,
@@ -379,24 +337,12 @@ func (m *Manager) SetRecoveryKey(userID string, key string) {
 }
 
 func (m *Manager) GetRecoveryKey(userID string) string {
-	m.mu.RLock()
-	key := m.recoveryKeys[userID]
-	m.mu.RUnlock()
-
-	if key != "" {
-		return key
-	}
-
-	stored, err := credentials.LoadRecoveryKey(userID)
+	s, err := session.Get(userID)
 	if err != nil {
 		return ""
 	}
 
-	m.mu.Lock()
-	m.recoveryKeys[userID] = stored
-	m.mu.Unlock()
-
-	return stored
+	return s.RecoveryKey
 }
 
 func (m *Manager) startSync(userID string, client *mautrix.Client) {

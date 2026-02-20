@@ -6,10 +6,11 @@ import (
 	"github.com/arko-chat/arko/components/layout"
 	"github.com/arko-chat/arko/components/sidebar"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
-	@components.Base("Arko | " + friend.Name) {
+templ Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
+	@components.Base(state, "Arko | "+friend.Name) {
 		@Content(user, spaces, friendsList, friend, messages, roomID)
 	}
 }

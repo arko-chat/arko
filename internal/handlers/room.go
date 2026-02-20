@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 
 func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := chi.URLParam(r, "roomID")
-	state := h.state(r)
+	state := h.session(r)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

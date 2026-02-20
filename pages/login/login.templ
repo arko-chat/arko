@@ -2,9 +2,10 @@ package loginpage
 
 import "github.com/arko-chat/arko/components/ui"
 import "github.com/arko-chat/arko/components"
+import "github.com/arko-chat/arko/internal/session"
 
-templ Page() {
-	@components.Base("Arko | Login") {
+templ Page(state *session.Session) {
+	@components.Base(state, "Arko | Login") {
 		@Content()
 	}
 }

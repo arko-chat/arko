@@ -12,7 +12,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
@@ -73,7 +73,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 		}
 		return
 	}
-	if err := verifywaitingpage.Page(user).Render(ctx, w); err != nil {
+	if err := verifywaitingpage.Page(state, user).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

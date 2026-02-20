@@ -9,6 +9,7 @@ import (
 
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 	"github.com/arko-chat/arko/internal/ws"
 )
 
@@ -193,12 +194,12 @@ func (s *ChatService) SendRoomMessage(
 func (s *ChatService) Login(
 	ctx context.Context,
 	creds models.LoginCredentials,
-) (*models.MatrixSession, error) {
+) (*session.Session, error) {
 	return s.matrix.Login(ctx, creds)
 }
 
 func (s *ChatService) RestoreSession(
-	sess models.MatrixSession,
+	sess session.Session,
 ) error {
 	return s.matrix.RestoreSession(sess)
 }

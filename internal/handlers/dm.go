@@ -9,7 +9,7 @@ import (
 )
 
 func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 	otherID := chi.URLParam(r, "userID")
 
@@ -55,7 +55,7 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := dmpage.Page(user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
+	if err := dmpage.Page(state, user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

@@ -7,14 +7,12 @@ import (
 	"github.com/arko-chat/arko/internal/handlers"
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/middleware"
-	"github.com/arko-chat/arko/internal/session"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 )
 
 func New(
 	h *handlers.Handler,
-	sessionStore *session.Store,
 	mgr *matrix.Manager,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -23,8 +21,7 @@ func New(
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.RequestID)
-	r.Use(middleware.Session(sessionStore))
-	r.Use(middleware.AutoRestore(sessionStore))
+	r.Use(middleware.SessionMiddleware())
 
 	if dist := assets.DistFS(); dist != nil {
 		r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(dist))))
@@ -54,6 +51,8 @@ func New(
 		r.Get("/spaces/{spaceID}", h.HandleSpaces)
 		r.Get("/spaces/{spaceID}/channels/{channelID}", h.HandleChannels)
 		r.Get("/ws/room/{roomID}", h.HandleRoom)
+
+		r.Post("/api/theme", h.HandleToggleTheme)
 	})
 
 	return r

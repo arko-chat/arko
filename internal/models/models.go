@@ -104,10 +104,3 @@ type LoginCredentials struct {
 	Password   string
 	DeviceID   string
 }
-
-type MatrixSession struct {
-	Homeserver  string
-	UserID      string
-	AccessToken string
-	DeviceID    string
-}

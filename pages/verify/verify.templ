@@ -4,10 +4,11 @@ import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(user models.User) {
-	@components.Base("Arko | Verify Device") {
+templ Page(state *session.Session, user models.User) {
+	@components.Base(state, "Arko | Verify Device") {
 		@Content(user)
 	}
 }
@@ -86,4 +87,3 @@ templ Content(user models.User) {
 		</div>
 	</main>
 }
-

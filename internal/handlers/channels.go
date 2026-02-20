@@ -9,7 +9,7 @@ import (
 )
 
 func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 	spaceID := chi.URLParam(r, "spaceID")
 	channelID := chi.URLParam(r, "channelID")
@@ -53,7 +53,7 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := channelspage.Page(user, spaces, detail, ch, messages, roomID).Render(ctx, w); err != nil {
+	if err := channelspage.Page(state, user, spaces, detail, ch, messages, roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

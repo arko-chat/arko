@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/arko-chat/arko/components/ui"
-	"github.com/arko-chat/arko/internal/credentials"
 	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 	loginpage "github.com/arko-chat/arko/pages/login"
 )
 
@@ -15,13 +15,13 @@ func (h *Handler) HandleLoginPage(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
-	if state.LoggedIn && state.UserID != "" {
+	sess := h.session(r)
+	if sess.LoggedIn && sess.UserID != "" {
 		htmx.Redirect(w, r, "/")
 		return
 	}
 
-	if err := loginpage.Page().Render(r.Context(), w); err != nil {
+	if err := loginpage.Page(sess).Render(r.Context(), w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -48,20 +48,19 @@ func (h *Handler) HandleLoginSubmit(
 		return
 	}
 
-	knownUsers := credentials.GetKnownUsers()
-	for _, uid := range knownUsers {
-		meta, _, err := credentials.LoadSession(uid)
+	for _, uid := range session.GetKnownUsers() {
+		saved, err := session.Get(uid)
 		if err != nil {
 			continue
 		}
-		if meta.DeviceID != "" &&
+		if saved.DeviceID != "" &&
 			strings.Contains(uid, creds.Username) {
-			creds.DeviceID = meta.DeviceID
+			creds.DeviceID = saved.DeviceID
 			break
 		}
 	}
 
-	sess, err := h.svc.Login(r.Context(), creds)
+	result, err := h.svc.Login(r.Context(), creds)
 	if err != nil {
 		h.logger.Error("login failed",
 			"homeserver", creds.Homeserver,
@@ -75,17 +74,18 @@ func (h *Handler) HandleLoginSubmit(
 		return
 	}
 
-	state := h.state(r)
-	state.UserID = sess.UserID
-	state.Homeserver = sess.Homeserver
-	state.AccessToken = sess.AccessToken
-	state.DeviceID = sess.DeviceID
-	state.LoggedIn = true
-
-	if err := state.Save(w, r); err != nil {
+	if err := session.Update(result.UserID, func(s *session.Session) {
+		s.UserID = result.UserID
+		s.Homeserver = result.Homeserver
+		s.AccessToken = result.AccessToken
+		s.DeviceID = result.DeviceID
+		s.LoggedIn = true
+	}); err != nil {
 		h.serverError(w, r, err)
 		return
 	}
+
+	session.SetCookie(w, *result)
 
 	w.Header().Set("HX-Redirect", "/")
 	w.WriteHeader(http.StatusOK)
@@ -95,18 +95,14 @@ func (h *Handler) HandleLogout(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
+	sess := h.session(r)
 
-	if state.LoggedIn {
-		_ = h.svc.Logout(r.Context(), state.UserID)
+	if sess.LoggedIn {
+		_ = h.svc.Logout(r.Context(), sess.UserID)
 	}
 
-	state.LoggedIn = false
-	state.UserID = ""
-	state.AccessToken = ""
-	state.DeviceID = ""
-	state.Homeserver = ""
-	_ = state.Clear(w, r)
+	session.Delete(sess.UserID)
+	session.ClearCookie(w)
 
 	htmx.Redirect(w, r, "/login")
 }

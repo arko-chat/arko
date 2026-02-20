@@ -1,13 +1,12 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
 	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/matrix"
-	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 )
 
 type AuthPages struct {
@@ -18,53 +17,44 @@ type AuthPages struct {
 func Auth(mgr *matrix.Manager, pages AuthPages) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			state := GetState(r.Context())
+			sess := GetSession(r.Context())
 
-			if !state.LoggedIn || state.UserID == "" {
+			if !sess.LoggedIn || sess.UserID == "" {
 				authRedirect(w, r, "/login", pages.Login)
 				return
 			}
 
-			if !mgr.HasClient(state.UserID) {
-				if state.AccessToken == "" || state.Homeserver == "" {
-					state.LoggedIn = false
-					state.UserID = ""
-					_ = state.Clear(w, r)
+			if !mgr.HasClient(sess.UserID) {
+				if sess.AccessToken == "" || sess.Homeserver == "" {
+					sess.LoggedIn = false
+					session.Delete(sess.UserID)
+					session.ClearCookie(w)
 					authRedirect(w, r, "/login", pages.Login)
 					return
 				}
 
-				err := mgr.RestoreSession(models.MatrixSession{
-					Homeserver:  state.Homeserver,
-					UserID:      state.UserID,
-					AccessToken: state.AccessToken,
-					DeviceID:    state.DeviceID,
-				})
+				err := mgr.RestoreSession(*sess)
 				if err != nil {
-					state.LoggedIn = false
-					state.UserID = ""
-					state.AccessToken = ""
-					state.DeviceID = ""
-					state.Homeserver = ""
-					_ = state.Clear(w, r)
+					sess.LoggedIn = false
+					session.Delete(sess.UserID)
+					session.ClearCookie(w)
 					authRedirect(w, r, "/login", pages.Login)
 					return
 				}
 
-				if state.Verified {
-					mgr.MarkVerified(state.UserID)
+				if sess.Verified {
+					mgr.MarkVerified(sess.UserID)
 				}
 			}
 
-			if !state.Verified && !mgr.IsVerified(state.UserID) {
+			if !sess.Verified && !mgr.IsVerified(sess.UserID) {
 				if !strings.HasPrefix(r.URL.Path, "/verify") {
 					authRedirect(w, r, "/verify", pages.Verify)
 					return
 				}
 			}
 
-			ctx := context.WithValue(r.Context(), stateKey, state)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r)
 		})
 	}
 }

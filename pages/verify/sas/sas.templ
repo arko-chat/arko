@@ -3,6 +3,7 @@ package verifysaspage
 import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
 )
 
 type EmojiItem struct {
@@ -10,8 +11,8 @@ type EmojiItem struct {
 	Description string
 }
 
-templ Page(user models.User, emojis []EmojiItem) {
-	@components.Base("Arko | Confirm Verification") {
+templ Page(state *session.Session, user models.User, emojis []EmojiItem) {
+	@components.Base(state, "Arko | Confirm Verification") {
 		@Content(user, emojis)
 	}
 }

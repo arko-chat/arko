@@ -13,7 +13,6 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/router"
 	"github.com/arko-chat/arko/internal/service"
-	"github.com/arko-chat/arko/internal/session"
 	"github.com/arko-chat/arko/internal/ws"
 	webview "github.com/webview/webview_go"
 )
@@ -35,20 +34,17 @@ func main() {
 	}
 
 	hub := ws.NewHub(slogger)
-	sessionStore := session.NewStore([]byte(cfg.SessionSecret))
-
 	mgr := matrix.NewManager(
 		hub,
 		slogger,
 		cfg.CryptoDBPath,
-		[]byte(cfg.PickleKey),
 	)
 
 	mgr.RestoreAllSessions()
 
 	svc := service.NewChatService(mgr, hub)
 	h := handlers.New(svc, slogger)
-	mux := router.New(h, sessionStore, mgr)
+	mux := router.New(h, mgr)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

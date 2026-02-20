@@ -32,7 +32,7 @@ func (m *Manager) SetupCrossSigningInteractive(
 			url.PathEscape(userID),
 		)
 		if err := m.setupCrypto(
-			ctx, userID, dbPath, m.pickleKey,
+			ctx, userID, dbPath,
 		); err != nil {
 			return fmt.Errorf("crypto setup: %w", err)
 		}

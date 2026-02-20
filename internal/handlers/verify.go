@@ -13,7 +13,7 @@ func (h *Handler) HandleVerifyPage(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
@@ -61,7 +61,7 @@ func (h *Handler) HandleVerifyPage(
 		return
 	}
 
-	if err := verifypage.Page(user).Render(ctx, w); err != nil {
+	if err := verifypage.Page(state, user).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -70,7 +70,7 @@ func (h *Handler) HandleVerifySubmit(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 
 	if err := r.ParseForm(); err != nil {

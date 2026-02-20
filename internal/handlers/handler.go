@@ -1,12 +1,9 @@
 package handlers
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 
-	"github.com/arko-chat/arko/internal/htmx"
-	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/middleware"
 	"github.com/arko-chat/arko/internal/service"
 	"github.com/arko-chat/arko/internal/session"
@@ -21,20 +18,11 @@ func New(svc *service.ChatService, logger *slog.Logger) *Handler {
 	return &Handler{svc: svc, logger: logger}
 }
 
-func (h *Handler) state(r *http.Request) session.State {
-	return middleware.GetState(r.Context())
+func (h *Handler) session(r *http.Request) *session.Session {
+	return middleware.GetSession(r.Context())
 }
 
-func (h *Handler) serverError(
-	w http.ResponseWriter,
-	r *http.Request,
-	err error,
-) {
-	if errors.Is(err, matrix.ErrNoClient) {
-		h.logger.Warn("no matrix client, forcing logout", "err", err)
-		htmx.Redirect(w, r, "/logout")
-		return
-	}
-	h.logger.Error("handler error", "err", err)
+func (h *Handler) serverError(w http.ResponseWriter, r *http.Request, err error) {
+	h.logger.Error("server error", "path", r.URL.Path, "err", err)
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }

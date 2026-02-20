@@ -12,7 +12,7 @@ func (h *Handler) HandleVerifySASPage(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
@@ -80,7 +80,7 @@ func (h *Handler) HandleVerifySASPage(
 		}
 		return
 	}
-	if err := verifysaspage.Page(user, emojis).Render(ctx, w); err != nil {
+	if err := verifysaspage.Page(state, user, emojis).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -89,7 +89,7 @@ func (h *Handler) HandleVerifyConfirm(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 
 	if err := h.svc.ConfirmVerification(ctx, state.UserID); err != nil {
@@ -107,7 +107,7 @@ func (h *Handler) HandleVerifyCancel(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.state(r)
+	state := h.session(r)
 	ctx := r.Context()
 
 	if err := h.svc.CancelVerification(ctx, state.UserID); err != nil {
