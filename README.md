@@ -1,28 +1,35 @@
-# README
+# arko
 
-## About
+~Discord~ without all the nonsense. Based on Matrix Protocol.
 
-This template uses a unique combination of pure htmx for interactivity plus Go templates for creating components and forms, also included:
-- Built-in added styling to show off some of Tailwind and Daisyui.
-- Uses HTMX for MPA style interactivity on a single page as per SPA.
-- Added custom Chi middleware for handling HTMX calls in an easy to maintain routing configuration.
-- Built-in version display linked to version variable from main which can be updated on app build for CICD and/or during runtime.
-- Scripts configured to use the Bun runtime to launch Vite. (Make sure you have bun installed first)
-- To switch back to npm instead of bun, edit wails.json and package.json (or use NPM under the @npm tag)
-- Also using https://templ.guide/ for components and templates use "templ generate" to update templ files. 
+arko (/ʔaɾˈko/) is an opinionated Matrix client for people who want privacy without dealing with all the Matrix annoyances.
 
-## Initial Setup Instructions
-- Install Bun (or use NPM under the @npm tag)
-- Change go.mod module
-- Change app.go components package import
-- **For Linux build tag webkit2_40 is required e.g -tags webkit2_40**
+### Status
+This is a work in progress. Things will break. Features are missing. If you are looking for a finished product, come back later. 
 
-## Live Development
+### Why another Matrix client?
+I am for the idea of federated chat servers. I believe it's the only way to go if we want privacy. Matrix is pretty much the leading protocol with all the necessary pieces to develop a ~Discord~ like experience. 
 
-To run in live development mode, run `wails dev` in the project directory. In another terminal, go into the `frontend`
-directory and run `bun run dev`. The frontend dev server will run on http://localhost:34115. Connect to this in your
-browser and connect to your application.
+Also, it's mostly a learning project of mine.
 
-## Building
+### Goals
+- Matrix protocol under the hood
+- No telemetry (it's just a client bro)
+- Clean interface that stays out of your way
+- Fast performance (pretty challenging with Matrix ngl)
+- UX be so good that your grandma should be able to use it
 
-To build a redistributable, production mode package, use `wails build`.
+### Current techstack
+Go, Templ, HTMX, WebView (i am allergic to javascript)
+
+### Getting Started
+stop. it's not ready yet.
+
+### Contributing
+If you want to help out, open a pull request. keep it simple and follow the existing style. no large refactors without talking about it first. 
+
+### License
+MIT
+
+
+i am using LLMs (like everybody else) for this project as i value my time. i only use chat LLMs (no "agentic" ones) mostly just to generate boilerplates and some generic interfaces.

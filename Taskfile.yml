@@ -42,7 +42,7 @@ tasks:
     internal: true
     cmds:
       - sleep 2
-      - "wgo -file .go -file .templ -xfile _templ.go templ generate :: go run -tags dev . {{.CLI_ARGS}}"
+      - "wgo -file .go -file .templ -xfile _templ.go templ generate :: go run -tags dev ./cmd/arko {{.CLI_ARGS}}"
 
   build:frontend:
     desc: Build frontend assets
@@ -67,7 +67,7 @@ tasks:
         go build
         -ldflags="-s -w -X main.version={{.VERSION}}"
         -o {{.BUILD_DIR}}/{{.APP_NAME}}
-        .
+        ./cmd/arko
     vars:
       VERSION:
         sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
