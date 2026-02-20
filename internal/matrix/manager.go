@@ -1,4 +1,3 @@
-// TODO: fix crypto race conditions, maybe use xsync
 // TODO: fix messages from other clients not received in real time
 // TODO: aggressive caching for a more responsive experience
 
