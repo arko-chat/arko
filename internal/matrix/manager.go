@@ -1,10 +1,5 @@
-// TODO: fix message order
-// TODO: seems like encrypted messages are after first view?
-// TODO: figure out a better way to store crypto, should persist across restarts
-// TODO: consider using matrix js sdk for frontend crypto?
 // TODO: fix messages from other clients not received in real time
 // TODO: aggressive caching for a more responsive experience
-// TODO: avatars not working
 
 package matrix
 
@@ -448,6 +443,10 @@ func (m *Manager) startSync(userID string, client *mautrix.Client) {
 						"user", userID,
 						"err", err,
 					)
+					if errors.Is(err, mautrix.MUnknownToken) {
+						_ = m.Logout(ctx, userID)
+						return
+					}
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -465,7 +464,6 @@ func (m *Manager) eventToHTML(
 	}
 
 	senderName := evt.Sender.Localpart()
-	hsURL := client.HomeserverURL.String()
 	avatarURL := fmt.Sprintf(
 		"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
 		senderName,
@@ -477,7 +475,7 @@ func (m *Manager) eventToHTML(
 			senderName = profile.DisplayName
 		}
 		avatarURL = resolveContentURI(
-			hsURL, profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
+			profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
 		)
 	}
 

@@ -3,19 +3,16 @@ package matrix
 import (
 	"fmt"
 	"net/url"
-	"strings"
 
 	"maunium.net/go/mautrix/id"
 )
 
-func mxcToHTTP(homeserverURL string, uri id.ContentURI) string {
+func mxcToHTTP(uri id.ContentURI) string {
 	if uri.IsEmpty() {
 		return ""
 	}
-	hsURL := strings.TrimRight(homeserverURL, "/")
 	return fmt.Sprintf(
-		"%s/_matrix/media/v3/download/%s/%s",
-		hsURL,
+		"/_matrix/client/v1/media/download/%s/%s",
 		uri.Homeserver,
 		uri.FileID,
 	)

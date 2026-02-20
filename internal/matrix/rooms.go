@@ -3,6 +3,7 @@ package matrix
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sort"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 )
 
 func resolveContentURI(
-	hsURL string,
 	uri id.ContentURI,
 	fallbackSeed string,
 	fallbackStyle string,
@@ -25,11 +25,11 @@ func resolveContentURI(
 			fallbackStyle, fallbackSeed,
 		)
 	}
-	return mxcToHTTP(hsURL, uri)
+	path := mxcToHTTP(uri)
+	return "/api/media?path=" + url.QueryEscape(path)
 }
 
 func resolveContentURIString(
-	hsURL string,
 	uriStr id.ContentURIString,
 	fallbackSeed string,
 	fallbackStyle string,
@@ -47,7 +47,8 @@ func resolveContentURIString(
 			fallbackStyle, fallbackSeed,
 		)
 	}
-	return mxcToHTTP(hsURL, parsed)
+	path := mxcToHTTP(parsed)
+	return "/api/media?path=" + url.QueryEscape(path)
 }
 
 func (m *Manager) GetCurrentUser(
@@ -60,7 +61,6 @@ func (m *Manager) GetCurrentUser(
 	}
 
 	localpart := id.UserID(userID).Localpart()
-	hsURL := client.HomeserverURL.String()
 
 	profile, err := client.GetProfile(ctx, id.UserID(userID))
 	if err != nil {
@@ -76,7 +76,7 @@ func (m *Manager) GetCurrentUser(
 	}
 
 	avatar := resolveContentURI(
-		hsURL, profile.AvatarURL, localpart, "avataaars",
+		profile.AvatarURL, localpart, "avataaars",
 	)
 
 	name := profile.DisplayName
@@ -223,8 +223,6 @@ func (m *Manager) ListDirectMessages(
 		return nil, fmt.Errorf("get dm list: %w", err)
 	}
 
-	hsURL := client.HomeserverURL.String()
-
 	var friends []models.User
 	seen := make(map[string]bool)
 	for otherUser := range dmMap {
@@ -247,7 +245,7 @@ func (m *Manager) ListDirectMessages(
 				name = profile.DisplayName
 			}
 			avatar = resolveContentURI(
-				hsURL, profile.AvatarURL, localpart, "avataaars",
+				profile.AvatarURL, localpart, "avataaars",
 			)
 		}
 
@@ -330,7 +328,6 @@ func (m *Manager) GetRoomMessages(
 	}
 
 	actualRoomID := decodeRoomID(roomID)
-	hsURL := client.HomeserverURL.String()
 
 	m.mu.RLock()
 	helper := m.cryptoHelpers[userID]
@@ -431,7 +428,7 @@ func (m *Manager) GetRoomMessages(
 				senderName = profile.DisplayName
 			}
 			avatarURL = resolveContentURI(
-				hsURL, profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
+				profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
 			)
 		}
 
@@ -450,7 +447,7 @@ func (m *Manager) GetRoomMessages(
 	}
 
 	sort.Slice(messages, func(i, j int) bool {
-		return messages[i].Timestamp.Before(messages[j].Timestamp)
+		return messages[i].Timestamp.After(messages[j].Timestamp)
 	})
 
 	return messages, nil
@@ -516,7 +513,6 @@ func (m *Manager) GetUserProfile(
 
 	target := id.UserID(targetUserID)
 	localpart := target.Localpart()
-	hsURL := client.HomeserverURL.String()
 
 	name := localpart
 	avatar := fmt.Sprintf(
@@ -530,7 +526,7 @@ func (m *Manager) GetUserProfile(
 			name = profile.DisplayName
 		}
 		avatar = resolveContentURI(
-			hsURL, profile.AvatarURL, localpart, "avataaars",
+			profile.AvatarURL, localpart, "avataaars",
 		)
 	}
 
@@ -603,7 +599,6 @@ func (m *Manager) getRoomAvatar(
 	}
 
 	return resolveContentURIString(
-		client.HomeserverURL.String(),
 		avatarEvt.URL,
 		roomID.String(),
 		"shapes",
@@ -619,8 +614,6 @@ func (m *Manager) getRoomMembers(
 	if err != nil {
 		return nil, err
 	}
-
-	hsURL := client.HomeserverURL.String()
 
 	var users []models.User
 	for _, evt := range members.Chunk {
@@ -642,7 +635,7 @@ func (m *Manager) getRoomMembers(
 		}
 
 		avatar = resolveContentURIString(
-			hsURL, content.AvatarURL, localpart, "avataaars",
+			content.AvatarURL, localpart, "avataaars",
 		)
 
 		users = append(users, models.User{
