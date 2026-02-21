@@ -1,8 +1,7 @@
-import "../css/app.css";
-
 import "htmx-ext-ws";
 import "htmx-ext-loading-states";
 import htmx from "htmx.org";
+import Alpine from "alpinejs";
 import type { Alpine as AlpineType } from "alpinejs";
 
 declare global {
@@ -10,6 +9,10 @@ declare global {
     Alpine: AlpineType;
   }
 }
+
+window.Alpine = Alpine
+
+Alpine.start()
 
 var s = document.documentElement.style;
 var keys = [

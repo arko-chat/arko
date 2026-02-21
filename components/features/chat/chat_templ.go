@@ -59,14 +59,14 @@ func Chat(props Props) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" id=\"chat-container\" data-user-name=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" id=\"chat-container\" x-data=\"{ \n\t\t\tpendingMessages: [],\n\t\t\taddPending(form) {\n\t\t\t\tconst textarea = form.querySelector('textarea[name=message]');\n\t\t\t\tconst content = textarea.value.trim();\n\t\t\t\tif (!content) return;\n\n\t\t\t\tconst nonce = crypto.randomUUID();\n\t\t\t\tconst msg = { \n\t\t\t\t\tnonce, \n\t\t\t\t\tcontent, \n\t\t\t\t\tuserName: $el.dataset.userName, \n\t\t\t\t\tavatar: $el.dataset.userAvatar \n\t\t\t\t};\n\n\t\t\t\tthis.pendingMessages.push(msg);\n\t\t\t\t\n\t\t\t\t// Ensure the hidden nonce input exists for HTMX to send it\n\t\t\t\tlet nonceInput = form.querySelector('input[name=nonce]');\n\t\t\t\tif (!nonceInput) {\n\t\t\t\t\tnonceInput = document.createElement('input');\n\t\t\t\t\tnonceInput.type = 'hidden';\n\t\t\t\t\tnonceInput.name = 'nonce';\n\t\t\t\t\tform.appendChild(nonceInput);\n\t\t\t\t}\n\t\t\t\tnonceInput.value = nonce;\n\n\t\t\t\tform.reset();\n\t\t\t\tthis.$nextTick(() => {\n\t\t\t\t\tconst msgDiv = document.getElementById('messages');\n\t\t\t\t\tmsgDiv.scrollTop = msgDiv.scrollHeight;\n\t\t\t\t});\n\t\t\t},\n\t\t\tremovePending(el) {\n\t\t\t\tconst nonce = el.getAttribute('data-nonce');\n\t\t\t\tthis.pendingMessages = this.pendingMessages.filter(m => m.nonce !== nonce);\n\t\t\t}\n\t\t}\" data-user-name=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.CurrentUserName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 26, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 64, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -79,7 +79,7 @@ func Chat(props Props) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(props.CurrentUserAvatar)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 27, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 65, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -95,7 +95,7 @@ func Chat(props Props) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div id=\"messages\" class=\"flex-1 overflow-y-auto flex flex-col-reverse\"><div id=\"message-list\" class=\"flex flex-col py-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div id=\"messages\" class=\"flex-1 overflow-y-auto flex flex-col-reverse\"><div id=\"message-list\" class=\"flex flex-col py-2\" x-on:htmx:after-on-load=\"removePending($event.detail.elt)\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -114,7 +114,7 @@ func Chat(props Props) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div><div id=\"typing-indicator\" class=\"shrink-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<template x-for=\"msg in pendingMessages\" :key=\"msg.nonce\"><div class=\"flex gap-3 px-4 py-1 relative opacity-70\"><div class=\"relative shrink-0 w-10 h-10\"><img :src=\"msg.avatar\" class=\"w-full h-full object-cover rounded-full\"></div><div class=\"flex-1 min-w-0\"><div class=\"flex items-center gap-2 mb-0.5\"><span class=\"font-semibold text-sm text-content-primary\" x-text=\"msg.userName\"></span> <i class=\"fa-solid fa-spinner animate-spin text-xs text-brand\"></i></div><div class=\"text-sm text-content-secondary/60 leading-relaxed break-words\" x-text=\"msg.content\"></div></div></div></template></div></div><div id=\"typing-indicator\" class=\"shrink-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -128,45 +128,12 @@ func Chat(props Props) templ.Component {
 		}
 		templ_7745c5c3_Err = ui.MessageInput(props.Placeholder, "message", templ.Attributes{
 			"ws-send":              "",
-			"hx-on::ws-after-send": "window.__handleOptimisticSend(this)",
+			"hx-on::ws-after-send": "addPending($el)",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = optimisticMessageScript().Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
-
-func optimisticMessageScript() templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var5 == nil {
-			templ_7745c5c3_Var5 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<script>\n\t\t(function() {\n\t\t\tfunction escapeHtml(text) {\n\t\t\t\tvar div = document.createElement('div');\n\t\t\t\tdiv.textContent = text;\n\t\t\t\treturn div.innerHTML;\n\t\t\t}\n\n\t\t\tfunction escapeAttr(text) {\n\t\t\t\treturn text.replace(/&/g, '&amp;').replace(/\"/g, '&quot;');\n\t\t\t}\n\n\t\t\twindow.__handleOptimisticSend = function(form) {\n\t\t\t\tvar input = form.querySelector('textarea[name=\"message\"]');\n\t\t\t\tif (!input) return;\n\t\t\t\tvar content = input.value.trim();\n\t\t\t\tif (!content) return;\n\n\t\t\t\tvar container = document.getElementById('chat-container');\n\t\t\t\tif (!container) return;\n\t\t\t\tvar userName = container.dataset.userName || '';\n\t\t\t\tvar userAvatar = container.dataset.userAvatar || '';\n\n\t\t\t\tvar nonce = crypto.randomUUID();\n\n\t\t\t\tvar nonceInput = form.querySelector('input[name=\"nonce\"]');\n\t\t\t\tif (!nonceInput) {\n\t\t\t\t\tnonceInput = document.createElement('input');\n\t\t\t\t\tnonceInput.type = 'hidden';\n\t\t\t\t\tnonceInput.name = 'nonce';\n\t\t\t\t\tform.appendChild(nonceInput);\n\t\t\t\t}\n\t\t\t\tnonceInput.value = nonce;\n\n\t\t\t\tvar pendingEl = document.createElement('div');\n\t\t\t\tpendingEl.className = 'flex gap-3 px-4 py-1 relative message-pending';\n\t\t\t\tpendingEl.setAttribute('data-pending-nonce', nonce);\n\t\t\t\tpendingEl.innerHTML =\n\t\t\t\t\t'<div class=\"relative shrink-0 w-10 h-10\">' +\n\t\t\t\t\t\t'<img src=\"' + escapeAttr(userAvatar) + '\" alt=\"avatar\" class=\"w-full h-full object-cover rounded-full\" />' +\n\t\t\t\t\t'</div>' +\n\t\t\t\t\t'<div class=\"flex-1 min-w-0\">' +\n\t\t\t\t\t\t'<div class=\"flex items-center gap-2 mb-0.5\">' +\n\t\t\t\t\t\t\t'<span class=\"font-semibold text-sm text-content-primary\">' + escapeHtml(userName) + '</span>' +\n\t\t\t\t\t\t\t'<i class=\"fa-solid fa-spinner spinner text-xs text-brand\"></i>' +\n\t\t\t\t\t\t'</div>' +\n\t\t\t\t\t\t'<div class=\"text-sm text-content-secondary/60 leading-relaxed break-words\">' + escapeHtml(content) + '</div>' +\n\t\t\t\t\t'</div>';\n\n\t\t\t\tvar messageList = document.getElementById('message-list');\n\t\t\t\tif (messageList) {\n\t\t\t\t\tmessageList.appendChild(pendingEl);\n\t\t\t\t\tvar scrollContainer = document.getElementById('messages');\n\t\t\t\t\tif (scrollContainer) {\n\t\t\t\t\t\tscrollContainer.scrollTop = scrollContainer.scrollHeight;\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tform.reset();\n\t\t\t};\n\n\t\t\tvar observer = new MutationObserver(function(mutations) {\n\t\t\t\tfor (var i = 0; i < mutations.length; i++) {\n\t\t\t\t\tfor (var j = 0; j < mutations[i].addedNodes.length; j++) {\n\t\t\t\t\t\tvar node = mutations[i].addedNodes[j];\n\t\t\t\t\t\tif (node.nodeType !== 1) continue;\n\t\t\t\t\t\tvar nonce = node.getAttribute('data-nonce');\n\t\t\t\t\t\tif (!nonce) continue;\n\t\t\t\t\t\tvar pending = document.querySelector('[data-pending-nonce=\"' + nonce + '\"]');\n\t\t\t\t\t\tif (pending) pending.remove();\n\t\t\t\t\t\tnode.removeAttribute('data-nonce');\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tvar messageList = document.getElementById('message-list');\n\t\t\tif (messageList) {\n\t\t\t\tobserver.observe(messageList, { childList: true });\n\t\t\t}\n\t\t})();\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

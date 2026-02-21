@@ -5,7 +5,24 @@ import (
 
 	"github.com/arko-chat/arko/internal/htmx"
 	verifysaspage "github.com/arko-chat/arko/pages/verify/sas"
+	verifysaswaitingpage "github.com/arko-chat/arko/pages/verify/sas/waiting"
 )
+
+func (h *Handler) HandleVerifyStartSAS(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	ctx := r.Context()
+
+	if err := h.svc.Verification.RequestSASVerification(ctx); err != nil {
+		h.logger.Error("failed to start SAS verification", "err", err)
+		h.serverError(w, r, err)
+		return
+	}
+
+	w.Header().Set("HX-Redirect", "/verify/sas/waiting")
+	w.WriteHeader(http.StatusOK)
+}
 
 func (h *Handler) HandleVerifySASPage(
 	w http.ResponseWriter,
@@ -39,11 +56,11 @@ func (h *Handler) HandleVerifySASPage(
 	vs := h.svc.Verification.GetVerificationState()
 	if vs == nil || len(vs.Emojis) == 0 {
 		if isHtmx {
-			w.Header().Set("HX-Redirect", "/verify/waiting")
+			w.Header().Set("HX-Redirect", "/verify/sas/waiting")
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		htmx.Redirect(w, r, "/verify/waiting")
+		htmx.Redirect(w, r, "/verify/sas/waiting")
 		return
 	}
 
@@ -115,4 +132,60 @@ func (h *Handler) HandleVerifyCancel(
 
 	w.Header().Set("HX-Redirect", "/verify")
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) HandleVerifySASWaitingPage(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	state := h.session(r)
+	ctx := r.Context()
+	isHtmx := htmx.IsHTMX(r)
+
+	redirect := func(path string) {
+		if isHtmx {
+			w.Header().Set("HX-Redirect", path)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		htmx.Redirect(w, r, path)
+	}
+
+	if h.svc.Verification.IsVerified(ctx) {
+		redirect("/")
+		return
+	}
+
+	if !h.svc.Verification.HasCrossSigningKeys() {
+		redirect("/verify/waiting")
+		return
+	}
+
+	vs := h.svc.Verification.GetVerificationState()
+	if vs.Cancelled {
+		h.svc.Verification.ClearVerificationState()
+		redirect("/verify/choose")
+		return
+	}
+
+	if len(vs.Emojis) > 0 {
+		redirect("/verify/sas")
+		return
+	}
+
+	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	if err != nil {
+		h.serverError(w, r, err)
+		return
+	}
+
+	if isHtmx {
+		if err := verifysaswaitingpage.Content(user).Render(ctx, w); err != nil {
+			h.serverError(w, r, err)
+		}
+		return
+	}
+	if err := verifysaswaitingpage.Page(state, user).Render(ctx, w); err != nil {
+		h.serverError(w, r, err)
+	}
 }

@@ -35,18 +35,39 @@ func (s *VerificationService) GetVerificationState() *matrix.VerificationUIState
 	return s.matrix.GetVerificationState(userID)
 }
 
-func (s *VerificationService) ConfirmVerification(
-	ctx context.Context,
-) error {
+func (s *VerificationService) RequestSASVerification(ctx context.Context) error {
+	userID := s.GetCurrentUserID()
+	return s.matrix.RequestSASVerification(ctx, userID)
+}
+
+func (s *VerificationService) RequestQRVerification(ctx context.Context) error {
+	userID := s.GetCurrentUserID()
+	return s.matrix.RequestQRVerification(ctx, userID)
+}
+
+func (s *VerificationService) GetQRCodeSVG(ctx context.Context) (string, error) {
+	userID := s.GetCurrentUserID()
+	return s.matrix.GetQRCodeSVG(ctx, userID)
+}
+
+func (s *VerificationService) ConfirmVerification(ctx context.Context) error {
 	userID := s.GetCurrentUserID()
 	return s.matrix.ConfirmVerification(ctx, userID)
 }
 
-func (s *VerificationService) CancelVerification(
-	ctx context.Context,
-) error {
+func (s *VerificationService) ConfirmQRVerification(ctx context.Context) error {
+	userID := s.GetCurrentUserID()
+	return s.matrix.ConfirmQRVerification(ctx, userID)
+}
+
+func (s *VerificationService) CancelVerification(ctx context.Context) error {
 	userID := s.GetCurrentUserID()
 	return s.matrix.CancelVerification(ctx, userID)
+}
+
+func (s *VerificationService) RecoverWithKey(ctx context.Context, key string) error {
+	userID := s.GetCurrentUserID()
+	return s.matrix.RecoverWithKey(ctx, userID, key)
 }
 
 func (s *VerificationService) ClearVerificationState() {

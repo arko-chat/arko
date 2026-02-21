@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -85,15 +84,34 @@ func (m *Manager) GetVerificationState(
 	return session.GetVerificationUIState()
 }
 
+func (m *Manager) GetSupportedAuthTypes(ctx context.Context, creds models.LoginCredentials) ([]mautrix.AuthType, error) {
+	wellknown, err := mautrix.DiscoverClientAPI(ctx, creds.Homeserver)
+	if err != nil {
+		return nil, fmt.Errorf("create client: %w", err)
+	}
+
+	client, err := mautrix.NewClient(wellknown.Homeserver.BaseURL, "", "")
+	if err != nil {
+		return nil, fmt.Errorf("create client: %w", err)
+	}
+
+	flowsResp, err := client.GetLoginFlows(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create client: %w", err)
+	}
+
+	types := make([]mautrix.AuthType, 0, len(flowsResp.Flows))
+	for _, flow := range flowsResp.Flows {
+		types = append(types, flow.Type)
+	}
+
+	return types, nil
+}
+
 func (m *Manager) Login(
 	ctx context.Context,
 	creds models.LoginCredentials,
 ) (*session.Session, error) {
-	homeserver := creds.Homeserver
-	if !strings.HasPrefix(homeserver, "http") {
-		homeserver = "https://" + homeserver
-	}
-
 	globalConf, err := session.GetGlobalSettings()
 	if err != nil {
 		return nil, fmt.Errorf("get global settings: %w", err)
@@ -111,7 +129,12 @@ func (m *Manager) Login(
 		}
 	}
 
-	client, err := mautrix.NewClient(homeserver, id.UserID(userID), accessToken)
+	wellknown, err := mautrix.DiscoverClientAPI(ctx, creds.Homeserver)
+	if err != nil {
+		return nil, fmt.Errorf("create client: %w", err)
+	}
+
+	client, err := mautrix.NewClient(wellknown.Homeserver.BaseURL, id.UserID(userID), accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
 	}
@@ -143,7 +166,7 @@ func (m *Manager) Login(
 		}
 
 		newSession = &session.Session{
-			Homeserver:     homeserver,
+			Homeserver:     wellknown.Homeserver.BaseURL,
 			Identityserver: idServer,
 			UserID:         resp.UserID.String(),
 			AccessToken:    resp.AccessToken,

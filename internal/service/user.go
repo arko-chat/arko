@@ -7,6 +7,7 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/arko-chat/arko/internal/ws"
+	"maunium.net/go/mautrix"
 )
 
 type UserService struct {
@@ -22,6 +23,13 @@ func NewUserService(
 	}
 }
 
+func (s *UserService) GetSupportedAuthTypes(
+	ctx context.Context,
+	creds models.LoginCredentials,
+) ([]mautrix.AuthType, error) {
+	return s.matrix.GetSupportedAuthTypes(ctx, creds)
+}
+
 func (s *UserService) Login(
 	ctx context.Context,
 	creds models.LoginCredentials,
@@ -35,4 +43,3 @@ func (s *UserService) Logout(
 	userID := s.GetCurrentUserID()
 	return s.matrix.Logout(ctx, userID)
 }
-

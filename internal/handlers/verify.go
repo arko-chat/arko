@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/arko-chat/arko/internal/htmx"
+	verifywaitingpage "github.com/arko-chat/arko/pages/verify/waiting"
 )
 
 func (h *Handler) HandleVerifyPage(
@@ -13,39 +14,95 @@ func (h *Handler) HandleVerifyPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.Verification.IsVerified(ctx)
-	if verified {
+	redirect := func(path string) {
 		if isHtmx {
-			w.Header().Set("HX-Redirect", "/")
+			w.Header().Set("HX-Redirect", path)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		htmx.Redirect(w, r, "/")
+		htmx.Redirect(w, r, path)
+	}
+
+	if h.svc.Verification.IsVerified(ctx) {
+		redirect("/")
 		return
 	}
 
-	crossSigningDone := h.svc.Verification.HasCrossSigningKeys()
-	if crossSigningDone {
-		vs := h.svc.Verification.GetVerificationState()
-		if vs.Cancelled {
-			h.svc.Verification.ClearVerificationState()
-		} else if len(vs.Emojis) > 0 {
-			if isHtmx {
-				w.Header().Set("HX-Redirect", "/verify/sas")
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			htmx.Redirect(w, r, "/verify/sas")
-			return
-		}
+	if !h.svc.Verification.HasCrossSigningKeys() {
+		redirect("/verify/waiting")
+		return
+	}
 
+	vs := h.svc.Verification.GetVerificationState()
+	if vs.Cancelled {
+		h.svc.Verification.ClearVerificationState()
+		redirect("/verify/choose")
+		return
+	}
+
+	if len(vs.Emojis) > 0 {
+		redirect("/verify/sas")
+		return
+	}
+
+	if vs.SASActive {
+		redirect("/verify/sas/waiting")
+		return
+	}
+
+	if vs.QRScanned {
+		redirect("/verify/qr/scanned")
+		return
+	}
+
+	if vs.QRActive {
+		redirect("/verify/qr")
+		return
+	}
+
+	redirect("/verify/choose")
+}
+
+func (h *Handler) HandleVerifyWaitingPage(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	state := h.session(r)
+	ctx := r.Context()
+	isHtmx := htmx.IsHTMX(r)
+
+	redirect := func(path string) {
 		if isHtmx {
-			w.Header().Set("HX-Redirect", "/verify/waiting")
+			w.Header().Set("HX-Redirect", path)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		htmx.Redirect(w, r, path)
 	}
 
-	htmx.Redirect(w, r, "/verify/waiting")
-	return
+	if h.svc.Verification.IsVerified(ctx) {
+		redirect("/")
+		return
+	}
+
+	if h.svc.Verification.HasCrossSigningKeys() {
+		redirect("/verify/choose")
+		return
+	}
+
+	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	if err != nil {
+		h.serverError(w, r, err)
+		return
+	}
+
+	if isHtmx {
+		if err := verifywaitingpage.Content(user).Render(ctx, w); err != nil {
+			h.serverError(w, r, err)
+		}
+		return
+	}
+	if err := verifywaitingpage.Page(state, user).Render(ctx, w); err != nil {
+		h.serverError(w, r, err)
+	}
 }

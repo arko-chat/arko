@@ -1,0 +1,72 @@
+package verifyqrscannedpage
+
+import (
+	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/internal/models"
+	"github.com/arko-chat/arko/internal/session"
+)
+
+templ Page(state *session.Session, user models.User) {
+	@components.Base(state, "Arko | QR Code Scanned") {
+		@Content(user)
+	}
+}
+
+templ Content(user models.User) {
+	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+		<div class="w-full max-w-md mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				<div class="px-8 pt-8 pb-2 text-center">
+					<div class="w-14 h-14 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4">
+						<i class="fa-solid fa-check text-success text-2xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-content-primary mb-1">QR Code Scanned</h1>
+					<p class="text-sm text-content-muted">
+						The other device has scanned your QR code. Did it confirm the verification looks correct?
+					</p>
+				</div>
+				<div class="px-8 pt-4 pb-2">
+					<div class="flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle">
+						<img
+							src={ user.Avatar }
+							class="w-9 h-9 rounded-full"
+							alt={ user.Name }
+						/>
+						<div class="flex flex-col min-w-0">
+							<span class="text-sm font-semibold text-content-primary truncate">{ user.Name }</span>
+							<span class="text-xs text-content-faint truncate">{ user.ID }</span>
+						</div>
+					</div>
+				</div>
+				<div class="px-8 pt-4 pb-2">
+					<div class="flex items-start gap-3 p-3 rounded-md bg-warning/5 border border-warning/15">
+						<i class="fa-solid fa-triangle-exclamation text-warning text-sm shrink-0 mt-0.5"></i>
+						<p class="text-xs text-content-secondary leading-relaxed">
+							Only confirm if the other device shows that it successfully verified this session. If you're unsure, cancel and try again.
+						</p>
+					</div>
+				</div>
+				<div class="px-8 pt-4 pb-8">
+					<div class="flex gap-3">
+						<button
+							hx-post="/verify/cancel"
+							hx-swap="none"
+							class="flex-1 outline-none border border-border-subtle rounded-md px-3 py-2.5 text-sm font-semibold bg-surface-sunken text-content-secondary hover:bg-surface-alt cursor-pointer transition-all duration-150 active:scale-[0.98]"
+						>
+							<i class="fa-solid fa-xmark text-xs mr-1"></i>
+							Cancel
+						</button>
+						<button
+							hx-post="/verify/qr/confirm"
+							hx-swap="none"
+							class="flex-1 outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-success text-white hover:bg-success/90 cursor-pointer transition-all duration-150 active:scale-[0.98]"
+						>
+							<i class="fa-solid fa-check text-xs mr-1"></i>
+							Confirm Verified
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
