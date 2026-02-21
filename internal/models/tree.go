@@ -79,6 +79,8 @@ func (t *MessageTree) Close(id uint64) {
 		}
 		return nil, xsync.DeleteOp
 	})
+
+	t.wg.Wait()
 }
 
 func (t *MessageTree) Set(m Message) (Message, bool) {
