@@ -5,96 +5,108 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 )
 
-templ MessageBubble(message models.Message) {
-	<div class="flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative">
-		@Avatar(message.Author.Avatar, "md", true, false)
-		<div class="flex-1 min-w-0">
-			<div class="flex items-baseline gap-2 mb-0.5">
-				<span class="font-semibold text-sm text-content-primary cursor-pointer hover:underline transition-colors duration-150">
-					{ message.Author.Name }
-				</span>
-				<span class="text-[11px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-					{ utils.FormatTimestamp(message.Timestamp) }
-				</span>
-			</div>
-			if message.IsSystem {
-				@SystemMessage(message.SystemIcon, message.Content)
-			} else {
-				<div class="text-sm text-content-secondary leading-relaxed break-words">
-					{ message.Content }
-				</div>
-				if len(message.Attachments) > 0 {
-					<div class="flex flex-col gap-1.5 mt-1">
-						for _, a := range message.Attachments {
-							if a.Type == "image" {
-								@ImageAttachment(a.URL, a.AltText)
-							} else {
-								@FileAttachment(a.Name, a.Size, a.URL, a.FileType)
-							}
-						}
-					</div>
-				}
-				if len(message.Embeds) > 0 {
-					<div class="flex flex-col gap-1.5 mt-1">
-						for _, e := range message.Embeds {
-							@LinkEmbed(e.Title, e.Description, e.URL, e.ImageURL, e.SiteName)
-						}
-					</div>
-				}
-				if len(message.Reactions) > 0 {
-					@MessageReactions(message.Reactions, message.ID)
-				}
-				if message.ThreadCount > 0 {
-					@ThreadReply(message)
-				}
-			}
+templ MessageBubbleInner(message models.Message) {
+	@Avatar(message.Author.Avatar, "md", true, false)
+	<div class="flex-1 min-w-0">
+		<div class="flex items-baseline gap-2 mb-0.5">
+			<span class="font-semibold text-sm text-content-primary cursor-pointer hover:underline transition-colors duration-150">
+				{ message.Author.Name }
+			</span>
+			<span class="text-[11px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+				{ utils.FormatTimestamp(message.Timestamp) }
+			</span>
 		</div>
-		@MessageActions(message.ID)
+		@messageBody(message)
+	</div>
+	@MessageActions(message.ID)
+}
+
+templ MessageBubbleContinuedInner(message models.Message) {
+	<div class="w-8 shrink-0 flex items-start justify-center pt-1">
+		<span class="text-[10px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150 leading-none">
+			{ utils.FormatTimestampShort(message.Timestamp) }
+		</span>
+	</div>
+	<div class="flex-1 min-w-0">
+		@messageBody(message)
+	</div>
+	@MessageActions(message.ID)
+}
+
+templ messageBody(message models.Message) {
+	if message.IsSystem {
+		@SystemMessage(message.SystemIcon, message.Content)
+	} else {
+		<div class="text-sm text-content-secondary leading-relaxed break-words">
+			{ message.Content }
+		</div>
+		if len(message.Attachments) > 0 {
+			<div class="flex flex-col gap-1.5 mt-1">
+				for _, a := range message.Attachments {
+					if a.Type == "image" {
+						@ImageAttachment(a.URL, a.AltText)
+					} else {
+						@FileAttachment(a.Name, a.Size, a.URL, a.FileType)
+					}
+				}
+			</div>
+		}
+		if len(message.Embeds) > 0 {
+			<div class="flex flex-col gap-1.5 mt-1">
+				for _, e := range message.Embeds {
+					@LinkEmbed(e.Title, e.Description, e.URL, e.ImageURL, e.SiteName)
+				}
+			</div>
+		}
+		if len(message.Reactions) > 0 {
+			@MessageReactions(message.Reactions, message.ID)
+		}
+		if message.ThreadCount > 0 {
+			@ThreadReply(message)
+		}
+	}
+}
+
+templ MessageBubble(message models.Message) {
+	<div id={ "msg-" + message.ID } class="flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative">
+		@MessageBubbleInner(message)
 	</div>
 }
 
 templ MessageBubbleContinued(message models.Message) {
-	<div class="flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative">
-		<div class="w-8 shrink-0 flex items-start justify-center pt-1">
-			<span class="text-[10px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150 leading-none">
-				{ utils.FormatTimestampShort(message.Timestamp) }
-			</span>
-		</div>
-		<div class="flex-1 min-w-0">
-			<div class="text-sm text-content-secondary leading-relaxed break-words">
-				{ message.Content }
-			</div>
-			if len(message.Attachments) > 0 {
-				<div class="flex flex-col gap-1.5 mt-1">
-					for _, a := range message.Attachments {
-						if a.Type == "image" {
-							@ImageAttachment(a.URL, a.AltText)
-						} else {
-							@FileAttachment(a.Name, a.Size, a.URL, a.FileType)
-						}
-					}
-				</div>
-			}
-			if len(message.Embeds) > 0 {
-				<div class="flex flex-col gap-1.5 mt-1">
-					for _, e := range message.Embeds {
-						@LinkEmbed(e.Title, e.Description, e.URL, e.ImageURL, e.SiteName)
-					}
-				</div>
-			}
-			if len(message.Reactions) > 0 {
-				@MessageReactions(message.Reactions, message.ID)
-			}
-			if message.ThreadCount > 0 {
-				@ThreadReply(message)
-			}
-		</div>
-		@MessageActions(message.ID)
+	<div id={ "msg-" + message.ID } class="flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative">
+		@MessageBubbleContinuedInner(message)
 	</div>
 }
 
+templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
+	if continued {
+		<div
+			id={ "msg-" + message.ID }
+			hx-swap-oob={ swap }
+			class="flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative"
+			if message.Nonce != "" {
+				data-nonce={ message.Nonce }
+			}
+		>
+			@MessageBubbleContinuedInner(message)
+		</div>
+	} else {
+		<div
+			id={ "msg-" + message.ID }
+			hx-swap-oob={ swap }
+			class="flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative"
+			if message.Nonce != "" {
+				data-nonce={ message.Nonce }
+			}
+		>
+			@MessageBubbleInner(message)
+		</div>
+	}
+}
+
 templ MessageList(messages []models.Message, currentUserID string) {
-	<div class="flex flex-col">
+	<div id="message-list" class="flex flex-col">
 		for i := len(messages) - 1; i >= 0; i-- {
 			if i < len(messages)-1 && !utils.IsSameDay(messages[i].Timestamp, messages[i+1].Timestamp) {
 				@DateDivider(utils.FormatDate(messages[i+1].Timestamp))

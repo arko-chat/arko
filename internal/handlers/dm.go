@@ -37,25 +37,27 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messages, err := h.svc.Friends.GetFriendMessages(ctx, otherID)
-	if err != nil {
-		h.serverError(w, r, err)
-		return
-	}
-
 	roomID, err := h.svc.Friends.GetFriendRoomID(ctx, otherID)
 	if err != nil {
 		roomID = "dm-" + otherID
 	}
 
+	messages, err := h.svc.Chat.GetRoomMessages(ctx, otherID)
+	if err != nil {
+		h.serverError(w, r, err)
+		return
+	}
+
+	messagesArr := messages.Chronological()
+
 	if htmx.IsHTMX(r) {
-		if err := dmpage.Content(user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
+		if err := dmpage.Content(user, spaces, friendsList, friend, messagesArr, roomID).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := dmpage.Page(state, user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
+	if err := dmpage.Page(state, user, spaces, friendsList, friend, messagesArr, roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

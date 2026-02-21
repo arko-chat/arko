@@ -7,12 +7,10 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
-	"github.com/puzpuzpuz/xsync/v4"
 )
 
 type FriendsService struct {
 	*BaseService
-	messages *xsync.Map[string, *models.MessageTree]
 }
 
 func NewFriendsService(
@@ -22,28 +20,6 @@ func NewFriendsService(
 	return &FriendsService{
 		BaseService: NewBaseService(mgr, hub),
 	}
-}
-
-func (s *FriendsService) GetFriendMessages(
-	ctx context.Context,
-	otherUserID string,
-) (*models.MessageTree, error) {
-	userID := s.GetCurrentUserID()
-	messageTree, _ := s.messages.LoadOrStore(otherUserID, models.NewMessageTree())
-
-	roomID, err := s.matrix.GetDMRoomID(ctx, userID, otherUserID)
-	if err != nil {
-		return nil, err
-	}
-
-	if messageTree.Len() == 0 {
-		messages, _ := s.matrix.GetRoomMessages(ctx, userID, roomID, "", "", 50)
-		for _, message := range messages {
-			messageTree.Set(message)
-		}
-	}
-
-	return messageTree, nil
 }
 
 func (s *FriendsService) GetFriendRoomID(

@@ -77,9 +77,20 @@ templ optimisticMessageScript() {
 				var userName = container.dataset.userName || '';
 				var userAvatar = container.dataset.userAvatar || '';
 
+				var nonce = crypto.randomUUID();
+
+				var nonceInput = form.querySelector('input[name="nonce"]');
+				if (!nonceInput) {
+					nonceInput = document.createElement('input');
+					nonceInput.type = 'hidden';
+					nonceInput.name = 'nonce';
+					form.appendChild(nonceInput);
+				}
+				nonceInput.value = nonce;
+
 				var pendingEl = document.createElement('div');
 				pendingEl.className = 'flex gap-3 px-4 py-1 relative message-pending';
-				pendingEl.setAttribute('data-pending', 'true');
+				pendingEl.setAttribute('data-pending-nonce', nonce);
 				pendingEl.innerHTML =
 					'<div class="relative shrink-0 w-10 h-10">' +
 						'<img src="' + escapeAttr(userAvatar) + '" alt="avatar" class="w-full h-full object-cover rounded-full" />' +
@@ -104,10 +115,24 @@ templ optimisticMessageScript() {
 				form.reset();
 			};
 
-			document.body.addEventListener('htmx:wsBeforeMessage', function() {
-				var pending = document.querySelector('.message-pending');
-				if (pending) pending.remove();
+			var observer = new MutationObserver(function(mutations) {
+				for (var i = 0; i < mutations.length; i++) {
+					for (var j = 0; j < mutations[i].addedNodes.length; j++) {
+						var node = mutations[i].addedNodes[j];
+						if (node.nodeType !== 1) continue;
+						var nonce = node.getAttribute('data-nonce');
+						if (!nonce) continue;
+						var pending = document.querySelector('[data-pending-nonce="' + nonce + '"]');
+						if (pending) pending.remove();
+						node.removeAttribute('data-nonce');
+					}
+				}
 			});
+
+			var messageList = document.getElementById('message-list');
+			if (messageList) {
+				observer.observe(messageList, { childList: true });
+			}
 		})();
 	</script>
 }

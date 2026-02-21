@@ -6,12 +6,10 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
-	"github.com/puzpuzpuz/xsync/v4"
 )
 
 type SpaceService struct {
 	*BaseService
-	messages *xsync.Map[string, *models.MessageTree]
 }
 
 func NewSpaceService(
@@ -20,7 +18,6 @@ func NewSpaceService(
 ) *SpaceService {
 	return &SpaceService{
 		BaseService: NewBaseService(mgr, hub),
-		messages:    xsync.NewMap[string, *models.MessageTree](),
 	}
 }
 
@@ -46,25 +43,4 @@ func (s *SpaceService) GetChannel(
 ) (models.Channel, error) {
 	userID := s.GetCurrentUserID()
 	return s.matrix.GetChannel(ctx, userID, spaceID, channelID)
-}
-
-func (s *SpaceService) ListenForChannelMessages(ctx context.Context, channelID string) chan models.Message {
-	return nil
-}
-
-func (s *SpaceService) GetChannelMessages(
-	ctx context.Context,
-	channelID string,
-) (*models.MessageTree, error) {
-	userID := s.GetCurrentUserID()
-	messageTree, _ := s.messages.LoadOrStore(channelID, models.NewMessageTree())
-
-	if messageTree.Len() == 0 {
-		messages, _ := s.matrix.GetRoomMessages(ctx, userID, channelID, "", "", 50)
-		for _, message := range messages {
-			messageTree.Set(message)
-		}
-	}
-
-	return messageTree, nil
 }

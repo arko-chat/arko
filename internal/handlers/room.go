@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/ws"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -40,7 +39,7 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 	hub.Register(roomID, client)
 	go client.WritePump()
 
-	client.ReadPump(func(uid, content string) {
+	client.ReadPump(func(uid, content, nonce string) {
 		if strings.TrimSpace(content) == "" {
 			return
 		}
@@ -55,7 +54,7 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 			roomID,
 			author,
 			content,
-			ui.MessageBubble,
+			nonce,
 		)
 		if err != nil {
 			h.logger.Error("send matrix message", "err", err)

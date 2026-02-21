@@ -20,6 +20,11 @@ type MessageTree struct {
 	wg sync.WaitGroup
 }
 
+type Neighbors struct {
+	Prev *Message
+	Next *Message
+}
+
 func byTimestamp(a, b Message) bool {
 	return a.Timestamp.After(b.Timestamp)
 }
@@ -91,4 +96,36 @@ func (t *MessageTree) Set(m Message) (Message, bool) {
 		})
 	}()
 	return t.BTreeG.Set(m)
+}
+
+func (t *MessageTree) GetNeighbors(m Message) Neighbors {
+	var n Neighbors
+	iter := t.Iter()
+
+	if !iter.Seek(m) {
+		return n
+	}
+
+	if iter.Prev() {
+		v := iter.Item()
+		n.Prev = &v
+		iter.Next()
+	}
+
+	iter.Seek(m)
+	if iter.Next() {
+		v := iter.Item()
+		n.Next = &v
+	}
+
+	return n
+}
+
+func (t *MessageTree) Chronological() []Message {
+	items := make([]Message, 0, t.Len())
+	t.Reverse(func(item Message) bool {
+		items = append(items, item)
+		return true
+	})
+	return items
 }
