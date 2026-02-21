@@ -1,35 +1,55 @@
 package service
 
-import "context"
+import (
+	"context"
 
-func (s *ChatService) IsVerified(ctx context.Context, userID string) bool {
+	"github.com/arko-chat/arko/internal/matrix"
+	"github.com/arko-chat/arko/internal/ws"
+)
+
+type VerificationService struct {
+	*BaseService
+}
+
+func NewVerificationService(
+	mgr *matrix.Manager,
+	hub *ws.Hub,
+) *VerificationService {
+	return &VerificationService{
+		BaseService: NewBaseService(mgr, hub),
+	}
+}
+
+func (s *VerificationService) IsVerified(ctx context.Context) bool {
+	userID := s.GetCurrentUserID()
 	return s.matrix.IsVerified(ctx, userID)
 }
 
-func (s *ChatService) HasCrossSigningKeys(userID string) bool {
+func (s *VerificationService) HasCrossSigningKeys() bool {
+	userID := s.GetCurrentUserID()
 	return s.matrix.HasCrossSigningKeys(userID)
 }
 
-func (s *ChatService) GetVerificationState(
-	userID string,
-) interface{} {
+func (s *VerificationService) GetVerificationState() *matrix.VerificationUIState {
+	userID := s.GetCurrentUserID()
 	return s.matrix.GetVerificationState(userID)
 }
 
-func (s *ChatService) ConfirmVerification(
+func (s *VerificationService) ConfirmVerification(
 	ctx context.Context,
-	userID string,
 ) error {
+	userID := s.GetCurrentUserID()
 	return s.matrix.ConfirmVerification(ctx, userID)
 }
 
-func (s *ChatService) CancelVerification(
+func (s *VerificationService) CancelVerification(
 	ctx context.Context,
-	userID string,
 ) error {
+	userID := s.GetCurrentUserID()
 	return s.matrix.CancelVerification(ctx, userID)
 }
 
-func (s *ChatService) ClearVerificationState(userID string) {
+func (s *VerificationService) ClearVerificationState() {
+	userID := s.GetCurrentUserID()
 	s.matrix.ClearVerificationState(userID)
 }

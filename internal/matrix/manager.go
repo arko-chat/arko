@@ -1,5 +1,7 @@
 // TODO: fix messages from other clients not received in real time
 // TODO: aggressive caching for a more responsive experience
+// TODO: integrate matrix events to messagetree
+// TODO: map UI format in real time with messagetree
 
 package matrix
 
@@ -10,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"maunium.net/go/mautrix"
@@ -35,6 +38,7 @@ type Manager struct {
 	cryptoDBPath   string
 	sentMsgIds     *lru.Cache[string, struct{}]
 	matrixSessions *xsync.Map[string, *MatrixSession]
+	currUserId     atomic.Pointer[string]
 	verifiedCache  bool
 }
 
@@ -257,6 +261,10 @@ func (m *Manager) Shutdown() {
 	m.matrixSessions.Clear()
 }
 
+func (m *Manager) GetCurrentUserID() string {
+	return *m.currUserId.Load()
+}
+
 func (m *Manager) SetRecoveryKey(userID string, key string) {
 	if err := session.Update(userID, func(s *session.Session) {
 		s.RecoveryKey = key
@@ -320,6 +328,8 @@ func (m *Manager) IsVerified(ctx context.Context, userID string) bool {
 }
 
 func (m *Manager) startSync(sess *session.Session, client *mautrix.Client) {
+	m.currUserId.Store(&sess.UserID)
+
 	newSession, err := m.NewMatrixSession(client)
 	if err != nil {
 		m.logger.Error("sync error",

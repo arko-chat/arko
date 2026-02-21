@@ -28,7 +28,7 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hub := h.svc.Hub()
+	hub := h.svc.Chat.Hub()
 	client := &ws.Client{
 		Hub:    hub,
 		RoomID: roomID,
@@ -45,15 +45,14 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		author, err := h.svc.GetCurrentUser(r.Context(), uid)
+		author, err := h.svc.User.GetCurrentUser(r.Context())
 		if err != nil {
 			return
 		}
 
-		err = h.svc.SendRoomMessage(
+		err = h.svc.Chat.SendRoomMessage(
 			r.Context(),
 			roomID,
-			uid,
 			author,
 			content,
 			ui.MessageBubble,

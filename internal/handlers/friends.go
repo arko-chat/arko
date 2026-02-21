@@ -13,19 +13,19 @@ func (h *Handler) HandleFriends(w http.ResponseWriter, r *http.Request) {
 	state := h.session(r)
 	ctx := r.Context()
 
-	user, err := h.svc.GetCurrentUser(ctx, state.UserID)
+	user, err := h.svc.User.GetCurrentUser(ctx)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	spaces, err := h.svc.ListSpaces(ctx, state.UserID)
+	spaces, err := h.svc.Spaces.ListSpaces(ctx)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	fl, err := h.svc.ListFriends(ctx, state.UserID)
+	fl, err := h.svc.Friends.ListFriends(ctx)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
@@ -47,13 +47,12 @@ func (h *Handler) HandleFriendsFilter(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.session(r)
 	filter := r.URL.Query().Get("filter")
 	if filter == "" {
 		filter = "online"
 	}
 
-	_, err := h.svc.FilterFriends(r.Context(), state.UserID, filter)
+	_, err := h.svc.Friends.FilterFriends(r.Context(), filter)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
@@ -68,10 +67,9 @@ func (h *Handler) HandleFriendSearch(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.session(r)
 	query := r.FormValue("search")
 
-	filtered, err := h.svc.SearchFriends(r.Context(), state.UserID, query)
+	filtered, err := h.svc.Friends.SearchFriends(r.Context(), query)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

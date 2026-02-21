@@ -321,6 +321,8 @@ func (m *Manager) GetRoomMessages(
 	ctx context.Context,
 	userID string,
 	roomID string,
+	from string,
+	to string,
 	limit int,
 ) ([]models.Message, error) {
 	client, err := m.GetClient(userID)
@@ -346,7 +348,7 @@ func (m *Manager) GetRoomMessages(
 
 	cryptoHelper := mSess.GetCryptoHelper()
 
-	resp, err := client.Messages(ctx, rid, "", "", mautrix.DirectionBackward, nil, limit)
+	resp, err := client.Messages(ctx, rid, from, to, mautrix.DirectionBackward, nil, limit)
 	if err != nil {
 		return nil, fmt.Errorf("messages: %w", err)
 	}
@@ -597,6 +599,22 @@ func (m *Manager) SendMessage(
 	}
 	m.sentMsgIds.Add(resp.EventID.String(), struct{}{})
 	return nil
+}
+
+func (m *Manager) broadcastEvent(
+	ctx context.Context,
+	client *mautrix.Client,
+	evt *event.Event,
+) {
+	if sentBySelf := m.sentMsgIds.Remove(evt.ID.String()); sentBySelf {
+		return
+	}
+	html := m.eventToHTML(client, evt)
+	if html == nil {
+		return
+	}
+	rawRoomID := evt.RoomID.String()
+	m.hub.Broadcast(rawRoomID, html)
 }
 
 func (m *Manager) GetUserProfile(

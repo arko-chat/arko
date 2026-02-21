@@ -4,18 +4,16 @@ import (
 	"net/http"
 
 	"github.com/arko-chat/arko/internal/htmx"
-	"github.com/arko-chat/arko/internal/matrix"
 )
 
 func (h *Handler) HandleVerifyPage(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.session(r)
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.IsVerified(ctx, state.UserID)
+	verified := h.svc.Verification.IsVerified(ctx)
 	if verified {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/")
@@ -26,21 +24,19 @@ func (h *Handler) HandleVerifyPage(
 		return
 	}
 
-	crossSigningDone := h.svc.HasCrossSigningKeys(state.UserID)
+	crossSigningDone := h.svc.Verification.HasCrossSigningKeys()
 	if crossSigningDone {
-		vs := h.svc.GetVerificationState(state.UserID)
-		if vState, ok := vs.(*matrix.VerificationUIState); ok && vState != nil {
-			if vState.Cancelled {
-				h.svc.ClearVerificationState(state.UserID)
-			} else if len(vState.Emojis) > 0 {
-				if isHtmx {
-					w.Header().Set("HX-Redirect", "/verify/sas")
-					w.WriteHeader(http.StatusOK)
-					return
-				}
-				htmx.Redirect(w, r, "/verify/sas")
+		vs := h.svc.Verification.GetVerificationState()
+		if vs.Cancelled {
+			h.svc.Verification.ClearVerificationState()
+		} else if len(vs.Emojis) > 0 {
+			if isHtmx {
+				w.Header().Set("HX-Redirect", "/verify/sas")
+				w.WriteHeader(http.StatusOK)
 				return
 			}
+			htmx.Redirect(w, r, "/verify/sas")
+			return
 		}
 
 		if isHtmx {

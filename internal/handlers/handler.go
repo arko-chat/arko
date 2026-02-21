@@ -10,11 +10,11 @@ import (
 )
 
 type Handler struct {
-	svc    *service.ChatService
+	svc    *service.Services
 	logger *slog.Logger
 }
 
-func New(svc *service.ChatService, logger *slog.Logger) *Handler {
+func New(svc *service.Services, logger *slog.Logger) *Handler {
 	return &Handler{svc: svc, logger: logger}
 }
 

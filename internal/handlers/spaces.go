@@ -13,19 +13,19 @@ func (h *Handler) HandleSpaces(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	spaceID := chi.URLParam(r, "spaceID")
 
-	user, err := h.svc.GetCurrentUser(ctx, state.UserID)
+	user, err := h.svc.User.GetCurrentUser(ctx)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	spaces, err := h.svc.ListSpaces(ctx, state.UserID)
+	spaces, err := h.svc.Spaces.ListSpaces(ctx)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	detail, err := h.svc.GetSpaceDetail(ctx, state.UserID, spaceID)
+	detail, err := h.svc.Spaces.GetSpace(ctx, spaceID)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

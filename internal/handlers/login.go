@@ -47,7 +47,7 @@ func (h *Handler) HandleLoginSubmit(
 		return
 	}
 
-	result, err := h.svc.Login(r.Context(), creds)
+	result, err := h.svc.User.Login(r.Context(), creds)
 	if err != nil {
 		h.logger.Error("login failed",
 			"homeserver", creds.Homeserver,
@@ -85,7 +85,7 @@ func (h *Handler) HandleLogout(
 	sess := h.session(r)
 
 	if sess.LoggedIn {
-		_ = h.svc.Logout(r.Context(), sess.UserID)
+		_ = h.svc.User.Logout(r.Context())
 	}
 
 	session.Delete(sess.UserID)

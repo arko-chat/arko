@@ -40,7 +40,7 @@ func main() {
 		cfg.CryptoDBPath,
 	)
 
-	svc := service.NewChatService(mgr, hub)
+	svc := service.New(mgr, hub)
 	h := handlers.New(svc, slogger)
 	mux := router.New(h, mgr)
 

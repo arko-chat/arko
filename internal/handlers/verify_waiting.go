@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/arko-chat/arko/internal/htmx"
-	"github.com/arko-chat/arko/internal/matrix"
 	verifywaitingpage "github.com/arko-chat/arko/pages/verify/waiting"
 )
 
@@ -16,7 +15,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.IsVerified(ctx, state.UserID)
+	verified := h.svc.Verification.IsVerified(ctx)
 	if verified {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/")
@@ -27,7 +26,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 		return
 	}
 
-	if !h.svc.HasCrossSigningKeys(state.UserID) {
+	if !h.svc.Verification.HasCrossSigningKeys() {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/verify")
 			w.WriteHeader(http.StatusOK)
@@ -37,31 +36,29 @@ func (h *Handler) HandleVerifyWaitingPage(
 		return
 	}
 
-	vs := h.svc.GetVerificationState(state.UserID)
-	if vState, ok := vs.(*matrix.VerificationUIState); ok && vState != nil {
-		if vState.Cancelled {
-			h.svc.ClearVerificationState(state.UserID)
-			if isHtmx {
-				w.Header().Set("HX-Redirect", "/verify")
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			htmx.Redirect(w, r, "/verify")
+	vs := h.svc.Verification.GetVerificationState()
+	if vs.Cancelled {
+		h.svc.Verification.ClearVerificationState()
+		if isHtmx {
+			w.Header().Set("HX-Redirect", "/verify")
+			w.WriteHeader(http.StatusOK)
 			return
 		}
-
-		if len(vState.Emojis) > 0 {
-			if isHtmx {
-				w.Header().Set("HX-Redirect", "/verify/sas")
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			htmx.Redirect(w, r, "/verify/sas")
-			return
-		}
+		htmx.Redirect(w, r, "/verify")
+		return
 	}
 
-	user, err := h.svc.GetCurrentUser(ctx, state.UserID)
+	if len(vs.Emojis) > 0 {
+		if isHtmx {
+			w.Header().Set("HX-Redirect", "/verify/sas")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		htmx.Redirect(w, r, "/verify/sas")
+		return
+	}
+
+	user, err := h.svc.Verification.GetCurrentUser(ctx)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

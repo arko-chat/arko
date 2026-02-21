@@ -138,38 +138,33 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 	syncer.OnEventType(
 		event.EventMessage,
 		func(ctx context.Context, evt *event.Event) {
-			if sentBySelf := m.sentMsgIds.Remove(evt.ID.String()); sentBySelf {
-				return
-			}
-			html := m.eventToHTML(client, evt)
-			if html == nil {
-				return
-			}
-			rawRoomID := evt.RoomID.String()
-			m.hub.Broadcast(rawRoomID, html)
+			m.broadcastEvent(ctx, client, evt)
 		},
 	)
 
-	helper.CustomPostDecrypt = func(
-		ctx context.Context, evt *event.Event,
-	) {
-		if evt.Type != event.EventMessage {
-			return
-		}
-		if evt.Sender.String() == s.UserID {
-			return
-		}
-		html := m.eventToHTML(client, evt)
-		if html == nil {
-			return
-		}
-		rawRoomID := evt.RoomID.String()
-		m.hub.Broadcast(rawRoomID, html)
-	}
-
 	syncer.OnEventType(
 		event.EventEncrypted,
-		helper.HandleEncrypted,
+		func(ctx context.Context, evt *event.Event) {
+			decrypted, err := helper.Decrypt(ctx, evt)
+			if err != nil {
+				helper.DecryptErrorCallback(evt, err)
+				m.logger.Error(
+					"failed to decrypt event",
+					"event", evt.ID,
+					"error", err,
+				)
+				return
+			}
+			if decrypted.Type != event.EventMessage {
+				m.logger.Debug(
+					"decrypted a non-message event",
+					"event", decrypted.ID,
+					"type", decrypted.Type,
+				)
+				return
+			}
+			m.broadcastEvent(ctx, client, decrypted)
+		},
 	)
 
 	client.Syncer = syncer

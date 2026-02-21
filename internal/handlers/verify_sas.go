@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/arko-chat/arko/internal/htmx"
-	"github.com/arko-chat/arko/internal/matrix"
 	verifysaspage "github.com/arko-chat/arko/pages/verify/sas"
 )
 
@@ -16,7 +15,7 @@ func (h *Handler) HandleVerifySASPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.IsVerified(ctx, state.UserID)
+	verified := h.svc.Verification.IsVerified(ctx)
 	if verified {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/")
@@ -27,7 +26,7 @@ func (h *Handler) HandleVerifySASPage(
 		return
 	}
 
-	if !h.svc.HasCrossSigningKeys(state.UserID) {
+	if !h.svc.Verification.HasCrossSigningKeys() {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/verify")
 			w.WriteHeader(http.StatusOK)
@@ -37,9 +36,8 @@ func (h *Handler) HandleVerifySASPage(
 		return
 	}
 
-	vs := h.svc.GetVerificationState(state.UserID)
-	vState, ok := vs.(*matrix.VerificationUIState)
-	if !ok || vState == nil || len(vState.Emojis) == 0 {
+	vs := h.svc.Verification.GetVerificationState()
+	if vs == nil || len(vs.Emojis) == 0 {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/verify/waiting")
 			w.WriteHeader(http.StatusOK)
@@ -49,8 +47,8 @@ func (h *Handler) HandleVerifySASPage(
 		return
 	}
 
-	if vState.Cancelled {
-		h.svc.ClearVerificationState(state.UserID)
+	if vs.Cancelled {
+		h.svc.Verification.ClearVerificationState()
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/verify")
 			w.WriteHeader(http.StatusOK)
@@ -60,14 +58,14 @@ func (h *Handler) HandleVerifySASPage(
 		return
 	}
 
-	user, err := h.svc.GetCurrentUser(ctx, state.UserID)
+	user, err := h.svc.Verification.GetCurrentUser(ctx)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	emojis := make([]verifysaspage.EmojiItem, len(vState.Emojis))
-	for i, e := range vState.Emojis {
+	emojis := make([]verifysaspage.EmojiItem, len(vs.Emojis))
+	for i, e := range vs.Emojis {
 		emojis[i] = verifysaspage.EmojiItem{
 			Emoji:       e.Emoji,
 			Description: e.Description,
@@ -89,12 +87,11 @@ func (h *Handler) HandleVerifyConfirm(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.session(r)
 	ctx := r.Context()
 
-	if err := h.svc.ConfirmVerification(ctx, state.UserID); err != nil {
+	if err := h.svc.Verification.ConfirmVerification(ctx); err != nil {
 		h.logger.Error("verification confirm failed",
-			"user", state.UserID,
+			"user",
 			"err", err,
 		)
 	}
@@ -107,12 +104,11 @@ func (h *Handler) HandleVerifyCancel(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	state := h.session(r)
 	ctx := r.Context()
 
-	if err := h.svc.CancelVerification(ctx, state.UserID); err != nil {
+	if err := h.svc.Verification.CancelVerification(ctx); err != nil {
 		h.logger.Error("verification cancel failed",
-			"user", state.UserID,
+			"user",
 			"err", err,
 		)
 	}
