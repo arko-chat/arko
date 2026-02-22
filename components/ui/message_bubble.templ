@@ -106,7 +106,7 @@ templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
 }
 
 templ MessageList(messages []models.Message, currentUserID string) {
-	<div id="message-list" class="flex flex-col">
+	<div class="flex flex-col">
 		for i := len(messages) - 1; i >= 0; i-- {
 			if i < len(messages)-1 && !utils.IsSameDay(messages[i].Timestamp, messages[i+1].Timestamp) {
 				@DateDivider(utils.FormatDate(messages[i+1].Timestamp))

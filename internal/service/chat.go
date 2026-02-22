@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/components/utils"
@@ -14,9 +13,15 @@ import (
 	"github.com/puzpuzpuz/xsync/v4"
 )
 
+type chatListener struct {
+	id     uint64
+	cancel context.CancelFunc
+}
+
 type ChatService struct {
 	*BaseService
-	messages *xsync.Map[string, *models.MessageTree]
+	messages  *xsync.Map[string, *models.MessageTree]
+	listeners *xsync.Map[string, *chatListener]
 }
 
 func NewChatService(
@@ -25,6 +30,8 @@ func NewChatService(
 ) *ChatService {
 	return &ChatService{
 		BaseService: NewBaseService(mgr, hub),
+		messages:    xsync.NewMap[string, *models.MessageTree](),
+		listeners:   xsync.NewMap[string, *chatListener](),
 	}
 }
 
@@ -42,6 +49,32 @@ func (s *ChatService) GetRoomMessages(
 		}
 	}
 
+	if _, ok := s.listeners.Load(userID); !ok {
+		mxSession := s.matrix.GetMatrixSession(userID)
+		if mxSession != nil {
+			listenerCtx, cancel := context.WithCancel(context.Background())
+			ch, id := mxSession.ListenMessages()
+			s.listeners.Store(roomID, &chatListener{
+				id:     id,
+				cancel: cancel,
+			})
+			go func() {
+				for {
+					select {
+					case <-listenerCtx.Done():
+						return
+					case evt, ok := <-ch:
+						msg := s.matrix.EventToMessage(s.matrix.GetCurrentMatrixSession().GetClient(), evt)
+						if !ok {
+							return
+						}
+						s.InsertAndBroadcast(listenerCtx, roomID, *msg)
+					}
+				}
+			}()
+		}
+	}
+
 	return messageTree, nil
 }
 
@@ -53,20 +86,7 @@ func (s *ChatService) SendRoomMessage(
 	nonce string,
 ) error {
 	userID := s.GetCurrentUserID()
-	err := s.matrix.SendMessage(ctx, userID, roomID, content)
-	if err != nil {
-		return err
-	}
-
-	msg := models.Message{
-		ID:        "",
-		Content:   content,
-		Author:    author,
-		Timestamp: time.Now(),
-		Nonce:     nonce,
-	}
-
-	return s.InsertAndBroadcast(ctx, roomID, msg)
+	return s.matrix.SendMessage(ctx, userID, roomID, content, nonce)
 }
 
 func (s *ChatService) InsertAndBroadcast(
@@ -75,7 +95,10 @@ func (s *ChatService) InsertAndBroadcast(
 	msg models.Message,
 ) error {
 	tree, _ := s.messages.LoadOrStore(channelID, models.NewMessageTree())
-	tree.Set(msg)
+	_, replaced := tree.Set(msg)
+	if replaced {
+		return nil
+	}
 
 	neighbors := tree.GetNeighbors(msg)
 	swap, continued := s.resolveSwap(msg, neighbors)
@@ -89,7 +112,8 @@ func (s *ChatService) InsertAndBroadcast(
 	}
 
 	if prev, continued := s.checkRegrouping(msg, neighbors); prev != nil {
-		swap := fmt.Sprintf("outerHTML:#msg-%s", msg.ID)
+		className := SafeHashClass(prev.ID)
+		swap := fmt.Sprintf("outerHTML:#msg-%s", className)
 		err := ui.MessageBubbleOOB(*prev, continued, swap).Render(ctx, &buf)
 		if err != nil {
 			return fmt.Errorf("render message oob: %w", err)
@@ -108,11 +132,13 @@ func (s *ChatService) resolveSwap(
 	if n.Next != nil {
 		continued = n.Next.Author.ID == msg.Author.ID &&
 			utils.WithinMinutes(msg.Timestamp, n.Next.Timestamp, 5)
-		return "afterend:#msg-" + n.Next.ID, continued
+		className := SafeHashClass(n.Next.ID)
+		return "afterend:#msg-" + className, continued
 	}
 
 	if n.Prev != nil {
-		return "beforebegin:#msg-" + n.Prev.ID, false
+		className := SafeHashClass(n.Prev.ID)
+		return "beforebegin:#msg-" + className, false
 	}
 
 	return "afterbegin:#message-list", false

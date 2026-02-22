@@ -6,7 +6,6 @@
 package matrix
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -18,7 +17,6 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/arko-chat/arko/internal/ws"
@@ -37,7 +35,7 @@ type Manager struct {
 	cryptoDBPath   string
 	sentMsgIds     *lru.Cache[string, struct{}]
 	matrixSessions *xsync.Map[string, *MatrixSession]
-	currUserId     atomic.Pointer[string]
+	currSession    atomic.Pointer[MatrixSession]
 	verifiedCache  bool
 }
 
@@ -140,13 +138,18 @@ func (m *Manager) Login(
 	}
 
 	if userID == "" || accessToken == "" {
+		token, err := m.GetSSOToken(ctx, client)
+		if err != nil {
+			return nil, fmt.Errorf("create client: %w", err)
+		}
+		m.logger.Debug("got token", "token", token)
 		loginReq := &mautrix.ReqLogin{
-			Type: mautrix.AuthTypePassword,
+			Type:  mautrix.AuthTypeToken,
+			Token: token,
 			Identifier: mautrix.UserIdentifier{
 				Type: mautrix.IdentifierTypeUser,
 				User: creds.Username,
 			},
-			Password:                 creds.Password,
 			InitialDeviceDisplayName: "Arko Desktop Client",
 			StoreCredentials:         true,
 		}
@@ -157,6 +160,8 @@ func (m *Manager) Login(
 
 		resp, err := client.Login(ctx, loginReq)
 		if err != nil {
+			supported, _ := m.GetSupportedAuthTypes(ctx, creds)
+			m.logger.Info("supported auth types", "supported", supported)
 			return nil, fmt.Errorf("login: %w", err)
 		}
 
@@ -285,7 +290,18 @@ func (m *Manager) Shutdown() {
 }
 
 func (m *Manager) GetCurrentUserID() string {
-	return *m.currUserId.Load()
+	currSess := m.currSession.Load()
+	return currSess.id
+}
+
+func (m *Manager) GetCurrentMatrixSession() *MatrixSession {
+	currSess := m.currSession.Load()
+	return currSess
+}
+
+func (m *Manager) GetMatrixSession(userId string) *MatrixSession {
+	sess, _ := m.matrixSessions.Load(userId)
+	return sess
 }
 
 func (m *Manager) SetRecoveryKey(userID string, key string) {
@@ -351,7 +367,10 @@ func (m *Manager) IsVerified(ctx context.Context, userID string) bool {
 }
 
 func (m *Manager) startSync(sess *session.Session, client *mautrix.Client) {
-	m.currUserId.Store(&sess.UserID)
+	_, exists := m.matrixSessions.Load(sess.UserID)
+	if exists {
+		return
+	}
 
 	newSession, err := m.NewMatrixSession(client)
 	if err != nil {
@@ -363,12 +382,13 @@ func (m *Manager) startSync(sess *session.Session, client *mautrix.Client) {
 	}
 
 	m.matrixSessions.Store(sess.UserID, newSession)
+	m.currSession.Store(newSession)
 }
 
-func (m *Manager) eventToHTML(
+func (m *Manager) EventToMessage(
 	client *mautrix.Client,
 	evt *event.Event,
-) []byte {
+) *models.Message {
 	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
 	if !ok {
 		return nil
@@ -390,7 +410,13 @@ func (m *Manager) eventToHTML(
 		)
 	}
 
-	msg := models.Message{
+	m.logger.Debug("event to message",
+		"eventID", evt.ID.String(),
+		"transactionID", evt.Unsigned.TransactionID,
+		"nonce", evt.Unsigned.TransactionID != "",
+	)
+
+	return &models.Message{
 		ID:      evt.ID.String(),
 		Content: content.Body,
 		Author: models.User{
@@ -401,21 +427,6 @@ func (m *Manager) eventToHTML(
 		},
 		Timestamp: time.UnixMilli(evt.Timestamp),
 		ChannelID: evt.RoomID.String(),
+		Nonce:     evt.Unsigned.TransactionID,
 	}
-
-	var inner bytes.Buffer
-	if err := ui.MessageBubble(msg).Render(
-		context.Background(), &inner,
-	); err != nil {
-		return nil
-	}
-
-	var payload bytes.Buffer
-	payload.WriteString(
-		`<div id="message-list" hx-swap-oob="beforeend">`,
-	)
-	payload.Write(inner.Bytes())
-	payload.WriteString(`</div>`)
-
-	return payload.Bytes()
 }

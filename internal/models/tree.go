@@ -26,7 +26,7 @@ type Neighbors struct {
 }
 
 func byTimestamp(a, b Message) bool {
-	return a.Timestamp.After(b.Timestamp)
+	return a.Timestamp.Before(b.Timestamp)
 }
 
 func NewMessageTree() *MessageTree {

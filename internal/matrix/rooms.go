@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"sort"
 	"sync"
 	"time"
 
@@ -357,8 +356,6 @@ func (m *Manager) GetRoomMessages(
 	messages := make([]models.Message, 0, len(resp.Chunk))
 	var messagesMu sync.Mutex
 	var decryptionWg sync.WaitGroup
-	var failedEvts []*event.Event
-	var failedMu sync.Mutex
 
 	for _, evt := range resp.Chunk {
 		decryptionWg.Go(func() {
@@ -427,27 +424,10 @@ func (m *Manager) GetRoomMessages(
 					}
 				}()
 			}
-			failedMu.Lock()
-			failedEvts = append(failedEvts, evt)
-			failedMu.Unlock()
 		})
 	}
 
 	decryptionWg.Wait()
-
-	if len(failedEvts) > 0 {
-		writeIdx := len(messages) - len(failedEvts)
-		for _, evt := range failedEvts {
-			messages[writeIdx] = m.undecryptableMessage(
-				evt, actualRoomID,
-			)
-			writeIdx++
-		}
-	}
-
-	sort.Slice(messages, func(i, j int) bool {
-		return messages[i].Timestamp.After(messages[j].Timestamp)
-	})
 
 	return messages, nil
 }
@@ -524,6 +504,7 @@ func (m *Manager) SendMessage(
 	userID string,
 	roomID string,
 	body string,
+	nonce string,
 ) error {
 	client, err := m.GetClient(userID)
 	if err != nil {
@@ -583,6 +564,7 @@ func (m *Manager) SendMessage(
 
 		resp, sendErr := client.SendMessageEvent(
 			ctx, rid, event.EventEncrypted, encrypted,
+			mautrix.ReqSendEvent{TransactionID: nonce},
 		)
 		if sendErr != nil {
 			return sendErr
@@ -593,28 +575,13 @@ func (m *Manager) SendMessage(
 
 	resp, err := client.SendMessageEvent(
 		ctx, rid, event.EventMessage, content,
+		mautrix.ReqSendEvent{TransactionID: nonce},
 	)
 	if err != nil {
 		return err
 	}
 	m.sentMsgIds.Add(resp.EventID.String(), struct{}{})
 	return nil
-}
-
-func (m *Manager) broadcastEvent(
-	ctx context.Context,
-	client *mautrix.Client,
-	evt *event.Event,
-) {
-	if sentBySelf := m.sentMsgIds.Remove(evt.ID.String()); sentBySelf {
-		return
-	}
-	html := m.eventToHTML(client, evt)
-	if html == nil {
-		return
-	}
-	rawRoomID := evt.RoomID.String()
-	m.hub.Broadcast(rawRoomID, html)
 }
 
 func (m *Manager) GetUserProfile(

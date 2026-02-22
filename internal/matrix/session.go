@@ -9,9 +9,11 @@ import (
 	"net/url"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/arko-chat/arko/internal/session"
+	"github.com/puzpuzpuz/xsync/v4"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/crypto/cryptohelper"
 	"maunium.net/go/mautrix/crypto/ssss"
@@ -22,6 +24,7 @@ import (
 type MatrixSession struct {
 	sync.Mutex
 
+	id                  string
 	context             context.Context
 	cancel              context.CancelFunc
 	client              *mautrix.Client
@@ -31,6 +34,8 @@ type MatrixSession struct {
 	verificationUIState *VerificationUIState
 	verificationHelper  *verificationhelper.VerificationHelper
 	keyBackupMgr        *KeyBackupManager
+	listeners           *xsync.Map[uint64, chan *event.Event]
+	idCounter           atomic.Uint64
 }
 
 func (m *MatrixSession) Context() context.Context {
@@ -133,42 +138,6 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 
 	client.Verification = vh
 
-	syncer := client.Syncer.(*mautrix.DefaultSyncer)
-
-	syncer.OnEventType(
-		event.EventMessage,
-		func(ctx context.Context, evt *event.Event) {
-			m.broadcastEvent(ctx, client, evt)
-		},
-	)
-
-	syncer.OnEventType(
-		event.EventEncrypted,
-		func(ctx context.Context, evt *event.Event) {
-			decrypted, err := helper.Decrypt(ctx, evt)
-			if err != nil {
-				helper.DecryptErrorCallback(evt, err)
-				m.logger.Error(
-					"failed to decrypt event",
-					"event", evt.ID,
-					"error", err,
-				)
-				return
-			}
-			if decrypted.Type != event.EventMessage {
-				m.logger.Debug(
-					"decrypted a non-message event",
-					"event", decrypted.ID,
-					"type", decrypted.Type,
-				)
-				return
-			}
-			m.broadcastEvent(ctx, client, decrypted)
-		},
-	)
-
-	client.Syncer = syncer
-
 	m.startTokenRefresh(ctx, s, client)
 
 	go func() {
@@ -194,6 +163,7 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 	}()
 
 	mSess := &MatrixSession{
+		id:                  s.UserID,
 		context:             ctx,
 		cancel:              cancel,
 		client:              client,
@@ -202,6 +172,7 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 		verificationHelper:  vh,
 		verificationUIState: &VerificationUIState{},
 		ssssMachine:         ssss.NewSSSSMachine(client),
+		listeners:           xsync.NewMap[uint64, chan *event.Event](),
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
@@ -214,6 +185,47 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 	return mSess, nil
 }
 
+func (m *MatrixSession) ListenMessages() (chan *event.Event, uint64) {
+	id := m.idCounter.Add(1)
+	listenCh := make(chan *event.Event)
+	m.listeners.Store(id, listenCh)
+
+	syncer := m.GetClient().Syncer.(*mautrix.DefaultSyncer)
+
+	syncer.OnEventType(
+		event.EventMessage,
+		func(ctx context.Context, evt *event.Event) {
+			if evt.Type == event.EventEncrypted {
+				return
+			}
+
+			if ch, ok := m.listeners.Load(id); ok {
+				ch <- evt
+				return
+			}
+		},
+	)
+
+	syncer.OnEventType(
+		event.EventEncrypted,
+		func(ctx context.Context, evt *event.Event) {
+			if _, ok := m.listeners.Load(id); !ok {
+				return
+			}
+
+			m.GetCryptoHelper().HandleEncrypted(ctx, evt)
+		},
+	)
+
+	return listenCh, id
+}
+
+func (m *MatrixSession) CloseListener(id uint64) {
+	if ch, ok := m.listeners.LoadAndDelete(id); ok {
+		close(ch)
+	}
+}
+
 func (m *MatrixSession) Close() {
 	if m.cancel != nil {
 		m.cancel()
@@ -224,6 +236,10 @@ func (m *MatrixSession) Close() {
 	if m.verificationStore != nil {
 		m.verificationStore.txns.Clear()
 	}
+	m.listeners.DeleteMatching(func(_ uint64, value chan *event.Event) (delete bool, stop bool) {
+		close(value)
+		return true, false
+	})
 }
 
 func generatePickleKey() ([]byte, error) {

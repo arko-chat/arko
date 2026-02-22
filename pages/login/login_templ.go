@@ -111,15 +111,7 @@ func Content() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = ui.Label("Password", true).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<input type=\"password\" name=\"password\" placeholder=\"••••••••\" required autocomplete=\"current-password\" class=\"w-full px-3 py-2 bg-surface-sunken text-sm text-content-primary rounded-md border border-border-subtle outline-none placeholder-content-placeholder transition-all duration-150 focus:border-brand focus:ring-1 focus:ring-brand/20\"></div><div class=\"pt-2\"><button type=\"submit\" class=\"w-full outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-brand text-white hover:bg-brand-hover cursor-pointer transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 relative\"><span id=\"login-spinner\" class=\"htmx-indicator absolute inset-0 flex items-center justify-center\"><i class=\"fa-solid fa-spinner spinner text-sm\"></i></span> <span class=\"[.htmx-request_&]:invisible flex items-center gap-2\"><i class=\"fa-solid fa-right-to-bracket text-xs\"></i> Sign In</span></button></div></form></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider\"><p class=\"text-[11px] text-content-faint text-center leading-relaxed\">Arko connects to any Matrix homeserver. <a href=\"https://matrix.org/try-matrix/\" target=\"_blank\" class=\"text-brand hover:underline\">Don't have an account?</a></p></div></div><div class=\"mt-4 text-center\"><p class=\"text-[11px] text-content-faint\">Powered by the <a href=\"https://matrix.org\" target=\"_blank\" class=\"text-brand hover:underline\">Matrix</a> protocol</p></div></div></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"pt-2\"><button type=\"submit\" class=\"w-full outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-brand text-white hover:bg-brand-hover cursor-pointer transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 relative\"><span id=\"login-spinner\" class=\"htmx-indicator absolute inset-0 flex items-center justify-center\"><i class=\"fa-solid fa-spinner spinner text-sm\"></i></span> <span class=\"[.htmx-request_&]:invisible flex items-center gap-2\"><i class=\"fa-solid fa-right-to-bracket text-xs\"></i> Sign In</span></button></div></form></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider\"><p class=\"text-[11px] text-content-faint text-center leading-relaxed\">Arko connects to any Matrix homeserver. <a href=\"https://matrix.org/try-matrix/\" target=\"_blank\" class=\"text-brand hover:underline\">Don't have an account?</a></p></div></div><div class=\"mt-4 text-center\"><p class=\"text-[11px] text-content-faint\">Powered by the <a href=\"https://matrix.org\" target=\"_blank\" class=\"text-brand hover:underline\">Matrix</a> protocol</p></div></div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

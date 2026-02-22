@@ -38,10 +38,9 @@ func (h *Handler) HandleLoginSubmit(
 	creds := models.LoginCredentials{
 		Homeserver: r.FormValue("homeserver"),
 		Username:   r.FormValue("username"),
-		Password:   r.FormValue("password"),
 	}
 
-	if creds.Homeserver == "" || creds.Username == "" || creds.Password == "" {
+	if creds.Homeserver == "" || creds.Username == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = ui.Alert("All fields are required.").Render(r.Context(), w)
 		return

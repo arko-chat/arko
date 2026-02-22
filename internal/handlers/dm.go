@@ -25,11 +25,7 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	friendsList, err := h.svc.Friends.ListFriends(ctx)
-	if err != nil {
-		h.serverError(w, r, err)
-		return
-	}
+	friendsList, _ := h.svc.Friends.ListFriends(ctx)
 
 	friend, err := h.svc.Friends.GetFriend(ctx, otherID)
 	if err != nil {
@@ -42,7 +38,7 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		roomID = "dm-" + otherID
 	}
 
-	messages, err := h.svc.Chat.GetRoomMessages(ctx, otherID)
+	messages, err := h.svc.Chat.GetRoomMessages(ctx, roomID)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

@@ -25,11 +25,7 @@ func (h *Handler) HandleFriends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fl, err := h.svc.Friends.ListFriends(ctx)
-	if err != nil {
-		h.serverError(w, r, err)
-		return
-	}
+	fl, _ := h.svc.Friends.ListFriends(ctx)
 
 	if htmx.IsHTMX(r) {
 		if err := friendspage.Content(user, spaces, fl).Render(ctx, w); err != nil {
