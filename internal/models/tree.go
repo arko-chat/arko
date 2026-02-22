@@ -26,6 +26,9 @@ type Neighbors struct {
 }
 
 func byTimestamp(a, b Message) bool {
+	if a.Timestamp.Equal(b.Timestamp) {
+		return a.ID < b.ID
+	}
 	return a.Timestamp.Before(b.Timestamp)
 }
 

@@ -416,8 +416,11 @@ func (m *Manager) EventToMessage(
 		"nonce", evt.Unsigned.TransactionID != "",
 	)
 
+	safeId := safeHashClass(evt.ID.String())
+	safeNonce := safeHashClass(evt.Unsigned.TransactionID)
+
 	return &models.Message{
-		ID:      evt.ID.String(),
+		ID:      safeId,
 		Content: content.Body,
 		Author: models.User{
 			ID:     evt.Sender.String(),
@@ -427,6 +430,6 @@ func (m *Manager) EventToMessage(
 		},
 		Timestamp: time.UnixMilli(evt.Timestamp),
 		ChannelID: evt.RoomID.String(),
-		Nonce:     evt.Unsigned.TransactionID,
+		Nonce:     safeNonce,
 	}
 }

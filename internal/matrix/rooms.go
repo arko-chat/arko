@@ -465,7 +465,7 @@ func (m *Manager) parseMessageEvent(
 	}
 
 	return models.Message{
-		ID:      evt.ID.String(),
+		ID:      safeHashClass(evt.ID.String()),
 		Content: content.Body,
 		Author: models.User{
 			ID:     evt.Sender.String(),
@@ -483,7 +483,7 @@ func (m *Manager) undecryptableMessage(
 	channelID string,
 ) models.Message {
 	return models.Message{
-		ID:      evt.ID.String(),
+		ID:      safeHashClass(evt.ID.String()),
 		Content: "🔒 Unable to decrypt this message.",
 		Author: models.User{
 			ID:   evt.Sender.String(),

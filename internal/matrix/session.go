@@ -21,6 +21,7 @@ import (
 	"maunium.net/go/mautrix/event"
 )
 
+// TODO: wrap messagetree to a matrixsession listener per chat room
 type MatrixSession struct {
 	sync.Mutex
 
@@ -182,41 +183,44 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 		return nil, err
 	}
 
+	mSess.initSyncHandlers()
+
 	return mSess, nil
 }
 
-func (m *MatrixSession) ListenMessages() (chan *event.Event, uint64) {
-	id := m.idCounter.Add(1)
-	listenCh := make(chan *event.Event)
-	m.listeners.Store(id, listenCh)
-
+func (m *MatrixSession) initSyncHandlers() {
 	syncer := m.GetClient().Syncer.(*mautrix.DefaultSyncer)
 
 	syncer.OnEventType(
 		event.EventMessage,
 		func(ctx context.Context, evt *event.Event) {
-			if evt.Type == event.EventEncrypted {
-				return
-			}
-
-			if ch, ok := m.listeners.Load(id); ok {
+			m.listeners.Range(func(id uint64, ch chan *event.Event) bool {
 				ch <- evt
-				return
-			}
+				return true
+			})
 		},
 	)
 
 	syncer.OnEventType(
 		event.EventEncrypted,
 		func(ctx context.Context, evt *event.Event) {
-			if _, ok := m.listeners.Load(id); !ok {
+			decrypted, err := m.GetCryptoHelper().Decrypt(ctx, evt)
+			if err != nil {
 				return
 			}
-
-			m.GetCryptoHelper().HandleEncrypted(ctx, evt)
+			_ = decrypted.Content.ParseRaw(decrypted.Type)
+			m.listeners.Range(func(id uint64, ch chan *event.Event) bool {
+				ch <- decrypted
+				return true
+			})
 		},
 	)
+}
 
+func (m *MatrixSession) ListenMessages() (chan *event.Event, uint64) {
+	id := m.idCounter.Add(1)
+	listenCh := make(chan *event.Event, 16)
+	m.listeners.Store(id, listenCh)
 	return listenCh, id
 }
 

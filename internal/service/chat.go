@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/components/utils"
@@ -20,8 +21,9 @@ type chatListener struct {
 
 type ChatService struct {
 	*BaseService
-	messages  *xsync.Map[string, *models.MessageTree]
-	listeners *xsync.Map[string, *chatListener]
+	messages   *xsync.Map[string, *models.MessageTree]
+	listeners  *xsync.Map[string, *chatListener]
+	listenerMu sync.Mutex
 }
 
 func NewChatService(
@@ -41,39 +43,47 @@ func (s *ChatService) GetRoomMessages(
 ) (*models.MessageTree, error) {
 	userID := s.GetCurrentUserID()
 
-	messageTree, _ := s.messages.LoadOrStore(roomID, models.NewMessageTree())
-	if messageTree.Len() == 0 {
+	messageTree, _ := s.messages.LoadOrCompute(roomID, func() (newValue *models.MessageTree, cancel bool) {
 		messages, _ := s.matrix.GetRoomMessages(ctx, userID, roomID, "", "", 50)
 		for _, message := range messages {
-			messageTree.Set(message)
+			newValue.BTreeG.Set(message)
 		}
-	}
 
-	if _, ok := s.listeners.Load(userID); !ok {
-		mxSession := s.matrix.GetMatrixSession(userID)
-		if mxSession != nil {
-			listenerCtx, cancel := context.WithCancel(context.Background())
-			ch, id := mxSession.ListenMessages()
-			s.listeners.Store(roomID, &chatListener{
-				id:     id,
-				cancel: cancel,
-			})
-			go func() {
-				for {
-					select {
-					case <-listenerCtx.Done():
-						return
-					case evt, ok := <-ch:
-						msg := s.matrix.EventToMessage(s.matrix.GetCurrentMatrixSession().GetClient(), evt)
-						if !ok {
+		if _, ok := s.listeners.Load(roomID); !ok {
+			mxSession := s.matrix.GetMatrixSession(userID)
+			if mxSession != nil {
+				listenerCtx, cancel := context.WithCancel(context.Background())
+				ch, id := mxSession.ListenMessages()
+				s.listeners.Store(roomID, &chatListener{
+					id:     id,
+					cancel: cancel,
+				})
+				go func() {
+					for {
+						select {
+						case <-listenerCtx.Done():
 							return
+						case evt, ok := <-ch:
+							if !ok {
+								return
+							}
+							msg := s.matrix.EventToMessage(
+								s.matrix.GetCurrentMatrixSession().GetClient(), evt,
+							)
+							if msg == nil || msg.ChannelID != roomID {
+								continue
+							}
+							newValue.Set(*msg)
 						}
-						s.InsertAndBroadcast(listenerCtx, roomID, *msg)
 					}
-				}
-			}()
+				}()
+			} else {
+				return newValue, true
+			}
 		}
-	}
+
+		return newValue, false
+	})
 
 	return messageTree, nil
 }
@@ -101,47 +111,67 @@ func (s *ChatService) InsertAndBroadcast(
 	}
 
 	neighbors := tree.GetNeighbors(msg)
-	swap, continued := s.resolveSwap(msg, neighbors)
+	continued := neighbors.Prev != nil &&
+		neighbors.Prev.Author.ID == msg.Author.ID &&
+		utils.WithinMinutes(neighbors.Prev.Timestamp, msg.Timestamp, 5)
 
 	var buf bytes.Buffer
-	var rerenderBuf bytes.Buffer
 
-	err := ui.MessageBubbleOOB(msg, continued, swap).Render(ctx, &buf)
-	if err != nil {
-		return fmt.Errorf("render message oob: %w", err)
+	if neighbors.Next != nil {
+		oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
+		err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+		if err != nil {
+			return err
+		}
+	} else if neighbors.Prev != nil {
+		oobTarget := "afterend:#msg-" + neighbors.Prev.ID
+		err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+		if err != nil {
+			return err
+		}
+	} else {
+		oobTarget := "beforeend:#message-list"
+		err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+		if err != nil {
+			return err
+		}
 	}
 
-	if prev, continued := s.checkRegrouping(msg, neighbors); prev != nil {
-		className := SafeHashClass(prev.ID)
-		swap := fmt.Sprintf("outerHTML:#msg-%s", className)
-		err := ui.MessageBubbleOOB(*prev, continued, swap).Render(ctx, &buf)
+	if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {
+		err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(ctx, &buf)
 		if err != nil {
 			return fmt.Errorf("render message oob: %w", err)
 		}
-		buf.Write(rerenderBuf.Bytes())
 	}
 
 	s.hub.Broadcast(channelID, buf.Bytes())
 	return nil
 }
 
-func (s *ChatService) resolveSwap(
+func renderInsertOOB(
+	ctx context.Context,
+	buf *bytes.Buffer,
 	msg models.Message,
-	n models.Neighbors,
-) (strategy string, continued bool) {
-	if n.Next != nil {
-		continued = n.Next.Author.ID == msg.Author.ID &&
-			utils.WithinMinutes(msg.Timestamp, n.Next.Timestamp, 5)
-		className := SafeHashClass(n.Next.ID)
-		return "afterend:#msg-" + className, continued
+	continued bool,
+	oobTarget string,
+) error {
+	var inner bytes.Buffer
+	if continued {
+		if err := ui.MessageBubbleContinued(msg).Render(ctx, &inner); err != nil {
+			return fmt.Errorf("render message oob: %w", err)
+		}
+	} else {
+		if err := ui.MessageBubble(msg).Render(ctx, &inner); err != nil {
+			return fmt.Errorf("render message oob: %w", err)
+		}
 	}
-
-	if n.Prev != nil {
-		className := SafeHashClass(n.Prev.ID)
-		return "beforebegin:#msg-" + className, false
-	}
-
-	return "afterbegin:#message-list", false
+	_, err := fmt.Fprintf(
+		buf,
+		`<div hx-swap-oob="%s">%s</div>`,
+		oobTarget,
+		inner.String(),
+	)
+	return err
 }
 
 func (s *ChatService) checkRegrouping(
