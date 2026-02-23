@@ -19,6 +19,7 @@ import (
 )
 
 type MessageTree struct {
+	mu sync.RWMutex
 	*btree.BTreeG[models.Message]
 	nonces *xsync.Map[string, models.Message]
 
@@ -27,12 +28,12 @@ type MessageTree struct {
 	evtListenerId atomic.Uint64
 
 	listening      atomic.Bool
-	listenMu       sync.Mutex
 	listenerCtx    context.Context
 	listenerCancel context.CancelFunc
 	listenerCh     chan MessageTreeEvent
 
-	roomID string
+	roomID      string
+	isEncrypted bool
 
 	wg sync.WaitGroup
 }
@@ -49,7 +50,6 @@ type MessageTreeEvent struct {
 	EventType   MessageTreeEventType
 	UpdateNonce string
 	Message     models.Message
-	Neighbors   Neighbors
 }
 
 type Neighbors struct {
@@ -66,7 +66,9 @@ func byTimestamp(a, b models.Message) bool {
 
 func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 	return &MessageTree{
-		BTreeG:        btree.NewBTreeG(byTimestamp),
+		BTreeG: btree.NewBTreeGOptions(byTimestamp, btree.Options{
+			NoLocks: true,
+		}),
 		matrixSession: mxSession,
 		nonces:        xsync.NewMap[string, models.Message](),
 		roomID:        roomID,
@@ -74,6 +76,12 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 }
 
 func (t *MessageTree) Initialize(ctx context.Context) {
+	var encEvt event.EncryptionEventContent
+	err := t.matrixSession.GetClient().StateEvent(
+		ctx, id.RoomID(t.roomID), event.StateEncryption, "", &encEvt,
+	)
+	t.isEncrypted = err == nil && encEvt.Algorithm != ""
+
 	t.PopulateTree(ctx, "", "", 50)
 }
 
@@ -81,8 +89,7 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 	userID := id.UserID(t.matrixSession.id)
 	roomID := t.roomID
 
-	actualRoomID := decodeRoomID(roomID)
-	rid := id.RoomID(actualRoomID)
+	rid := id.RoomID(roomID)
 
 	client := t.matrixSession.GetClient()
 	cryptoHelper := t.matrixSession.GetCryptoHelper()
@@ -155,18 +162,20 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 }
 
 func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
-	t.listenMu.Lock()
-	defer t.listenMu.Unlock()
-
 	if t.listening.Swap(true) {
 		return
 	}
+
+	t.matrixSession.logger.Debug(
+		"listening to message tree",
+		"roomID", t.roomID,
+	)
 
 	if t.listenerCancel != nil {
 		t.listenerCancel()
 	}
 
-	t.listenerCh = make(chan MessageTreeEvent)
+	t.listenerCh = make(chan MessageTreeEvent, 256)
 
 	treeCtx, cancel := context.WithCancel(ctx)
 	t.listenerCtx = treeCtx
@@ -176,6 +185,11 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 	t.evtListenerId.Store(evtChId)
 
 	t.wg.Go(func() {
+		t.matrixSession.logger.Debug(
+			"starting matrix receiver goroutine",
+			"roomID", t.roomID,
+		)
+
 		for {
 			select {
 			case <-treeCtx.Done():
@@ -185,11 +199,31 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 					return
 				}
 				if evt == nil || evt.RoomID != id.RoomID(t.roomID) {
+					if evt != nil {
+						t.matrixSession.logger.Debug(
+							"received matrix event but not from room",
+							"roomID", t.roomID,
+							"evtRoomID", evt.RoomID,
+						)
+					}
+
 					continue
 				}
 
+				t.matrixSession.logger.Debug(
+					"received matrix event from room",
+					"roomID", t.roomID,
+				)
+
 				msg := t.eventToMessage(evt)
 				if msg != nil {
+					t.matrixSession.logger.Debug(
+						"parsed message",
+						"roomID", t.roomID,
+						"msgID", evt.ID,
+						"content", evt.Content,
+						"nonce", msg.Nonce,
+					)
 					t.Set(*msg)
 				}
 			}
@@ -197,6 +231,11 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 	})
 
 	t.wg.Go(func() {
+		t.matrixSession.logger.Debug(
+			"starting callback transmitter goroutine",
+			"roomID", t.roomID,
+		)
+
 		for {
 			select {
 			case <-treeCtx.Done():
@@ -205,9 +244,13 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 				if !ok {
 					return
 				}
-				if evt.Message.RoomID != t.roomID {
-					continue
-				}
+
+				t.matrixSession.logger.Debug(
+					"received message tree changes",
+					"roomID", t.roomID,
+					"type", evt.EventType,
+				)
+
 				if cb != nil {
 					cb(evt)
 				}
@@ -217,8 +260,6 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 }
 
 func (t *MessageTree) Close() {
-	t.listenMu.Lock()
-
 	if !t.listening.Swap(false) {
 		return
 	}
@@ -234,17 +275,10 @@ func (t *MessageTree) Close() {
 	t.listenerCancel = nil
 	close(t.listenerCh)
 
-	t.listenMu.Unlock()
-
 	t.wg.Wait()
 }
 
-func (t *MessageTree) SendMessage(
-	ctx context.Context,
-	body string,
-) error {
-	client := t.matrixSession.GetClient()
-
+func (t *MessageTree) SendMessage(ctx context.Context, body string) error {
 	nonce, err := generateNonce()
 	if err != nil {
 		return err
@@ -253,68 +287,34 @@ func (t *MessageTree) SendMessage(
 	t.Set(t.defaultMessage(ctx, body, nonce))
 
 	rid := id.RoomID(t.roomID)
-
+	client := t.matrixSession.GetClient()
 	content := &event.MessageEventContent{
 		MsgType: event.MsgText,
 		Body:    body,
 	}
 
-	var encEvt event.EncryptionEventContent
-	err = client.StateEvent(
-		ctx, rid, event.StateEncryption, "", &encEvt,
-	)
-	if err == nil && encEvt.Algorithm != "" {
-		machine := t.matrixSession.GetCryptoHelper().Machine()
-		if machine != nil {
-			members, memberErr := client.Members(ctx, rid)
-			if memberErr == nil {
-				var memberIDs []id.UserID
-				for _, evt := range members.Chunk {
-					c, ok := evt.Content.Parsed.(*event.MemberEventContent)
-					if !ok || c.Membership != event.MembershipJoin {
-						continue
-					}
-					memberIDs = append(
-						memberIDs, id.UserID(evt.GetStateKey()),
-					)
-				}
-				if shareErr := machine.ShareGroupSession(
-					ctx, rid, memberIDs,
-				); shareErr != nil {
-					t.matrixSession.logger.Warn("share group session failed",
-						"user", t.matrixSession.id,
-						"room", rid,
-						"err", shareErr,
-					)
-				}
-			}
-		}
+	if t.isEncrypted {
+		t.shareGroupSession(ctx)
 
-		encrypted, encErr := t.matrixSession.GetCryptoHelper().Encrypt(
+		encrypted, err := t.matrixSession.GetCryptoHelper().Encrypt(
 			ctx, rid, event.EventMessage, content,
 		)
-		if encErr != nil {
-			return fmt.Errorf("encrypt: %w", encErr)
+		if err != nil {
+			return fmt.Errorf("encrypt: %w", err)
 		}
 
-		_, sendErr := client.SendMessageEvent(
+		_, err = client.SendMessageEvent(
 			ctx, rid, event.EventEncrypted, encrypted,
 			mautrix.ReqSendEvent{TransactionID: nonce},
 		)
-		if sendErr != nil {
-			return sendErr
-		}
-		return nil
+		return err
 	}
 
 	_, err = client.SendMessageEvent(
 		ctx, rid, event.EventMessage, content,
 		mautrix.ReqSendEvent{TransactionID: nonce},
 	)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
@@ -323,45 +323,94 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	replacedPending := false
 	replacedNonce := ""
 
+	t.mu.Lock()
 	// if message has nonce, it is meant to replace an existing message with
 	// "pending-<nonce>" as ID
 	if m.Nonce != "" {
 		if existing, ok := t.nonces.Load(m.Nonce); ok {
+			t.matrixSession.logger.Debug(
+				"nonce found",
+				"nonce", m.Nonce,
+				"existing", existing,
+			)
 			t.BTreeG.Delete(existing)
-			replacedNonce = m.Nonce
+
+			t.matrixSession.logger.Debug(
+				"finished processing nonce",
+			)
+			replacedNonce = existing.ID
 			replacedPending = true
+			t.nonces.Delete(m.Nonce)
 		}
 		m.Nonce = ""
-	} else if nonce, isNonce := strings.CutPrefix(m.ID, "pending-"); isNonce {
-		t.nonces.Store(nonce, m)
+	} else if strings.HasPrefix(m.ID, "pending-") {
+		t.matrixSession.logger.Debug(
+			"pending found",
+			"id", m.ID,
+		)
+		t.nonces.Store(m.ID, m)
 	}
 
-	msg, replaced := t.BTreeG.Set(m)
+	_, replaced := t.BTreeG.Set(m)
+	t.mu.Unlock()
 
-	t.listenMu.Lock()
-	defer t.listenMu.Unlock()
+	t.matrixSession.logger.Debug(
+		"btree set",
+		"replaced", replaced,
+	)
+
+	t.matrixSession.logger.Debug(
+		"if stuck here, it's deadlock",
+	)
+
+	t.matrixSession.logger.Debug(
+		"check if listening",
+	)
 
 	if t.listening.Load() {
+		var treeEvt MessageTreeEvent
 		if !replaced && !replacedPending {
-			t.listenerCh <- MessageTreeEvent{
-				Message:   msg,
+			treeEvt = MessageTreeEvent{
+				Message:   m,
 				EventType: AddEvent,
-				Neighbors: t.GetNeighbors(msg),
 			}
 		} else {
-			t.listenerCh <- MessageTreeEvent{
-				Message:     msg,
+			treeEvt = MessageTreeEvent{
+				Message:     m,
 				UpdateNonce: replacedNonce,
 				EventType:   UpdateEvent,
-				Neighbors:   t.GetNeighbors(msg),
+			}
+		}
+
+		if t.listening.Load() {
+			select {
+			case t.listenerCh <- treeEvt:
+				t.matrixSession.logger.Debug(
+					"sent event to listener channel",
+					"id", m.ID,
+				)
+			case <-t.listenerCtx.Done():
+				t.matrixSession.logger.Debug("listener context done, skipping send")
+			default:
+				// Fallback: If channel is full, send in goroutine to prevent tree deadlock
+				go func(evt MessageTreeEvent) {
+					select {
+					case t.listenerCh <- evt:
+					case <-time.After(5 * time.Second):
+						t.matrixSession.logger.Warn("dropped message tree event due to timeout")
+					}
+				}(treeEvt)
 			}
 		}
 	}
 
-	return msg, replaced
+	return m, replaced
 }
 
 func (t *MessageTree) GetNeighbors(m models.Message) Neighbors {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
 	var n Neighbors
 	iter := t.Iter()
 
@@ -385,6 +434,9 @@ func (t *MessageTree) GetNeighbors(m models.Message) Neighbors {
 }
 
 func (t *MessageTree) Chronological() []models.Message {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
 	items := make([]models.Message, 0, t.Len())
 	t.Reverse(func(item models.Message) bool {
 		items = append(items, item)
@@ -462,5 +514,35 @@ func (t *MessageTree) undecryptableMessage(
 		},
 		Timestamp: time.UnixMilli(evt.Timestamp),
 		RoomID:    t.roomID,
+	}
+}
+
+func (t *MessageTree) shareGroupSession(ctx context.Context) {
+	rid := id.RoomID(t.roomID)
+	machine := t.matrixSession.GetCryptoHelper().Machine()
+	if machine == nil {
+		return
+	}
+
+	members, err := t.matrixSession.GetClient().Members(ctx, rid)
+	if err != nil {
+		return
+	}
+
+	var memberIDs []id.UserID
+	for _, evt := range members.Chunk {
+		c, ok := evt.Content.Parsed.(*event.MemberEventContent)
+		if !ok || c.Membership != event.MembershipJoin {
+			continue
+		}
+		memberIDs = append(memberIDs, id.UserID(evt.GetStateKey()))
+	}
+
+	if err := machine.ShareGroupSession(ctx, rid, memberIDs); err != nil {
+		t.matrixSession.logger.Warn("share group session failed",
+			"user", t.matrixSession.id,
+			"room", rid,
+			"err", err,
+		)
 	}
 }

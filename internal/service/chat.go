@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/components/utils"
@@ -47,8 +48,10 @@ func (s *ChatService) GetRoomMessages(
 	})
 
 	// only initialized once per room internally
-	messageTree.Listen(ctx, func(mte matrix.MessageTreeEvent) {
-		neighbors := mte.Neighbors
+	messageTree.Listen(context.Background(), func(mte matrix.MessageTreeEvent) {
+		log.Printf("mte: %v", mte)
+
+		neighbors := messageTree.GetNeighbors(mte.Message)
 		msg := mte.Message
 
 		var buf bytes.Buffer
@@ -60,36 +63,45 @@ func (s *ChatService) GetRoomMessages(
 		case matrix.AddEvent:
 			if neighbors.Next != nil {
 				oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
-				err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
 				if err != nil {
+					log.Printf("err: %v", err)
 					return
 				}
 			} else if neighbors.Prev != nil {
 				oobTarget := "afterend:#msg-" + neighbors.Prev.ID
-				err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
 				if err != nil {
+					log.Printf("err: %v", err)
 					return
 				}
 			} else {
 				oobTarget := "beforeend:#message-list"
-				err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
 				if err != nil {
+					log.Printf("err: %v", err)
 					return
 				}
 			}
 
 		case matrix.UpdateEvent:
+			if mte.UpdateNonce == "" {
+				log.Printf("err: no updatenonce")
+				return
+			}
 			oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
-			err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+			err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
 			if err != nil {
+				log.Printf("err: %v", err)
 				return
 			}
 		case matrix.RemoveEvent:
 		}
 
 		if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {
-			err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(ctx, &buf)
+			err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(context.Background(), &buf)
 			if err != nil {
+				log.Printf("err: %v", err)
 				return
 			}
 		}
@@ -106,8 +118,7 @@ func (s *ChatService) SendRoomMessage(
 	author models.User,
 	content string,
 ) error {
-	userID := s.GetCurrentUserID()
-	matrixSession := s.matrix.GetMatrixSession(userID)
+	matrixSession := s.matrix.GetMatrixSession(author.ID)
 	messageTree := matrixSession.GetMessageTree(roomID)
 
 	return messageTree.SendMessage(ctx, content)
@@ -123,7 +134,7 @@ func renderInsertOOB(
 	var inner bytes.Buffer
 	if continued {
 		if err := ui.MessageBubbleContinued(msg).Render(ctx, &inner); err != nil {
-			return fmt.Errorf("render message oob: %w", err)
+			return fmt.Errorf("render continued message oob: %w", err)
 		}
 	} else {
 		if err := ui.MessageBubble(msg).Render(ctx, &inner); err != nil {

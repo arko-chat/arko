@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -39,7 +40,7 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 	hub.Register(roomID, client)
 	go client.WritePump()
 
-	client.ReadPump(func(uid, content, nonce string) {
+	client.ReadPump(func(uid, content string) {
 		if strings.TrimSpace(content) == "" {
 			return
 		}
@@ -49,8 +50,14 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		h.logger.Debug(
+			"sending room message from ws pump",
+			"roomID", roomID,
+			"author", author,
+			"content", content,
+		)
 		err = h.svc.Chat.SendRoomMessage(
-			r.Context(),
+			context.Background(),
 			roomID,
 			author,
 			content,

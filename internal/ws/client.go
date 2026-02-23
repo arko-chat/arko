@@ -27,7 +27,7 @@ type incomingMessage struct {
 	Nonce   string `json:"nonce"`
 }
 
-type MessageHandler func(userID, content, nonce string)
+type MessageHandler func(userID, content string)
 
 func (c *Client) ReadPump(onMessage MessageHandler) {
 	defer func() {
@@ -56,7 +56,7 @@ func (c *Client) ReadPump(onMessage MessageHandler) {
 			continue
 		}
 
-		onMessage(c.UserID, msg.Message, msg.Nonce)
+		onMessage(c.UserID, msg.Message)
 	}
 }
 

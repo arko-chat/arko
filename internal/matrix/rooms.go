@@ -147,8 +147,7 @@ func (m *Manager) GetSpaceDetail(
 		return models.SpaceDetail{}, err
 	}
 
-	actualID := decodeRoomID(spaceID)
-	roomID := id.RoomID(actualID)
+	roomID := id.RoomID(spaceID)
 	name := m.getRoomName(ctx, client, roomID)
 	avatar := m.getRoomAvatar(ctx, client, roomID)
 
@@ -163,7 +162,7 @@ func (m *Manager) GetSpaceDetail(
 	}
 
 	return models.SpaceDetail{
-		ID:       actualID,
+		ID:       spaceID,
 		Name:     name,
 		Avatar:   avatar,
 		Channels: children,
@@ -297,19 +296,17 @@ func (m *Manager) GetChannel(
 		return models.Channel{}, err
 	}
 
-	actualRoomID := decodeRoomID(channelID)
-	actualSpaceID := decodeRoomID(spaceID)
-	roomID := id.RoomID(actualRoomID)
+	roomID := id.RoomID(channelID)
 	name := m.getRoomName(ctx, client, roomID)
 
 	var topicEvt event.TopicEventContent
 	_ = client.StateEvent(ctx, roomID, event.StateTopic, "", &topicEvt)
 
 	return models.Channel{
-		ID:      actualRoomID,
+		ID:      channelID,
 		Name:    name,
 		Type:    models.ChannelText,
-		SpaceID: actualSpaceID,
+		SpaceID: spaceID,
 		Topic:   topicEvt.Topic,
 	}, nil
 }

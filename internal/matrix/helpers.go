@@ -40,11 +40,3 @@ func mxcToHTTP(uri id.ContentURI) string {
 func encodeRoomID(roomID string) string {
 	return url.PathEscape(roomID)
 }
-
-func decodeRoomID(encoded string) string {
-	decoded, err := url.PathUnescape(encoded)
-	if err != nil {
-		return encoded
-	}
-	return decoded
-}
