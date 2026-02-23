@@ -16,6 +16,7 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/puzpuzpuz/xsync/v4"
+	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/crypto/cryptohelper"
 	"maunium.net/go/mautrix/crypto/ssss"
@@ -24,11 +25,11 @@ import (
 	"maunium.net/go/mautrix/id"
 )
 
-// TODO: wrap messagetree to a matrixsession listener per chat room
 type MatrixSession struct {
 	sync.Mutex
 
 	id                  string
+	manager             *Manager
 	logger              *slog.Logger
 	context             context.Context
 	cancel              context.CancelFunc
@@ -41,7 +42,9 @@ type MatrixSession struct {
 	keyBackupMgr        *KeyBackupManager
 	listeners           *xsync.Map[uint64, chan *event.Event]
 	idCounter           atomic.Uint64
-	userCache           *xsync.Map[id.UserID, models.User]
+
+	profileCache *xsync.Map[string, cacheEntry[models.User]]
+	profileSfg   *singleflight.Group
 
 	messageTrees *xsync.Map[string, *MessageTree]
 }
@@ -90,7 +93,6 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) 
 		m.cryptoDBPath,
 		url.PathEscape(string(client.UserID)),
 	)
-
 	s, err := session.UpdateAndGet(string(client.UserID), func(s *session.Session) {
 		if len(s.PickleKey) > 0 && s.LoggedIn {
 			return
@@ -172,6 +174,7 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) 
 
 	mSess := &MatrixSession{
 		id:                  s.UserID,
+		manager:             m,
 		logger:              logger,
 		context:             ctx,
 		cancel:              cancel,
@@ -183,7 +186,8 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) 
 		ssssMachine:         ssss.NewSSSSMachine(client),
 		listeners:           xsync.NewMap[uint64, chan *event.Event](),
 		messageTrees:        xsync.NewMap[string, *MessageTree](),
-		userCache:           xsync.NewMap[id.UserID, models.User](),
+		profileCache:        xsync.NewMap[string, cacheEntry[models.User]](),
+		profileSfg:          &singleflight.Group{},
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
@@ -225,6 +229,27 @@ func (m *MatrixSession) initSyncHandlers() {
 			})
 		},
 	)
+
+	syncer.OnEventType(event.StateMember, func(ctx context.Context, evt *event.Event) {
+		m.manager.membersCache.Delete(evt.RoomID.String())
+		m.profileCache.Delete(evt.GetStateKey())
+		m.manager.dmCache.Delete(m.id)
+	})
+
+	syncer.OnEventType(event.StateSpaceChild, func(ctx context.Context, evt *event.Event) {
+		m.manager.channelsCache.Delete(evt.RoomID.String())
+	})
+
+	syncer.OnEventType(event.AccountDataDirectChats, func(ctx context.Context, evt *event.Event) {
+		m.manager.dmCache.Delete(m.id)
+	})
+
+	syncer.OnEventType(event.EphemeralEventPresence, func(ctx context.Context, evt *event.Event) {
+		m.profileCache.Delete(evt.Sender.String())
+		if evt.Sender.String() == m.id {
+			m.manager.userCache.Delete(m.id)
+		}
+	})
 }
 
 func (m *MatrixSession) listenEvents() (chan *event.Event, uint64) {
@@ -255,60 +280,31 @@ func (m *MatrixSession) GetUserProfile(
 	ctx context.Context,
 	targetUserID string,
 ) (models.User, error) {
-	if cached, ok := m.userCache.Load(id.UserID(targetUserID)); ok {
-		return cached, nil
-	}
+	return cachedSingle(m.profileCache, m.profileSfg, targetUserID, func() (models.User, error) {
+		target := id.UserID(targetUserID)
+		localpart := target.Localpart()
 
-	target := id.UserID(targetUserID)
-	localpart := target.Localpart()
-
-	name := localpart
-	avatar := fmt.Sprintf(
-		"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-		localpart,
-	)
-
-	profile, err := m.GetClient().GetProfile(ctx, target)
-	if err == nil && profile != nil {
-		if profile.DisplayName != "" {
-			name = profile.DisplayName
-		}
-		avatar = resolveContentURI(
-			profile.AvatarURL, localpart, "avataaars",
+		name := localpart
+		avatar := fmt.Sprintf(
+			"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
+			localpart,
 		)
-	}
 
-	user := models.User{
-		ID:     targetUserID,
-		Name:   name,
-		Avatar: avatar,
-		Status: models.StatusOffline,
-	}
+		profile, err := m.GetClient().GetProfile(ctx, target)
+		if err == nil && profile != nil {
+			if profile.DisplayName != "" {
+				name = profile.DisplayName
+			}
+			avatar = resolveContentURI(profile.AvatarURL, localpart, "avataaars")
+		}
 
-	m.userCache.Store(id.UserID(targetUserID), user)
-
-	return user, nil
-}
-
-func (m *Manager) ListJoinedRooms(
-	ctx context.Context,
-	userID string,
-) ([]string, error) {
-	client, err := m.GetClient(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := client.JoinedRooms(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var rooms []string
-	for _, r := range resp.JoinedRooms {
-		rooms = append(rooms, r.String())
-	}
-	return rooms, nil
+		return models.User{
+			ID:     targetUserID,
+			Name:   name,
+			Avatar: avatar,
+			Status: models.StatusOffline,
+		}, nil
+	})
 }
 
 func (m *MatrixSession) IsVerified(ctx context.Context) bool {

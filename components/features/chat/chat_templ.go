@@ -127,7 +127,8 @@ func Chat(props Props) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ui.MessageInput(props.Placeholder, "message", templ.Attributes{
-			"ws-send": "",
+			"ws-send":              "",
+			"hx-on::after-request": "if(event.detail.successful) this.reset()",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

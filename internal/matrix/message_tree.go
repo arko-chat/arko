@@ -12,6 +12,7 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/puzpuzpuz/xsync/v4"
 	"github.com/tidwall/btree"
+	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/crypto"
 	"maunium.net/go/mautrix/event"
@@ -34,6 +35,9 @@ type MessageTree struct {
 
 	roomID      string
 	isEncrypted bool
+
+	chronoCache *xsync.Map[string, cacheEntry[[]models.Message]]
+	chronoSfg   *singleflight.Group
 
 	wg sync.WaitGroup
 }
@@ -72,6 +76,8 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 		matrixSession: mxSession,
 		nonces:        xsync.NewMap[string, models.Message](),
 		roomID:        roomID,
+		chronoCache:   xsync.NewMap[string, cacheEntry[[]models.Message]](),
+		chronoSfg:     &singleflight.Group{},
 	}
 }
 
@@ -352,6 +358,7 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	}
 
 	_, replaced := t.BTreeG.Set(m)
+	t.chronoCache.Delete("chrono_list")
 	t.mu.Unlock()
 
 	t.matrixSession.logger.Debug(
@@ -434,15 +441,21 @@ func (t *MessageTree) GetNeighbors(m models.Message) Neighbors {
 }
 
 func (t *MessageTree) Chronological() []models.Message {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
+	const cacheKey = "chrono_list"
 
-	items := make([]models.Message, 0, t.Len())
-	t.Reverse(func(item models.Message) bool {
-		items = append(items, item)
-		return true
+	msgs, _ := cachedSingle(t.chronoCache, t.chronoSfg, cacheKey, func() ([]models.Message, error) {
+		t.mu.RLock()
+		defer t.mu.RUnlock()
+
+		items := make([]models.Message, 0, t.Len())
+		t.Reverse(func(item models.Message) bool {
+			items = append(items, item)
+			return true
+		})
+		return items, nil
 	})
-	return items
+
+	return msgs
 }
 
 func (t *MessageTree) eventToMessage(
@@ -453,33 +466,14 @@ func (t *MessageTree) eventToMessage(
 		return nil
 	}
 
-	senderName := evt.Sender.Localpart()
-	avatarURL := fmt.Sprintf(
-		"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-		senderName,
-	)
-
-	profile, _ := t.matrixSession.GetClient().GetProfile(context.Background(), evt.Sender)
-	if profile != nil {
-		if profile.DisplayName != "" {
-			senderName = profile.DisplayName
-		}
-		avatarURL = resolveContentURI(
-			profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
-		)
-	}
+	profile, _ := t.matrixSession.GetUserProfile(context.Background(), string(evt.Sender))
 
 	safeId := safeHashClass(evt.ID.String())
 
 	return &models.Message{
-		ID:      safeId,
-		Content: content.Body,
-		Author: models.User{
-			ID:     evt.Sender.String(),
-			Name:   senderName,
-			Avatar: avatarURL,
-			Status: models.StatusOnline,
-		},
+		ID:        safeId,
+		Content:   content.Body,
+		Author:    profile,
 		Timestamp: time.UnixMilli(evt.Timestamp),
 		RoomID:    t.roomID,
 		Nonce:     evt.Unsigned.TransactionID,

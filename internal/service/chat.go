@@ -37,76 +37,74 @@ func (s *ChatService) GetRoomMessages(
 	matrixSession := s.matrix.GetMatrixSession(userID)
 	messageTree := matrixSession.GetMessageTree(roomID)
 
-	s.initializedTree.Compute(roomID, func(s struct{}, loaded bool) (struct{}, xsync.ComputeOp) {
+	s.initializedTree.Compute(roomID, func(str struct{}, loaded bool) (struct{}, xsync.ComputeOp) {
 		if loaded {
-			return s, xsync.CancelOp
+			return str, xsync.CancelOp
 		}
 
 		messageTree.Initialize(ctx)
+		messageTree.Listen(context.Background(), func(mte matrix.MessageTreeEvent) {
+			log.Printf("mte: %v", mte)
+
+			neighbors := messageTree.GetNeighbors(mte.Message)
+			msg := mte.Message
+
+			var buf bytes.Buffer
+			continued := neighbors.Prev != nil &&
+				neighbors.Prev.Author.ID == msg.Author.ID &&
+				utils.WithinMinutes(neighbors.Prev.Timestamp, msg.Timestamp, 5)
+
+			switch mte.EventType {
+			case matrix.AddEvent:
+				if neighbors.Next != nil {
+					oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
+					err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+					if err != nil {
+						log.Printf("err: %v", err)
+						return
+					}
+				} else if neighbors.Prev != nil {
+					oobTarget := "afterend:#msg-" + neighbors.Prev.ID
+					err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+					if err != nil {
+						log.Printf("err: %v", err)
+						return
+					}
+				} else {
+					oobTarget := "beforeend:#message-list"
+					err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+					if err != nil {
+						log.Printf("err: %v", err)
+						return
+					}
+				}
+
+			case matrix.UpdateEvent:
+				if mte.UpdateNonce == "" {
+					log.Printf("err: no updatenonce")
+					return
+				}
+				oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
+				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+				if err != nil {
+					log.Printf("err: %v", err)
+					return
+				}
+			case matrix.RemoveEvent:
+			}
+
+			if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {
+				err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(context.Background(), &buf)
+				if err != nil {
+					log.Printf("err: %v", err)
+					return
+				}
+			}
+
+			s.hub.Broadcast(roomID, buf.Bytes())
+		})
 
 		return struct{}{}, xsync.UpdateOp
-	})
-
-	// only initialized once per room internally
-	messageTree.Listen(context.Background(), func(mte matrix.MessageTreeEvent) {
-		log.Printf("mte: %v", mte)
-
-		neighbors := messageTree.GetNeighbors(mte.Message)
-		msg := mte.Message
-
-		var buf bytes.Buffer
-		continued := neighbors.Prev != nil &&
-			neighbors.Prev.Author.ID == msg.Author.ID &&
-			utils.WithinMinutes(neighbors.Prev.Timestamp, msg.Timestamp, 5)
-
-		switch mte.EventType {
-		case matrix.AddEvent:
-			if neighbors.Next != nil {
-				oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
-				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
-				if err != nil {
-					log.Printf("err: %v", err)
-					return
-				}
-			} else if neighbors.Prev != nil {
-				oobTarget := "afterend:#msg-" + neighbors.Prev.ID
-				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
-				if err != nil {
-					log.Printf("err: %v", err)
-					return
-				}
-			} else {
-				oobTarget := "beforeend:#message-list"
-				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
-				if err != nil {
-					log.Printf("err: %v", err)
-					return
-				}
-			}
-
-		case matrix.UpdateEvent:
-			if mte.UpdateNonce == "" {
-				log.Printf("err: no updatenonce")
-				return
-			}
-			oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
-			err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
-			if err != nil {
-				log.Printf("err: %v", err)
-				return
-			}
-		case matrix.RemoveEvent:
-		}
-
-		if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {
-			err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(context.Background(), &buf)
-			if err != nil {
-				log.Printf("err: %v", err)
-				return
-			}
-		}
-
-		s.hub.Broadcast(roomID, buf.Bytes())
 	})
 
 	return messageTree, nil

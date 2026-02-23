@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/id"
 
@@ -36,6 +37,20 @@ type Manager struct {
 	matrixSessions *xsync.Map[string, *MatrixSession]
 	currSession    atomic.Pointer[MatrixSession]
 	verifiedCache  bool
+
+	userCache     *xsync.Map[string, cacheEntry[models.User]]
+	userSfg       *singleflight.Group
+	roomCache     *xsync.Map[string, cacheEntry[string]]
+	roomNameSfg   *singleflight.Group
+	roomAvatarSfg *singleflight.Group
+	channelsCache *xsync.Map[string, cacheEntry[[]models.Channel]]
+	channelsSfg   *singleflight.Group
+	spacesCache   *xsync.Map[string, cacheEntry[[]models.Space]]
+	spacesSfg     *singleflight.Group
+	dmCache       *xsync.Map[string, cacheEntry[[]models.User]]
+	dmSfg         *singleflight.Group
+	membersCache  *xsync.Map[string, cacheEntry[[]models.User]]
+	membersSfg    *singleflight.Group
 }
 
 func NewManager(
@@ -44,13 +59,25 @@ func NewManager(
 	cryptoDBPath string,
 ) *Manager {
 	newLru, _ := lru.New[string, struct{}](50)
-
 	m := &Manager{
 		hub:            hub,
 		logger:         logger,
 		cryptoDBPath:   cryptoDBPath,
 		sentMsgIds:     newLru,
 		matrixSessions: xsync.NewMap[string, *MatrixSession](),
+		userCache:      xsync.NewMap[string, cacheEntry[models.User]](),
+		roomCache:      xsync.NewMap[string, cacheEntry[string]](),
+		channelsCache:  xsync.NewMap[string, cacheEntry[[]models.Channel]](),
+		spacesCache:    xsync.NewMap[string, cacheEntry[[]models.Space]](),
+		dmCache:        xsync.NewMap[string, cacheEntry[[]models.User]](),
+		membersCache:   xsync.NewMap[string, cacheEntry[[]models.User]](),
+		userSfg:        &singleflight.Group{},
+		roomNameSfg:    &singleflight.Group{},
+		roomAvatarSfg:  &singleflight.Group{},
+		spacesSfg:      &singleflight.Group{},
+		dmSfg:          &singleflight.Group{},
+		membersSfg:     &singleflight.Group{},
+		channelsSfg:    &singleflight.Group{},
 	}
 
 	m.restoreAllSessions()

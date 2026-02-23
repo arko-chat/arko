@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/a-h/templ v0.3.977
+	github.com/dgraph-io/badger/v4 v4.9.1
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/gorilla/securecookie v1.1.2
 	github.com/gorilla/websocket v1.5.3
@@ -11,16 +12,25 @@ require (
 	github.com/puzpuzpuz/xsync/v4 v4.4.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/tidwall/btree v1.8.1
+	github.com/toqueteos/webbrowser v1.2.1
 	github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6
 	github.com/zalando/go-keyring v0.2.6
+	golang.org/x/sync v0.19.0
 	maunium.net/go/mautrix v0.26.3
 )
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/google/flatbuffers v25.2.10+incompatible // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.34 // indirect
@@ -30,13 +40,17 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/toqueteos/webbrowser v1.2.1 // indirect
 	go.mau.fi/util v0.9.6 // indirect
+	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
+	go.opentelemetry.io/otel v1.37.0 // indirect
+	go.opentelemetry.io/otel/metric v1.37.0 // indirect
+	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a // indirect
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 // replace github.com/wailsapp/wails/v2 v2.11.0 => /home/sonroyaalmerol/Codes

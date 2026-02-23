@@ -46,7 +46,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("height: var(--message-input-height, %s)", "120px"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 11, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 14, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -67,7 +67,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 					}
 				}`, "message-input-height", "message-input-height"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 20, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 23, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -98,7 +98,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 						});
 					`, 80, 480, "message-input-height", "message-input-height"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 44, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 47, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -118,7 +118,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 						document.body.style.userSelect = 'none';
 					`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 52, Col: 7}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 55, Col: 7}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -196,7 +196,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 			"name":         name,
 			"autocomplete": "off",
 			"required":     true,
-			"onKeyDown":    "if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').requestSubmit()}",
+			"onKeyDown":    "if(event.key==='Enter'&&!event.shiftKey){this.closest('form').requestSubmit()}",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -208,7 +208,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs("for")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 82, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 85, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {

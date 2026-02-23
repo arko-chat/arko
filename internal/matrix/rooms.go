@@ -1,9 +1,11 @@
 package matrix
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/url"
+	"slices"
 
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/event"
@@ -53,88 +55,119 @@ func (m *Manager) GetCurrentUser(
 	ctx context.Context,
 	userID string,
 ) (models.User, error) {
-	client, err := m.GetClient(userID)
-	if err != nil {
-		return models.User{}, err
-	}
+	return cachedSingle(m.userCache, m.userSfg, userID, func() (models.User, error) {
+		client, err := m.GetClient(userID)
+		if err != nil {
+			return models.User{}, err
+		}
 
-	localpart := id.UserID(userID).Localpart()
+		localpart := id.UserID(userID).Localpart()
+		profile, err := client.GetProfile(ctx, id.UserID(userID))
+		if err != nil {
+			return models.User{
+				ID:   userID,
+				Name: localpart,
+				Avatar: fmt.Sprintf(
+					"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
+					localpart,
+				),
+				Status: models.StatusOnline,
+			}, nil
+		}
 
-	profile, err := client.GetProfile(ctx, id.UserID(userID))
-	if err != nil {
+		avatar := resolveContentURI(profile.AvatarURL, localpart, "avataaars")
+		name := profile.DisplayName
+		if name == "" {
+			name = localpart
+		}
+
 		return models.User{
-			ID:   userID,
-			Name: localpart,
-			Avatar: fmt.Sprintf(
-				"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-				localpart,
-			),
+			ID:     userID,
+			Name:   name,
+			Avatar: avatar,
 			Status: models.StatusOnline,
 		}, nil
-	}
+	})
+}
 
-	avatar := resolveContentURI(
-		profile.AvatarURL, localpart, "avataaars",
-	)
+func (m *Manager) getRoomName(
+	ctx context.Context,
+	client *mautrix.Client,
+	roomID id.RoomID,
+) string {
+	key := "name:" + roomID.String()
+	val, _ := cachedSingle(m.roomCache, m.roomNameSfg, key, func() (string, error) {
+		var nameEvt event.RoomNameEventContent
+		err := client.StateEvent(ctx, roomID, event.StateRoomName, "", &nameEvt)
+		if err != nil || nameEvt.Name == "" {
+			return roomID.String(), nil
+		}
+		return nameEvt.Name, nil
+	})
+	return val
+}
 
-	name := profile.DisplayName
-	if name == "" {
-		name = localpart
-	}
-
-	return models.User{
-		ID:     userID,
-		Name:   name,
-		Avatar: avatar,
-		Status: models.StatusOnline,
-	}, nil
+func (m *Manager) getRoomAvatar(
+	ctx context.Context,
+	client *mautrix.Client,
+	roomID id.RoomID,
+) string {
+	key := "avatar:" + roomID.String()
+	val, _ := cachedSingle(m.roomCache, m.roomAvatarSfg, key, func() (string, error) {
+		var avatarEvt event.RoomAvatarEventContent
+		err := client.StateEvent(ctx, roomID, event.StateRoomAvatar, "", &avatarEvt)
+		if err != nil {
+			return fmt.Sprintf(
+				"https://api.dicebear.com/7.x/shapes/svg?seed=%s",
+				roomID.String(),
+			), nil
+		}
+		return resolveContentURIString(avatarEvt.URL, roomID.String(), "shapes"), nil
+	})
+	return val
 }
 
 func (m *Manager) ListSpaces(
 	ctx context.Context,
 	userID string,
 ) ([]models.Space, error) {
-	client, err := m.GetClient(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := client.JoinedRooms(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("joined rooms: %w", err)
-	}
-
-	var spaces []models.Space
-	for _, roomID := range resp.JoinedRooms {
-		var createEvt event.CreateEventContent
-		err := client.StateEvent(
-			ctx,
-			roomID,
-			event.StateCreate,
-			"",
-			&createEvt,
-		)
+	return cachedSingle(m.spacesCache, m.spacesSfg, userID, func() ([]models.Space, error) {
+		client, err := m.GetClient(userID)
 		if err != nil {
-			continue
+			return nil, err
 		}
 
-		if createEvt.Type != event.RoomTypeSpace {
-			continue
+		resp, err := client.JoinedRooms(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("joined rooms: %w", err)
 		}
 
-		name := m.getRoomName(ctx, client, roomID)
-		avatar := m.getRoomAvatar(ctx, client, roomID)
+		var spaces []models.Space
+		for _, roomID := range resp.JoinedRooms {
+			var createEvt event.CreateEventContent
+			err := client.StateEvent(ctx, roomID, event.StateCreate, "", &createEvt)
+			if err != nil || createEvt.Type != event.RoomTypeSpace {
+				continue
+			}
 
-		spaces = append(spaces, models.Space{
-			ID:      roomID.String(),
-			Name:    name,
-			Avatar:  avatar,
-			Status:  "Online",
-			Address: encodeRoomID(roomID.String()),
+			name := m.getRoomName(ctx, client, roomID)
+			avatar := m.getRoomAvatar(ctx, client, roomID)
+
+			spaces = append(spaces, models.Space{
+				ID:      roomID.String(),
+				Name:    name,
+				Avatar:  avatar,
+				Status:  "Online",
+				Address: encodeRoomID(roomID.String()),
+			})
+		}
+
+		slices.SortFunc(spaces, func(a, b models.Space) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
-	}
 
-	return spaces, nil
+		return spaces, nil
+	})
 }
 
 func (m *Manager) GetSpaceDetail(
@@ -175,86 +208,94 @@ func (m *Manager) getSpaceChildren(
 	client *mautrix.Client,
 	spaceID id.RoomID,
 ) ([]models.Channel, error) {
-	stateMap, err := client.State(ctx, spaceID)
-	if err != nil {
-		return nil, err
-	}
+	return cachedSingle(m.channelsCache, m.channelsSfg, spaceID.String(), func() ([]models.Channel, error) {
+		stateMap, err := client.State(ctx, spaceID)
+		if err != nil {
+			return nil, err
+		}
 
-	childEvents, ok := stateMap[event.StateSpaceChild]
-	if !ok {
-		return nil, nil
-	}
+		childEvents, ok := stateMap[event.StateSpaceChild]
+		if !ok {
+			return nil, nil
+		}
 
-	var channels []models.Channel
-	for stateKey := range childEvents {
-		childRoomID := id.RoomID(stateKey)
-		childName := m.getRoomName(ctx, client, childRoomID)
+		var channels []models.Channel
+		for stateKey, childEvent := range childEvents {
+			content, ok := childEvent.Content.Parsed.(*event.SpaceChildEventContent)
+			if !ok || content == nil || len(content.Via) == 0 {
+				continue
+			}
 
-		channels = append(channels, models.Channel{
-			ID:      childRoomID.String(),
-			Name:    childName,
-			Type:    models.ChannelText,
-			SpaceID: spaceID.String(),
+			childRoomID := id.RoomID(stateKey)
+			childName := m.getRoomName(ctx, client, childRoomID)
+
+			channels = append(channels, models.Channel{
+				ID:      childRoomID.String(),
+				Name:    childName,
+				Type:    models.ChannelText,
+				SpaceID: spaceID.String(),
+			})
+		}
+
+		slices.SortFunc(channels, func(a, b models.Channel) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
-	}
 
-	return channels, nil
+		return channels, nil
+	})
 }
 
 func (m *Manager) ListDirectMessages(
 	ctx context.Context,
 	userID string,
 ) ([]models.User, error) {
-	client, err := m.GetClient(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	var dmMap map[id.UserID][]id.RoomID
-	err = client.GetAccountData(
-		ctx,
-		event.AccountDataDirectChats.Type,
-		&dmMap,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get dm list: %w", err)
-	}
-
-	var friends []models.User
-	seen := make(map[string]bool)
-	for otherUser := range dmMap {
-		uid := otherUser.String()
-		if seen[uid] {
-			continue
+	return cachedSingle(m.dmCache, m.dmSfg, userID, func() ([]models.User, error) {
+		client, err := m.GetClient(userID)
+		if err != nil {
+			return nil, err
 		}
-		seen[uid] = true
 
-		localpart := otherUser.Localpart()
-		name := localpart
-		avatar := fmt.Sprintf(
-			"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-			localpart,
-		)
+		var dmMap map[id.UserID][]id.RoomID
+		err = client.GetAccountData(ctx, event.AccountDataDirectChats.Type, &dmMap)
+		if err != nil {
+			return nil, fmt.Errorf("get dm list: %w", err)
+		}
 
-		profile, _ := client.GetProfile(ctx, otherUser)
-		if profile != nil {
-			if profile.DisplayName != "" {
-				name = profile.DisplayName
+		var friends []models.User
+		seen := make(map[string]bool)
+		for otherUser := range dmMap {
+			uid := otherUser.String()
+			if seen[uid] {
+				continue
 			}
-			avatar = resolveContentURI(
-				profile.AvatarURL, localpart, "avataaars",
-			)
+			seen[uid] = true
+
+			// Use the session's profile cache to resolve the friend's details
+			sess, ok := m.matrixSessions.Load(userID)
+			if ok {
+				profile, err := sess.GetUserProfile(ctx, uid)
+				if err == nil {
+					friends = append(friends, profile)
+					continue
+				}
+			}
+
+			// Fallback if session/profile fetch fails
+			localpart := otherUser.Localpart()
+			friends = append(friends, models.User{
+				ID:     uid,
+				Name:   localpart,
+				Avatar: fmt.Sprintf("https://api.dicebear.com/7.x/avataaars/svg?seed=%s", localpart),
+				Status: models.StatusOffline,
+			})
 		}
 
-		friends = append(friends, models.User{
-			ID:     uid,
-			Name:   name,
-			Avatar: avatar,
-			Status: models.StatusOffline,
+		slices.SortFunc(friends, func(a, b models.User) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
-	}
 
-	return friends, nil
+		return friends, nil
+	})
 }
 
 func (m *Manager) GetDMRoomID(
@@ -311,92 +352,42 @@ func (m *Manager) GetChannel(
 	}, nil
 }
 
-func (m *Manager) getRoomName(
-	ctx context.Context,
-	client *mautrix.Client,
-	roomID id.RoomID,
-) string {
-	var nameEvt event.RoomNameEventContent
-	err := client.StateEvent(
-		ctx,
-		roomID,
-		event.StateRoomName,
-		"",
-		&nameEvt,
-	)
-	if err != nil || nameEvt.Name == "" {
-		return roomID.String()
-	}
-	return nameEvt.Name
-}
-
-func (m *Manager) getRoomAvatar(
-	ctx context.Context,
-	client *mautrix.Client,
-	roomID id.RoomID,
-) string {
-	var avatarEvt event.RoomAvatarEventContent
-	err := client.StateEvent(
-		ctx,
-		roomID,
-		event.StateRoomAvatar,
-		"",
-		&avatarEvt,
-	)
-	if err != nil {
-		return fmt.Sprintf(
-			"https://api.dicebear.com/7.x/shapes/svg?seed=%s",
-			roomID.String(),
-		)
-	}
-
-	return resolveContentURIString(
-		avatarEvt.URL,
-		roomID.String(),
-		"shapes",
-	)
-}
-
 func (m *Manager) getRoomMembers(
 	ctx context.Context,
 	client *mautrix.Client,
 	roomID id.RoomID,
 ) ([]models.User, error) {
-	members, err := client.Members(ctx, roomID)
-	if err != nil {
-		return nil, err
-	}
-
-	var users []models.User
-	for _, evt := range members.Chunk {
-		content, ok := evt.Content.Parsed.(*event.MemberEventContent)
-		if !ok || content.Membership != event.MembershipJoin {
-			continue
+	return cachedSingle(m.membersCache, m.membersSfg, roomID.String(), func() ([]models.User, error) {
+		members, err := client.Members(ctx, roomID)
+		if err != nil {
+			return nil, err
 		}
 
-		stateKey := evt.GetStateKey()
-		localpart := id.UserID(stateKey).Localpart()
-		name := stateKey
-		avatar := fmt.Sprintf(
-			"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-			localpart,
-		)
+		var users []models.User
+		for _, evt := range members.Chunk {
+			content, ok := evt.Content.Parsed.(*event.MemberEventContent)
+			if !ok || content.Membership != event.MembershipJoin {
+				continue
+			}
 
-		if content.Displayname != "" {
-			name = content.Displayname
+			stateKey := evt.GetStateKey()
+			localpart := id.UserID(stateKey).Localpart()
+
+			name := stateKey
+			if content.Displayname != "" {
+				name = content.Displayname
+			}
+
+			avatar := resolveContentURIString(content.AvatarURL, localpart, "avataaars")
+
+			users = append(users, models.User{
+				ID:     stateKey,
+				Name:   name,
+				Avatar: avatar,
+				Status: models.StatusOnline,
+			})
 		}
 
-		avatar = resolveContentURIString(
-			content.AvatarURL, localpart, "avataaars",
-		)
-
-		users = append(users, models.User{
-			ID:     stateKey,
-			Name:   name,
-			Avatar: avatar,
-			Status: models.StatusOnline,
-		})
-	}
-
-	return users, nil
+		return users, nil
+	})
 }
