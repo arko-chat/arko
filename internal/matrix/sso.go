@@ -49,18 +49,10 @@ func (m *Manager) GetSSOToken(ctx context.Context, client *mautrix.Client) (stri
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Closing Tab</title>
-    <script type="text/javascript">
-        function closeWindow() {
-            window.close();
-        }
-        window.onload = closeWindow;
-    </script>
+    <title>Arko</title>
 </head>
 <body>
-    <p>If the tab does not close automatically, it is likely due to browser security restrictions.</p>
-    <p>You can manually close this tab.</p>
-    <button onclick="closeWindow()">Close Window</button>
+    <p>Login token acquired. You may now close this window.</p>
 </body>
 </html>`
 			w.Write([]byte(htmlResponse))
