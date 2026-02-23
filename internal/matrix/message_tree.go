@@ -181,6 +181,15 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 				if msg != nil {
 					t.Set(*msg)
 				}
+			}
+		}
+	})
+
+	t.wg.Go(func() {
+		for {
+			select {
+			case <-treeCtx.Done():
+				return
 			case evt, ok := <-t.listenerCh:
 				if !ok {
 					return
