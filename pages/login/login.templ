@@ -1,8 +1,10 @@
 package loginpage
 
-import "github.com/arko-chat/arko/components/ui"
-import "github.com/arko-chat/arko/components"
-import "github.com/arko-chat/arko/internal/session"
+import (
+	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/session"
+)
 
 templ Page(state *session.Session) {
 	@components.Base(state, "Arko | Login") {
@@ -23,10 +25,10 @@ templ Content() {
 				</div>
 				<div class="px-8 pt-4 pb-8">
 					<form
+						id="login-form"
 						hx-post="/login/submit"
 						hx-target="#login-error"
 						hx-swap="innerHTML"
-						hx-indicator="#login-spinner"
 						class="space-y-4"
 					>
 						<div id="login-error"></div>
@@ -52,18 +54,12 @@ templ Content() {
 							},
 						))
 						<div class="pt-2">
-							<button
-								type="submit"
-								class="w-full outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-brand text-white hover:bg-brand-hover cursor-pointer transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 relative"
-							>
-								<span id="login-spinner" class="htmx-indicator absolute inset-0 flex items-center justify-center">
-									<i class="fa-solid fa-spinner spinner text-sm"></i>
-								</span>
-								<span class="[.htmx-request_&]:invisible flex items-center gap-2">
-									<i class="fa-solid fa-right-to-bracket text-xs"></i>
-									Sign In
-								</span>
-							</button>
+							@ui.ButtonWithSpinner("Sign In", "fa-solid fa-right-to-bracket text-xs", "primary", templ.Attributes{
+								"type":            "submit",
+								"hx-indicator":    "#login-form",
+								"hx-disabled-elt": "#login-form button[type=submit]",
+								"class":           "w-full py-2.5",
+							})
 						</div>
 					</form>
 				</div>

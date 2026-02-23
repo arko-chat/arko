@@ -2,6 +2,7 @@ package verifyrecoverypage
 
 import (
 	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
@@ -38,6 +39,7 @@ templ Content(user models.User, errMsg string) {
 						</div>
 					</div>
 					<form
+						id="recovery-form"
 						hx-post="/verify/recovery"
 						hx-swap="outerHTML"
 						hx-target="closest main"
@@ -65,13 +67,12 @@ templ Content(user models.User, errMsg string) {
 								<p class="text-xs text-error font-medium">{ errMsg }</p>
 							</div>
 						}
-						<button
-							type="submit"
-							class="w-full outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-brand text-white hover:bg-brand/90 cursor-pointer transition-all duration-150 active:scale-[0.98]"
-						>
-							<i class="fa-solid fa-unlock text-xs mr-1.5"></i>
-							Restore Access
-						</button>
+						@ui.ButtonWithSpinner("Restore Access", "fa-solid fa-unlock text-xs", "primary", templ.Attributes{
+							"type":            "submit",
+							"hx-indicator":    "#recovery-form",
+							"hx-disabled-elt": "#recovery-form button[type=submit]",
+							"class":           "w-full py-2.5",
+						})
 					</form>
 				</div>
 				<div class="px-8 py-4 bg-surface-alt border-t border-border-divider mt-4 flex items-center justify-between gap-4">

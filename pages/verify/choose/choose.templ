@@ -37,12 +37,17 @@ templ Content(user models.User) {
 							<span class="text-xs text-content-faint truncate">{ user.ID }</span>
 						</div>
 					</div>
-					<div class="space-y-2">
+					<div id="choose-buttons" class="space-y-2">
 						<button
 							hx-post="/verify/start/qr"
 							hx-swap="none"
-							class="w-full flex items-center gap-4 p-4 rounded-md bg-surface-sunken border border-border-subtle hover:bg-surface-alt hover:border-brand/40 cursor-pointer transition-all duration-150 active:scale-[0.99] text-left outline-none group"
+							hx-indicator="#choose-buttons"
+							hx-disabled-elt="#choose-buttons button"
+							class="w-full relative flex items-center gap-4 p-4 rounded-md bg-surface-sunken border border-border-subtle hover:bg-surface-alt hover:border-brand/40 cursor-pointer transition-all duration-150 active:scale-[0.99] text-left outline-none group [.htmx-request_&]:pointer-events-none"
 						>
+							<span class="htmx-indicator absolute inset-0 flex items-center justify-center rounded-md bg-surface-sunken/80">
+								<i class="fa-solid fa-spinner spinner text-brand text-lg"></i>
+							</span>
 							<div class="w-10 h-10 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 group-hover:bg-brand/15 transition-colors">
 								<i class="fa-solid fa-qrcode text-brand text-lg"></i>
 							</div>
@@ -55,8 +60,13 @@ templ Content(user models.User) {
 						<button
 							hx-post="/verify/start/sas"
 							hx-swap="none"
-							class="w-full flex items-center gap-4 p-4 rounded-md bg-surface-sunken border border-border-subtle hover:bg-surface-alt hover:border-brand/40 cursor-pointer transition-all duration-150 active:scale-[0.99] text-left outline-none group"
+							hx-indicator="#choose-buttons"
+							hx-disabled-elt="#choose-buttons button"
+							class="w-full relative flex items-center gap-4 p-4 rounded-md bg-surface-sunken border border-border-subtle hover:bg-surface-alt hover:border-brand/40 cursor-pointer transition-all duration-150 active:scale-[0.99] text-left outline-none group [.htmx-request_&]:pointer-events-none"
 						>
+							<span class="htmx-indicator absolute inset-0 flex items-center justify-center rounded-md bg-surface-sunken/80">
+								<i class="fa-solid fa-spinner spinner text-violet-400 text-lg"></i>
+							</span>
 							<div class="w-10 h-10 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0 group-hover:bg-violet-500/15 transition-colors">
 								<i class="fa-solid fa-face-smile text-violet-400 text-lg"></i>
 							</div>
@@ -70,8 +80,13 @@ templ Content(user models.User) {
 							hx-get="/verify/recovery"
 							hx-target="body"
 							hx-swap="outerHTML"
-							class="w-full flex items-center gap-4 p-4 rounded-md bg-surface-sunken border border-border-subtle hover:bg-surface-alt hover:border-brand/40 cursor-pointer transition-all duration-150 active:scale-[0.99] text-left outline-none group"
+							hx-indicator="#choose-buttons"
+							hx-disabled-elt="#choose-buttons button"
+							class="w-full relative flex items-center gap-4 p-4 rounded-md bg-surface-sunken border border-border-subtle hover:bg-surface-alt hover:border-brand/40 cursor-pointer transition-all duration-150 active:scale-[0.99] text-left outline-none group [.htmx-request_&]:pointer-events-none"
 						>
+							<span class="htmx-indicator absolute inset-0 flex items-center justify-center rounded-md bg-surface-sunken/80">
+								<i class="fa-solid fa-spinner spinner text-amber-400 text-lg"></i>
+							</span>
 							<div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 group-hover:bg-amber-500/15 transition-colors">
 								<i class="fa-solid fa-key text-amber-400 text-lg"></i>
 							</div>

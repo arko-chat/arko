@@ -2,6 +2,7 @@ package verifysaspage
 
 import (
 	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
@@ -47,23 +48,21 @@ templ Content(user models.User, emojis []EmojiItem) {
 					</div>
 				</div>
 				<div class="px-8 pt-2 pb-8">
-					<div class="flex gap-3">
-						<button
-							hx-post="/verify/cancel"
-							hx-swap="none"
-							class="flex-1 outline-none border border-border-subtle rounded-md px-3 py-2.5 text-sm font-semibold bg-surface-sunken text-content-secondary hover:bg-surface-alt cursor-pointer transition-all duration-150 active:scale-[0.98]"
-						>
-							<i class="fa-solid fa-xmark text-xs mr-1"></i>
-							They Don't Match
-						</button>
-						<button
-							hx-post="/verify/confirm"
-							hx-swap="none"
-							class="flex-1 outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-success text-white hover:bg-success/90 cursor-pointer transition-all duration-150 active:scale-[0.98]"
-						>
-							<i class="fa-solid fa-check text-xs mr-1"></i>
-							They Match
-						</button>
+					<div id="sas-buttons" class="flex gap-3">
+						@ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", templ.Attributes{
+							"hx-post":         "/verify/cancel",
+							"hx-swap":         "none",
+							"hx-indicator":    "#sas-buttons",
+							"hx-disabled-elt": "#sas-buttons button",
+							"class":           "flex-1",
+						})
+						@ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", templ.Attributes{
+							"hx-post":         "/verify/confirm",
+							"hx-swap":         "none",
+							"hx-indicator":    "#sas-buttons",
+							"hx-disabled-elt": "#sas-buttons button",
+							"class":           "flex-1",
+						})
 					</div>
 				</div>
 			</div>
