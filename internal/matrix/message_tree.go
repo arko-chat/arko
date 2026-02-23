@@ -136,6 +136,8 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 								t.Set(*msg)
 							}
 							_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, content.SessionID)
+						} else {
+							t.Set(t.undecryptableMessage(e))
 						}
 					}
 				}(evt, encContent)
