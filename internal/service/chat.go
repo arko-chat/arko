@@ -10,10 +10,12 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
+	"github.com/puzpuzpuz/xsync/v4"
 )
 
 type ChatService struct {
 	*BaseService
+	initializedTree *xsync.Map[string, struct{}]
 }
 
 func NewChatService(
@@ -21,7 +23,8 @@ func NewChatService(
 	hub *ws.Hub,
 ) *ChatService {
 	return &ChatService{
-		BaseService: NewBaseService(mgr, hub),
+		BaseService:     NewBaseService(mgr, hub),
+		initializedTree: xsync.NewMap[string, struct{}](),
 	}
 }
 
@@ -32,6 +35,16 @@ func (s *ChatService) GetRoomMessages(
 	userID := s.GetCurrentUserID()
 	matrixSession := s.matrix.GetMatrixSession(userID)
 	messageTree := matrixSession.GetMessageTree(roomID)
+
+	s.initializedTree.Compute(roomID, func(s struct{}, loaded bool) (struct{}, xsync.ComputeOp) {
+		if loaded {
+			return s, xsync.CancelOp
+		}
+
+		messageTree.Initialize(ctx)
+
+		return struct{}{}, xsync.UpdateOp
+	})
 
 	// only initialized once per room internally
 	messageTree.Listen(ctx, func(mte matrix.MessageTreeEvent) {

@@ -41,6 +41,7 @@ type MatrixSession struct {
 	keyBackupMgr        *KeyBackupManager
 	listeners           *xsync.Map[uint64, chan *event.Event]
 	idCounter           atomic.Uint64
+	userCache           *xsync.Map[id.UserID, models.User]
 
 	messageTrees *xsync.Map[string, *MessageTree]
 }
@@ -182,6 +183,7 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) 
 		ssssMachine:         ssss.NewSSSSMachine(client),
 		listeners:           xsync.NewMap[uint64, chan *event.Event](),
 		messageTrees:        xsync.NewMap[string, *MessageTree](),
+		userCache:           xsync.NewMap[id.UserID, models.User](),
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
@@ -253,6 +255,10 @@ func (m *MatrixSession) GetUserProfile(
 	ctx context.Context,
 	targetUserID string,
 ) (models.User, error) {
+	if cached, ok := m.userCache.Load(id.UserID(targetUserID)); ok {
+		return cached, nil
+	}
+
 	target := id.UserID(targetUserID)
 	localpart := target.Localpart()
 
@@ -272,12 +278,16 @@ func (m *MatrixSession) GetUserProfile(
 		)
 	}
 
-	return models.User{
+	user := models.User{
 		ID:     targetUserID,
 		Name:   name,
 		Avatar: avatar,
 		Status: models.StatusOffline,
-	}, nil
+	}
+
+	m.userCache.Store(id.UserID(targetUserID), user)
+
+	return user, nil
 }
 
 func (m *Manager) ListJoinedRooms(

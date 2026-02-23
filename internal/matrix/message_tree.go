@@ -27,6 +27,7 @@ type MessageTree struct {
 	evtListenerId atomic.Uint64
 
 	listening      atomic.Bool
+	listenMu       sync.Mutex
 	listenerCtx    context.Context
 	listenerCancel context.CancelFunc
 	listenerCh     chan MessageTreeEvent
@@ -95,60 +96,68 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 		return
 	}
 
+	var wg sync.WaitGroup
 	for _, evt := range resp.Chunk {
-		if evt.Type != event.EventEncrypted {
-			if msg := t.eventToMessage(evt); msg != nil {
-				t.Set(*msg)
+		wg.Go(func() {
+			if evt.Type != event.EventEncrypted {
+				if msg := t.eventToMessage(evt); msg != nil {
+					t.Set(*msg)
+				}
+				return
 			}
-			continue
-		}
 
-		_ = evt.Content.ParseRaw(evt.Type)
-		encContent, ok := evt.Content.Parsed.(*event.EncryptedEventContent)
-		if !ok {
-			continue
-		}
-
-		decrypted, decErr := cryptoHelper.Decrypt(ctx, evt)
-		if decErr == nil {
-			if msg := t.eventToMessage(decrypted); msg != nil {
-				t.Set(*msg)
+			_ = evt.Content.ParseRaw(evt.Type)
+			encContent, ok := evt.Content.Parsed.(*event.EncryptedEventContent)
+			if !ok {
+				return
 			}
-			continue
-		}
 
-		if errors.Is(decErr, crypto.ErrNoSessionFound) {
-			if _, ok := requestedSessions.Load(encContent.SessionID); !ok {
-				requestedSessions.Store(encContent.SessionID, struct{}{})
+			decrypted, decErr := cryptoHelper.Decrypt(ctx, evt)
+			if decErr == nil {
+				if msg := t.eventToMessage(decrypted); msg != nil {
+					t.Set(*msg)
+				}
+				return
+			}
 
-				t.matrixSession.logger.Debug("requesting session (first time)", "sessionID", encContent.SessionID)
+			if errors.Is(decErr, crypto.ErrNoSessionFound) {
+				if _, ok := requestedSessions.Load(encContent.SessionID); !ok {
+					requestedSessions.Store(encContent.SessionID, struct{}{})
 
-				cryptoHelper.RequestSession(
-					ctx, rid, encContent.SenderKey,
-					encContent.SessionID, evt.Sender, encContent.DeviceID,
-				)
+					t.matrixSession.logger.Debug("requesting session (first time)", "sessionID", encContent.SessionID)
 
-				go func(e *event.Event, content *event.EncryptedEventContent) {
-					if cryptoHelper.WaitForSession(ctx, rid, content.SenderKey, content.SessionID, 20*time.Second) {
-						dec, retryErr := cryptoHelper.Decrypt(ctx, e)
-						if retryErr == nil {
-							if msg := t.eventToMessage(dec); msg != nil {
-								t.Set(*msg)
+					cryptoHelper.RequestSession(
+						ctx, rid, encContent.SenderKey,
+						encContent.SessionID, evt.Sender, encContent.DeviceID,
+					)
+
+					go func(e *event.Event, content *event.EncryptedEventContent) {
+						if cryptoHelper.WaitForSession(ctx, rid, content.SenderKey, content.SessionID, 20*time.Second) {
+							dec, retryErr := cryptoHelper.Decrypt(ctx, e)
+							if retryErr == nil {
+								if msg := t.eventToMessage(dec); msg != nil {
+									t.Set(*msg)
+								}
+								_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, content.SessionID)
+							} else {
+								t.Set(t.undecryptableMessage(e))
 							}
-							_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, content.SessionID)
-						} else {
-							t.Set(t.undecryptableMessage(e))
 						}
-					}
-				}(evt, encContent)
-			} else {
-				t.matrixSession.logger.Debug("skipping redundant session request", "sessionID", encContent.SessionID)
+					}(evt, encContent)
+				} else {
+					t.matrixSession.logger.Debug("skipping redundant session request", "sessionID", encContent.SessionID)
+				}
 			}
-		}
+		})
 	}
+
+	wg.Wait()
 }
 
 func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
+	t.listenMu.Lock()
+	defer t.listenMu.Unlock()
+
 	if t.listening.Swap(true) {
 		return
 	}
@@ -208,6 +217,8 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 }
 
 func (t *MessageTree) Close() {
+	t.listenMu.Lock()
+
 	if !t.listening.Swap(false) {
 		return
 	}
@@ -222,6 +233,8 @@ func (t *MessageTree) Close() {
 	t.listenerCtx = nil
 	t.listenerCancel = nil
 	close(t.listenerCh)
+
+	t.listenMu.Unlock()
 
 	t.wg.Wait()
 }
@@ -324,6 +337,9 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	}
 
 	msg, replaced := t.BTreeG.Set(m)
+
+	t.listenMu.Lock()
+	defer t.listenMu.Unlock()
 
 	if t.listening.Load() {
 		if !replaced && !replacedPending {
