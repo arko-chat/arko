@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/arko-chat/arko/internal/cache"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/puzpuzpuz/xsync/v4"
 	"github.com/tidwall/btree"
@@ -36,7 +37,7 @@ type MessageTree struct {
 	roomID      string
 	isEncrypted bool
 
-	chronoCache *xsync.Map[string, cacheEntry[[]models.Message]]
+	chronoCache *xsync.Map[string, cache.CacheEntry[[]models.Message]]
 	chronoSfg   *singleflight.Group
 
 	wg sync.WaitGroup
@@ -76,7 +77,7 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 		matrixSession: mxSession,
 		nonces:        xsync.NewMap[string, models.Message](),
 		roomID:        roomID,
-		chronoCache:   xsync.NewMap[string, cacheEntry[[]models.Message]](),
+		chronoCache:   xsync.NewMap[string, cache.CacheEntry[[]models.Message]](),
 		chronoSfg:     &singleflight.Group{},
 	}
 }
@@ -443,7 +444,7 @@ func (t *MessageTree) GetNeighbors(m models.Message) Neighbors {
 func (t *MessageTree) Chronological() []models.Message {
 	const cacheKey = "chrono_list"
 
-	msgs, _ := cachedSingle(t.chronoCache, t.chronoSfg, cacheKey, func() ([]models.Message, error) {
+	msgs, _ := cache.CachedSingle(t.chronoCache, t.chronoSfg, cacheKey, func() ([]models.Message, error) {
 		t.mu.RLock()
 		defer t.mu.RUnlock()
 

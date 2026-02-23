@@ -1,4 +1,4 @@
-package matrix
+package cache
 
 import (
 	"time"
@@ -7,22 +7,22 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type cacheEntry[T any] struct {
+type CacheEntry[T any] struct {
 	value     T
 	fetchedAt time.Time
 }
 
-func cachedSingle[T any](
-	cache *xsync.Map[string, cacheEntry[T]],
+func CachedSingle[T any](
+	cache *xsync.Map[string, CacheEntry[T]],
 	sfg *singleflight.Group,
 	key string,
 	fn func() (T, error),
 ) (T, error) {
-	return cachedSingleWithTTL(cache, sfg, key, 3*time.Second, fn)
+	return CachedSingleWithTTL(cache, sfg, key, 3*time.Second, fn)
 }
 
-func cachedSingleWithTTL[T any](
-	cache *xsync.Map[string, cacheEntry[T]],
+func CachedSingleWithTTL[T any](
+	cache *xsync.Map[string, CacheEntry[T]],
 	sfg *singleflight.Group,
 	key string,
 	ttl time.Duration,
@@ -35,7 +35,7 @@ func cachedSingleWithTTL[T any](
 				sfg.Do(key, func() (any, error) {
 					result, err := fn()
 					if err == nil {
-						cache.Store(key, cacheEntry[T]{value: result, fetchedAt: time.Now()})
+						cache.Store(key, CacheEntry[T]{value: result, fetchedAt: time.Now()})
 					}
 					return nil, nil
 				})
@@ -52,7 +52,7 @@ func cachedSingleWithTTL[T any](
 		if err != nil {
 			return nil, err
 		}
-		newEntry := cacheEntry[T]{value: res, fetchedAt: time.Now()}
+		newEntry := CacheEntry[T]{value: res, fetchedAt: time.Now()}
 		cache.Store(key, newEntry)
 		return newEntry, nil
 	})
@@ -61,5 +61,5 @@ func cachedSingleWithTTL[T any](
 		var zero T
 		return zero, err
 	}
-	return v.(cacheEntry[T]).value, nil
+	return v.(CacheEntry[T]).value, nil
 }

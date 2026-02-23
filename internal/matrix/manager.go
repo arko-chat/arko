@@ -1,6 +1,4 @@
 // TODO: fix messages from other clients not received in real time
-// TODO: aggressive caching for a more responsive experience
-// TODO: integrate matrix events to messagetree
 // TODO: map UI format in real time with messagetree
 
 package matrix
@@ -17,6 +15,7 @@ import (
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/id"
 
+	"github.com/arko-chat/arko/internal/cache"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/arko-chat/arko/internal/ws"
@@ -38,18 +37,18 @@ type Manager struct {
 	currSession    atomic.Pointer[MatrixSession]
 	verifiedCache  bool
 
-	userCache     *xsync.Map[string, cacheEntry[models.User]]
+	userCache     *xsync.Map[string, cache.CacheEntry[models.User]]
 	userSfg       *singleflight.Group
-	roomCache     *xsync.Map[string, cacheEntry[string]]
+	roomCache     *xsync.Map[string, cache.CacheEntry[string]]
 	roomNameSfg   *singleflight.Group
 	roomAvatarSfg *singleflight.Group
-	channelsCache *xsync.Map[string, cacheEntry[[]models.Channel]]
+	channelsCache *xsync.Map[string, cache.CacheEntry[[]models.Channel]]
 	channelsSfg   *singleflight.Group
-	spacesCache   *xsync.Map[string, cacheEntry[[]models.Space]]
+	spacesCache   *xsync.Map[string, cache.CacheEntry[[]models.Space]]
 	spacesSfg     *singleflight.Group
-	dmCache       *xsync.Map[string, cacheEntry[[]models.User]]
+	dmCache       *xsync.Map[string, cache.CacheEntry[[]models.User]]
 	dmSfg         *singleflight.Group
-	membersCache  *xsync.Map[string, cacheEntry[[]models.User]]
+	membersCache  *xsync.Map[string, cache.CacheEntry[[]models.User]]
 	membersSfg    *singleflight.Group
 }
 
@@ -65,12 +64,12 @@ func NewManager(
 		cryptoDBPath:   cryptoDBPath,
 		sentMsgIds:     newLru,
 		matrixSessions: xsync.NewMap[string, *MatrixSession](),
-		userCache:      xsync.NewMap[string, cacheEntry[models.User]](),
-		roomCache:      xsync.NewMap[string, cacheEntry[string]](),
-		channelsCache:  xsync.NewMap[string, cacheEntry[[]models.Channel]](),
-		spacesCache:    xsync.NewMap[string, cacheEntry[[]models.Space]](),
-		dmCache:        xsync.NewMap[string, cacheEntry[[]models.User]](),
-		membersCache:   xsync.NewMap[string, cacheEntry[[]models.User]](),
+		userCache:      xsync.NewMap[string, cache.CacheEntry[models.User]](),
+		roomCache:      xsync.NewMap[string, cache.CacheEntry[string]](),
+		channelsCache:  xsync.NewMap[string, cache.CacheEntry[[]models.Channel]](),
+		spacesCache:    xsync.NewMap[string, cache.CacheEntry[[]models.Space]](),
+		dmCache:        xsync.NewMap[string, cache.CacheEntry[[]models.User]](),
+		membersCache:   xsync.NewMap[string, cache.CacheEntry[[]models.User]](),
 		userSfg:        &singleflight.Group{},
 		roomNameSfg:    &singleflight.Group{},
 		roomAvatarSfg:  &singleflight.Group{},

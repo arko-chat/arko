@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/arko-chat/arko/internal/cache"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/puzpuzpuz/xsync/v4"
@@ -43,9 +44,9 @@ type MatrixSession struct {
 	listeners           *xsync.Map[uint64, chan *event.Event]
 	idCounter           atomic.Uint64
 
-	profileCache  *xsync.Map[string, cacheEntry[models.User]]
+	profileCache  *xsync.Map[string, cache.CacheEntry[models.User]]
 	profileSfg    *singleflight.Group
-	verifiedCache *xsync.Map[string, cacheEntry[bool]]
+	verifiedCache *xsync.Map[string, cache.CacheEntry[bool]]
 	verifiedSfg   *singleflight.Group
 
 	messageTrees *xsync.Map[string, *MessageTree]
@@ -188,7 +189,7 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) 
 		ssssMachine:         ssss.NewSSSSMachine(client),
 		listeners:           xsync.NewMap[uint64, chan *event.Event](),
 		messageTrees:        xsync.NewMap[string, *MessageTree](),
-		profileCache:        xsync.NewMap[string, cacheEntry[models.User]](),
+		profileCache:        xsync.NewMap[string, cache.CacheEntry[models.User]](),
 		profileSfg:          &singleflight.Group{},
 	}
 
@@ -282,7 +283,7 @@ func (m *MatrixSession) GetUserProfile(
 	ctx context.Context,
 	targetUserID string,
 ) (models.User, error) {
-	return cachedSingle(m.profileCache, m.profileSfg, targetUserID, func() (models.User, error) {
+	return cache.CachedSingle(m.profileCache, m.profileSfg, targetUserID, func() (models.User, error) {
 		target := id.UserID(targetUserID)
 		localpart := target.Localpart()
 
@@ -310,7 +311,7 @@ func (m *MatrixSession) GetUserProfile(
 }
 
 func (m *MatrixSession) IsVerified(ctx context.Context) bool {
-	cached, _ := cachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, m.id, time.Minute*30, func() (bool, error) {
+	cached, _ := cache.CachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, m.id, time.Minute*30, func() (bool, error) {
 		machine := m.GetCryptoHelper().Machine()
 		if machine == nil {
 			return false, fmt.Errorf("machine is nil")
