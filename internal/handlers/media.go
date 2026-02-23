@@ -1,15 +1,26 @@
 package handlers
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/arko-chat/arko/internal/cache"
 )
 
-func (h *Handler) HandleProxyMedia(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+type MediaResponse struct {
+	ContentType string
+	Body        []byte
+	StatusCode  int
+}
+
+const MaxCacheableMediaSize = 3 * 1024 * 1024
+
+var errMediaTooLarge = errors.New("media too large for cache")
+
+func (h *Handler) HandleProxyMedia(w http.ResponseWriter, r *http.Request) {
 	sess := h.session(r)
 	if sess == nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -27,14 +38,66 @@ func (h *Handler) HandleProxyMedia(
 		return
 	}
 
-	mediaURL := strings.TrimRight(sess.Homeserver, "/") + mediaPath
+	media, err := cache.CachedSingleWithTTL(
+		h.mediaCache,
+		h.mediaSfg,
+		mediaPath,
+		24*time.Hour,
+		func() (*MediaResponse, error) {
+			mediaURL := strings.TrimRight(sess.Homeserver, "/") + mediaPath
+			req, err := http.NewRequestWithContext(r.Context(), "GET", mediaURL, nil)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set("Authorization", "Bearer "+sess.AccessToken)
 
-	req, err := http.NewRequestWithContext(r.Context(), "GET", mediaURL, nil)
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return nil, err
+			}
+			defer resp.Body.Close()
+
+			if resp.ContentLength > MaxCacheableMediaSize {
+				return nil, errMediaTooLarge
+			}
+
+			lr := io.LimitReader(resp.Body, MaxCacheableMediaSize+1)
+			body, err := io.ReadAll(lr)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(body) > MaxCacheableMediaSize {
+				return nil, errMediaTooLarge
+			}
+
+			return &MediaResponse{
+				ContentType: resp.Header.Get("Content-Type"),
+				Body:        body,
+				StatusCode:  resp.StatusCode,
+			}, nil
+		},
+	)
+
 	if err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		if errors.Is(err, errMediaTooLarge) {
+			h.proxyLargeMedia(w, r, sess.Homeserver, sess.AccessToken, mediaPath)
+			return
+		}
+		http.Error(w, "upstream error", http.StatusBadGateway)
 		return
 	}
-	req.Header.Set("Authorization", "Bearer "+sess.AccessToken)
+
+	w.Header().Set("Content-Type", media.ContentType)
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(media.StatusCode)
+	w.Write(media.Body)
+}
+
+func (h *Handler) proxyLargeMedia(w http.ResponseWriter, r *http.Request, hs, token, path string) {
+	mediaURL := strings.TrimRight(hs, "/") + path
+	req, _ := http.NewRequestWithContext(r.Context(), "GET", mediaURL, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -44,7 +107,6 @@ func (h *Handler) HandleProxyMedia(
 	defer resp.Body.Close()
 
 	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
-	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }
