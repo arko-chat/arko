@@ -18,7 +18,13 @@ templ Page(state *session.Session, user models.User, emojis []EmojiItem) {
 }
 
 templ Content(user models.User, emojis []EmojiItem) {
-	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+	<main
+		class="flex items-center justify-center w-full h-screen bg-surface-overlay"
+		hx-get="/verify/sas"
+		hx-trigger="every 3s"
+		hx-swap="outerHTML"
+		hx-target="this"
+	>
 		<div class="w-full max-w-lg mx-4">
 			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
 				<div class="px-8 pt-8 pb-2 text-center">
