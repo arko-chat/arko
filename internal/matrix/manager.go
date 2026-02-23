@@ -1,5 +1,7 @@
 // TODO: fix messages from other clients not received in real time
 // TODO: map UI format in real time with messagetree
+// TODO: fix chat not showing up on first login
+// TODO: fix channel/space info messing up after navigating to different channels
 
 package matrix
 

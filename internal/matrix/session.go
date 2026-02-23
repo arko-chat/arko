@@ -191,6 +191,8 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) 
 		messageTrees:        xsync.NewMap[string, *MessageTree](),
 		profileCache:        xsync.NewMap[string, cache.CacheEntry[models.User]](),
 		profileSfg:          &singleflight.Group{},
+		verifiedCache:       xsync.NewMap[string, cache.CacheEntry[bool]](),
+		verifiedSfg:         &singleflight.Group{},
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
