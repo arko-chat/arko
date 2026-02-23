@@ -18,7 +18,16 @@ func cachedSingle[T any](
 	key string,
 	fn func() (T, error),
 ) (T, error) {
-	ttl := 3 * time.Second
+	return cachedSingleWithTTL(cache, sfg, key, 3*time.Second, fn)
+}
+
+func cachedSingleWithTTL[T any](
+	cache *xsync.Map[string, cacheEntry[T]],
+	sfg *singleflight.Group,
+	key string,
+	ttl time.Duration,
+	fn func() (T, error),
+) (T, error) {
 	entry, ok := cache.Load(key)
 	if ok {
 		if time.Since(entry.fetchedAt) > ttl {

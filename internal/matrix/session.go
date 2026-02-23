@@ -43,8 +43,10 @@ type MatrixSession struct {
 	listeners           *xsync.Map[uint64, chan *event.Event]
 	idCounter           atomic.Uint64
 
-	profileCache *xsync.Map[string, cacheEntry[models.User]]
-	profileSfg   *singleflight.Group
+	profileCache  *xsync.Map[string, cacheEntry[models.User]]
+	profileSfg    *singleflight.Group
+	verifiedCache *xsync.Map[string, cacheEntry[bool]]
+	verifiedSfg   *singleflight.Group
 
 	messageTrees *xsync.Map[string, *MessageTree]
 }
@@ -308,40 +310,43 @@ func (m *MatrixSession) GetUserProfile(
 }
 
 func (m *MatrixSession) IsVerified(ctx context.Context) bool {
-	machine := m.GetCryptoHelper().Machine()
-	if machine == nil {
-		return false
-	}
+	cached, _ := cachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, m.id, time.Minute*30, func() (bool, error) {
+		machine := m.GetCryptoHelper().Machine()
+		if machine == nil {
+			return false, fmt.Errorf("machine is nil")
+		}
 
-	device, err := machine.CryptoStore.GetDevice(
-		ctx, id.UserID(m.id), machine.Client.DeviceID,
-	)
-	if err != nil || device == nil {
-		m.logger.Error("failed to get device",
-			"user", m.id,
-			"error", err,
+		device, err := machine.CryptoStore.GetDevice(
+			ctx, id.UserID(m.id), machine.Client.DeviceID,
 		)
-		return false
-	}
+		if err != nil || device == nil {
+			m.logger.Error("failed to get device",
+				"user", m.id,
+				"error", err,
+			)
+			return false, err
+		}
 
-	trust, err := machine.ResolveTrustContext(ctx, device)
-	if err != nil {
-		m.logger.Error("failed to resolve trust",
+		trust, err := machine.ResolveTrustContext(ctx, device)
+		if err != nil {
+			m.logger.Error("failed to resolve trust",
+				"user", m.id,
+				"error", err,
+			)
+			return false, err
+		}
+
+		if trust == id.TrustStateCrossSignedTOFU {
+			return true, nil
+		}
+
+		m.logger.Debug("device not verified",
 			"user", m.id,
-			"error", err,
+			"trust", trust.String(),
 		)
-		return false
-	}
-
-	if trust == id.TrustStateCrossSignedTOFU {
-		return true
-	}
-
-	m.logger.Debug("device not verified",
-		"user", m.id,
-		"trust", trust.String(),
-	)
-	return false
+		return false, fmt.Errorf("trust is not considered valid: %s", trust.String())
+	})
+	return cached
 }
 
 func (m *MatrixSession) Close() {
