@@ -54,7 +54,6 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 			roomID,
 			author,
 			content,
-			nonce,
 		)
 		if err != nil {
 			h.logger.Error("send matrix message", "err", err)

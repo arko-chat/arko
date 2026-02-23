@@ -63,7 +63,7 @@ type Message struct {
 	Author             User
 	Timestamp          time.Time
 	Nonce              string
-	ChannelID          string
+	RoomID             string
 	Reactions          []Reaction
 	ThreadCount        int
 	ThreadParticipants []User

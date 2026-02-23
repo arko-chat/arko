@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"maunium.net/go/mautrix"
-	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
 	"github.com/arko-chat/arko/internal/models"
@@ -324,55 +323,13 @@ func (m *Manager) GetRecoveryKey(userID string) string {
 	return s.RecoveryKey
 }
 
-func (m *Manager) IsVerified(ctx context.Context, userID string) bool {
-	session, ok := m.matrixSessions.Load(userID)
-	if !ok {
-		return false
-	}
-
-	machine := session.GetCryptoHelper().Machine()
-	if machine == nil {
-		return false
-	}
-
-	device, err := machine.CryptoStore.GetDevice(
-		ctx, id.UserID(userID), machine.Client.DeviceID,
-	)
-	if err != nil || device == nil {
-		m.logger.Error("failed to get device",
-			"user", userID,
-			"error", err,
-		)
-		return false
-	}
-
-	trust, err := machine.ResolveTrustContext(ctx, device)
-	if err != nil {
-		m.logger.Error("failed to resolve trust",
-			"user", userID,
-			"error", err,
-		)
-		return false
-	}
-
-	if trust == id.TrustStateCrossSignedTOFU {
-		return true
-	}
-
-	m.logger.Debug("device not verified",
-		"user", userID,
-		"trust", trust.String(),
-	)
-	return false
-}
-
 func (m *Manager) startSync(sess *session.Session, client *mautrix.Client) {
 	_, exists := m.matrixSessions.Load(sess.UserID)
 	if exists {
 		return
 	}
 
-	newSession, err := m.NewMatrixSession(client)
+	newSession, err := m.NewMatrixSession(client, m.logger)
 	if err != nil {
 		m.logger.Error("sync error",
 			"user", sess.UserID,
@@ -383,53 +340,4 @@ func (m *Manager) startSync(sess *session.Session, client *mautrix.Client) {
 
 	m.matrixSessions.Store(sess.UserID, newSession)
 	m.currSession.Store(newSession)
-}
-
-func (m *Manager) EventToMessage(
-	client *mautrix.Client,
-	evt *event.Event,
-) *models.Message {
-	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
-	if !ok {
-		return nil
-	}
-
-	senderName := evt.Sender.Localpart()
-	avatarURL := fmt.Sprintf(
-		"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
-		senderName,
-	)
-
-	profile, _ := client.GetProfile(context.Background(), evt.Sender)
-	if profile != nil {
-		if profile.DisplayName != "" {
-			senderName = profile.DisplayName
-		}
-		avatarURL = resolveContentURI(
-			profile.AvatarURL, evt.Sender.Localpart(), "avataaars",
-		)
-	}
-
-	m.logger.Debug("event to message",
-		"eventID", evt.ID.String(),
-		"transactionID", evt.Unsigned.TransactionID,
-		"nonce", evt.Unsigned.TransactionID != "",
-	)
-
-	safeId := safeHashClass(evt.ID.String())
-	safeNonce := safeHashClass(evt.Unsigned.TransactionID)
-
-	return &models.Message{
-		ID:      safeId,
-		Content: content.Body,
-		Author: models.User{
-			ID:     evt.Sender.String(),
-			Name:   senderName,
-			Avatar: avatarURL,
-			Status: models.StatusOnline,
-		},
-		Timestamp: time.UnixMilli(evt.Timestamp),
-		ChannelID: evt.RoomID.String(),
-		Nonce:     safeNonce,
-	}
 }

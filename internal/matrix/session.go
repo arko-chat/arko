@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/url"
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/puzpuzpuz/xsync/v4"
 	"maunium.net/go/mautrix"
@@ -19,6 +21,7 @@ import (
 	"maunium.net/go/mautrix/crypto/ssss"
 	"maunium.net/go/mautrix/crypto/verificationhelper"
 	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 )
 
 // TODO: wrap messagetree to a matrixsession listener per chat room
@@ -26,6 +29,7 @@ type MatrixSession struct {
 	sync.Mutex
 
 	id                  string
+	logger              *slog.Logger
 	context             context.Context
 	cancel              context.CancelFunc
 	client              *mautrix.Client
@@ -37,6 +41,8 @@ type MatrixSession struct {
 	keyBackupMgr        *KeyBackupManager
 	listeners           *xsync.Map[uint64, chan *event.Event]
 	idCounter           atomic.Uint64
+
+	messageTrees *xsync.Map[string, *MessageTree]
 }
 
 func (m *MatrixSession) Context() context.Context {
@@ -75,7 +81,7 @@ func (m *MatrixSession) GetVerificationUIState() *VerificationUIState {
 	return m.verificationUIState
 }
 
-func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, error) {
+func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) (*MatrixSession, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	dbPath := fmt.Sprintf(
@@ -165,6 +171,7 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 
 	mSess := &MatrixSession{
 		id:                  s.UserID,
+		logger:              logger,
 		context:             ctx,
 		cancel:              cancel,
 		client:              client,
@@ -174,6 +181,7 @@ func (m *Manager) NewMatrixSession(client *mautrix.Client) (*MatrixSession, erro
 		verificationUIState: &VerificationUIState{},
 		ssssMachine:         ssss.NewSSSSMachine(client),
 		listeners:           xsync.NewMap[uint64, chan *event.Event](),
+		messageTrees:        xsync.NewMap[string, *MessageTree](),
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
@@ -217,17 +225,117 @@ func (m *MatrixSession) initSyncHandlers() {
 	)
 }
 
-func (m *MatrixSession) ListenMessages() (chan *event.Event, uint64) {
+func (m *MatrixSession) listenEvents() (chan *event.Event, uint64) {
 	id := m.idCounter.Add(1)
 	listenCh := make(chan *event.Event, 16)
 	m.listeners.Store(id, listenCh)
 	return listenCh, id
 }
 
-func (m *MatrixSession) CloseListener(id uint64) {
+func (m *MatrixSession) closeEventListener(id uint64) {
 	if ch, ok := m.listeners.LoadAndDelete(id); ok {
 		close(ch)
 	}
+}
+
+func (m *MatrixSession) GetMessageTree(roomID string) *MessageTree {
+	if tree, ok := m.messageTrees.Load(roomID); ok {
+		return tree
+	}
+
+	tree := newMessageTree(m, roomID)
+	m.messageTrees.Store(roomID, tree)
+
+	return tree
+}
+
+func (m *MatrixSession) GetUserProfile(
+	ctx context.Context,
+	targetUserID string,
+) (models.User, error) {
+	target := id.UserID(targetUserID)
+	localpart := target.Localpart()
+
+	name := localpart
+	avatar := fmt.Sprintf(
+		"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
+		localpart,
+	)
+
+	profile, err := m.GetClient().GetProfile(ctx, target)
+	if err == nil && profile != nil {
+		if profile.DisplayName != "" {
+			name = profile.DisplayName
+		}
+		avatar = resolveContentURI(
+			profile.AvatarURL, localpart, "avataaars",
+		)
+	}
+
+	return models.User{
+		ID:     targetUserID,
+		Name:   name,
+		Avatar: avatar,
+		Status: models.StatusOffline,
+	}, nil
+}
+
+func (m *Manager) ListJoinedRooms(
+	ctx context.Context,
+	userID string,
+) ([]string, error) {
+	client, err := m.GetClient(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.JoinedRooms(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var rooms []string
+	for _, r := range resp.JoinedRooms {
+		rooms = append(rooms, r.String())
+	}
+	return rooms, nil
+}
+
+func (m *MatrixSession) IsVerified(ctx context.Context) bool {
+	machine := m.GetCryptoHelper().Machine()
+	if machine == nil {
+		return false
+	}
+
+	device, err := machine.CryptoStore.GetDevice(
+		ctx, id.UserID(m.id), machine.Client.DeviceID,
+	)
+	if err != nil || device == nil {
+		m.logger.Error("failed to get device",
+			"user", m.id,
+			"error", err,
+		)
+		return false
+	}
+
+	trust, err := machine.ResolveTrustContext(ctx, device)
+	if err != nil {
+		m.logger.Error("failed to resolve trust",
+			"user", m.id,
+			"error", err,
+		)
+		return false
+	}
+
+	if trust == id.TrustStateCrossSignedTOFU {
+		return true
+	}
+
+	m.logger.Debug("device not verified",
+		"user", m.id,
+		"trust", trust.String(),
+	)
+	return false
 }
 
 func (m *MatrixSession) Close() {
@@ -240,6 +348,10 @@ func (m *MatrixSession) Close() {
 	if m.verificationStore != nil {
 		m.verificationStore.txns.Clear()
 	}
+	m.messageTrees.DeleteMatching(func(_ string, value *MessageTree) (delete bool, stop bool) {
+		value.Close()
+		return true, false
+	})
 	m.listeners.DeleteMatching(func(_ uint64, value chan *event.Event) (delete bool, stop bool) {
 		close(value)
 		return true, false

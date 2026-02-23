@@ -22,7 +22,7 @@ func NewVerificationService(
 
 func (s *VerificationService) IsVerified(ctx context.Context) bool {
 	userID := s.GetCurrentUserID()
-	return s.matrix.IsVerified(ctx, userID)
+	return s.matrix.GetMatrixSession(userID).IsVerified(ctx)
 }
 
 func (s *VerificationService) HasCrossSigningKeys() bool {

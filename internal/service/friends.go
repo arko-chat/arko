@@ -91,5 +91,5 @@ func (s *FriendsService) GetFriend(
 	otherUserID string,
 ) (models.User, error) {
 	userID := s.GetCurrentUserID()
-	return s.matrix.GetUserProfile(ctx, userID, otherUserID)
+	return s.matrix.GetMatrixSession(userID).GetUserProfile(ctx, otherUserID)
 }
