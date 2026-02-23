@@ -54,11 +54,10 @@ templ Content() {
 							},
 						))
 						<div class="pt-2">
-							@ui.ButtonWithSpinner("Sign In", "fa-solid fa-right-to-bracket text-xs", "primary", templ.Attributes{
+							@ui.ButtonWithSpinner("Sign In", "fa-solid fa-right-to-bracket text-xs", "primary", "w-full py-2.5", templ.Attributes{
 								"type":            "submit",
 								"hx-indicator":    "#login-form",
 								"hx-disabled-elt": "#login-form button[type=submit]",
-								"class":           "w-full py-2.5",
 							})
 						</div>
 					</form>

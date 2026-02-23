@@ -15,28 +15,24 @@ templ Button(label string, variant string, attributes templ.Attributes) {
 	</button>
 }
 
-templ ButtonWithSpinner(label string, icon string, variant string, attributes templ.Attributes) {
-	<button { attributes... } class={ buttonWithSpinnerClass(variant) }>
-		<span class="htmx-indicator absolute inset-0 flex items-center justify-center">
-			<i class="fa-solid fa-spinner spinner text-sm"></i>
-		</span>
+templ ButtonWithSpinner(label string, icon string, variant string, extraClass string, attributes templ.Attributes) {
+	<button { attributes... } class={ buttonWithSpinnerClass(variant, extraClass) }>
 		<span class="[.htmx-request_&]:invisible flex items-center justify-center gap-1.5">
 			if icon != "" {
 				<i class={ icon }></i>
 			}
 			{ label }
 		</span>
+		<i class="fa-solid fa-spinner spinner htmx-indicator absolute inset-0 m-auto w-fit h-fit text-sm"></i>
 	</button>
 }
 
-func buttonWithSpinnerClass(variant string) string {
-	base := "relative outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold cursor-pointer transition-all duration-150 active:scale-[0.98] [.htmx-request_&]:pointer-events-none"
-	switch variant {
-	case "success":
-		return base + " bg-success text-white hover:bg-success/90"
-	default:
-		return base + " border border-border-subtle bg-surface-sunken text-content-secondary hover:bg-surface-alt"
+func buttonWithSpinnerClass(variant string, extraClass string) string {
+	base := "relative overflow-hidden flex items-center justify-center [.htmx-request_&]:pointer-events-none"
+	if extraClass != "" {
+		return base + " " + buttonClass(variant) + " " + extraClass
 	}
+	return base + " " + buttonClass(variant)
 }
 
 templ IconButton(icon string, variant string, attributes templ.Attributes) {

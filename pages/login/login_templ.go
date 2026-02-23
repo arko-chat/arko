@@ -8,9 +8,11 @@ package loginpage
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/arko-chat/arko/components/ui"
-import "github.com/arko-chat/arko/components"
-import "github.com/arko-chat/arko/internal/session"
+import (
+	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/session"
+)
 
 func Page(state *session.Session) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -80,7 +82,7 @@ func Content() templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\"><div class=\"w-full max-w-md mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4\"><i class=\"fa-solid fa-comments text-brand text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">Welcome to Arko</h1><p class=\"text-sm text-content-muted\">Sign in with your Matrix account</p></div><div class=\"px-8 pt-4 pb-8\"><form hx-post=\"/login/submit\" hx-target=\"#login-error\" hx-swap=\"innerHTML\" hx-indicator=\"#login-spinner\" class=\"space-y-4\"><div id=\"login-error\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\"><div class=\"w-full max-w-md mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4\"><i class=\"fa-solid fa-comments text-brand text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">Welcome to Arko</h1><p class=\"text-sm text-content-muted\">Sign in with your Matrix account</p></div><div class=\"px-8 pt-4 pb-8\"><form id=\"login-form\" hx-post=\"/login/submit\" hx-target=\"#login-error\" hx-swap=\"innerHTML\" class=\"space-y-4\"><div id=\"login-error\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -111,7 +113,19 @@ func Content() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"pt-2\"><button type=\"submit\" class=\"w-full outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-brand text-white hover:bg-brand-hover cursor-pointer transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 relative\"><span id=\"login-spinner\" class=\"htmx-indicator absolute inset-0 flex items-center justify-center\"><i class=\"fa-solid fa-spinner spinner text-sm\"></i></span> <span class=\"[.htmx-request_&]:invisible flex items-center gap-2\"><i class=\"fa-solid fa-right-to-bracket text-xs\"></i> Sign In</span></button></div></form></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider\"><p class=\"text-[11px] text-content-faint text-center leading-relaxed\">Arko connects to any Matrix homeserver. <a href=\"https://matrix.org/try-matrix/\" target=\"_blank\" class=\"text-brand hover:underline\">Don't have an account?</a></p></div></div><div class=\"mt-4 text-center\"><p class=\"text-[11px] text-content-faint\">Powered by the <a href=\"https://matrix.org\" target=\"_blank\" class=\"text-brand hover:underline\">Matrix</a> protocol</p></div></div></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"pt-2\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = ui.ButtonWithSpinner("Sign In", "fa-solid fa-right-to-bracket text-xs", "primary", "w-full py-2.5", templ.Attributes{
+			"type":            "submit",
+			"hx-indicator":    "#login-form",
+			"hx-disabled-elt": "#login-form button[type=submit]",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></form></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider\"><p class=\"text-[11px] text-content-faint text-center leading-relaxed\">Arko connects to any Matrix homeserver. <a href=\"https://matrix.org/try-matrix/\" target=\"_blank\" class=\"text-brand hover:underline\">Don't have an account?</a></p></div></div><div class=\"mt-4 text-center\"><p class=\"text-[11px] text-content-faint\">Powered by the <a href=\"https://matrix.org\" target=\"_blank\" class=\"text-brand hover:underline\">Matrix</a> protocol</p></div></div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

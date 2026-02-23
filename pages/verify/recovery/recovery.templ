@@ -67,11 +67,10 @@ templ Content(user models.User, errMsg string) {
 								<p class="text-xs text-error font-medium">{ errMsg }</p>
 							</div>
 						}
-						@ui.ButtonWithSpinner("Restore Access", "fa-solid fa-unlock text-xs", "primary", templ.Attributes{
+						@ui.ButtonWithSpinner("Restore Access", "fa-solid fa-unlock text-xs", "primary", "w-full py-2.5", templ.Attributes{
 							"type":            "submit",
 							"hx-indicator":    "#recovery-form",
 							"hx-disabled-elt": "#recovery-form button[type=submit]",
-							"class":           "w-full py-2.5",
 						})
 					</form>
 				</div>

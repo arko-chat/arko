@@ -49,19 +49,17 @@ templ Content(user models.User, emojis []EmojiItem) {
 				</div>
 				<div class="px-8 pt-2 pb-8">
 					<div id="sas-buttons" class="flex gap-3">
-						@ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", templ.Attributes{
+						@ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
 							"hx-post":         "/verify/cancel",
 							"hx-swap":         "none",
 							"hx-indicator":    "#sas-buttons",
 							"hx-disabled-elt": "#sas-buttons button",
-							"class":           "flex-1",
 						})
-						@ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", templ.Attributes{
+						@ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
 							"hx-post":         "/verify/confirm",
 							"hx-swap":         "none",
 							"hx-indicator":    "#sas-buttons",
 							"hx-disabled-elt": "#sas-buttons button",
-							"class":           "flex-1",
 						})
 					</div>
 				</div>

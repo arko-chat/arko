@@ -10,6 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
@@ -89,7 +90,7 @@ func Content(user models.User, errMsg string) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(user.Avatar)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 31, Col: 24}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 32, Col: 24}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -102,7 +103,7 @@ func Content(user models.User, errMsg string) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(user.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 33, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 34, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -115,7 +116,7 @@ func Content(user models.User, errMsg string) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(user.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 36, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 37, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -128,13 +129,13 @@ func Content(user models.User, errMsg string) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(user.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 37, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 38, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></div></div><form hx-post=\"/verify/recovery\" hx-swap=\"outerHTML\" hx-target=\"closest main\" class=\"space-y-3\"><div class=\"flex flex-col gap-1.5\"><label for=\"recovery-key\" class=\"text-xs font-semibold text-content-secondary\">Security Key</label> <textarea id=\"recovery-key\" name=\"recovery_key\" rows=\"3\" placeholder=\"EsJx AbCd EfGh IjKl MnOp QrSt UvWx YzAb CdEf GhIj\" autofocus class=\"w-full rounded-md px-3 py-2.5 text-sm bg-surface-sunken border border-border-subtle text-content-primary placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/60 resize-none font-mono leading-relaxed transition-all\"></textarea><p class=\"text-[11px] text-content-faint leading-snug\">Your key looks like <span class=\"font-mono text-content-muted\">EsJx AbCd EfGh…</span> — spaces are optional.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></div></div><form id=\"recovery-form\" hx-post=\"/verify/recovery\" hx-swap=\"outerHTML\" hx-target=\"closest main\" class=\"space-y-3\"><div class=\"flex flex-col gap-1.5\"><label for=\"recovery-key\" class=\"text-xs font-semibold text-content-secondary\">Security Key</label> <textarea id=\"recovery-key\" name=\"recovery_key\" rows=\"3\" placeholder=\"EsJx AbCd EfGh IjKl MnOp QrSt UvWx YzAb CdEf GhIj\" autofocus class=\"w-full rounded-md px-3 py-2.5 text-sm bg-surface-sunken border border-border-subtle text-content-primary placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/60 resize-none font-mono leading-relaxed transition-all\"></textarea><p class=\"text-[11px] text-content-faint leading-snug\">Your key looks like <span class=\"font-mono text-content-muted\">EsJx AbCd EfGh…</span> — spaces are optional.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -146,7 +147,7 @@ func Content(user models.User, errMsg string) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 65, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/recovery/recovery.templ`, Line: 67, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -157,7 +158,15 @@ func Content(user models.User, errMsg string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<button type=\"submit\" class=\"w-full outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-brand text-white hover:bg-brand/90 cursor-pointer transition-all duration-150 active:scale-[0.98]\"><i class=\"fa-solid fa-unlock text-xs mr-1.5\"></i> Restore Access</button></form></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider mt-4 flex items-center justify-between gap-4\"><a href=\"/verify/choose\" class=\"text-xs text-content-muted hover:text-content-primary transition-colors\"><i class=\"fa-solid fa-arrow-left text-[10px] mr-1\"></i> Back</a><p class=\"text-[11px] text-content-faint text-right\">Lost your key? <a href=\"/verify/reset\" class=\"text-error hover:underline\">Reset encryption</a></p></div></div></div></main>")
+		templ_7745c5c3_Err = ui.ButtonWithSpinner("Restore Access", "fa-solid fa-unlock text-xs", "primary", "w-full py-2.5", templ.Attributes{
+			"type":            "submit",
+			"hx-indicator":    "#recovery-form",
+			"hx-disabled-elt": "#recovery-form button[type=submit]",
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</form></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider mt-4 flex items-center justify-between gap-4\"><a href=\"/verify/choose\" class=\"text-xs text-content-muted hover:text-content-primary transition-colors\"><i class=\"fa-solid fa-arrow-left text-[10px] mr-1\"></i> Back</a><p class=\"text-[11px] text-content-faint text-right\">Lost your key? <a href=\"/verify/reset\" class=\"text-error hover:underline\">Reset encryption</a></p></div></div></div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
