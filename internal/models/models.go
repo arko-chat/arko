@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type UserStatus string
 
@@ -73,6 +76,10 @@ type Message struct {
 	IsPinned           bool
 	IsSystem           bool
 	SystemIcon         string
+}
+
+func (m *Message) IsPending() bool {
+	return strings.HasPrefix(m.ID, "pending-")
 }
 
 type AttachmentType string

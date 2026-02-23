@@ -12,11 +12,6 @@ import (
 	"github.com/arko-chat/arko/internal/ws"
 )
 
-type chatListener struct {
-	id     uint64
-	cancel context.CancelFunc
-}
-
 type ChatService struct {
 	*BaseService
 }
@@ -38,35 +33,45 @@ func (s *ChatService) GetRoomMessages(
 	matrixSession := s.matrix.GetMatrixSession(userID)
 	messageTree := matrixSession.GetMessageTree(roomID)
 
-	// only initialized once internally
+	// only initialized once per room internally
 	messageTree.Listen(ctx, func(mte matrix.MessageTreeEvent) {
 		neighbors := mte.Neighbors
 		msg := mte.Message
 
+		var buf bytes.Buffer
 		continued := neighbors.Prev != nil &&
 			neighbors.Prev.Author.ID == msg.Author.ID &&
 			utils.WithinMinutes(neighbors.Prev.Timestamp, msg.Timestamp, 5)
 
-		var buf bytes.Buffer
+		switch mte.EventType {
+		case matrix.AddEvent:
+			if neighbors.Next != nil {
+				oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
+				err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+				if err != nil {
+					return
+				}
+			} else if neighbors.Prev != nil {
+				oobTarget := "afterend:#msg-" + neighbors.Prev.ID
+				err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+				if err != nil {
+					return
+				}
+			} else {
+				oobTarget := "beforeend:#message-list"
+				err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
+				if err != nil {
+					return
+				}
+			}
 
-		if neighbors.Next != nil {
-			oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
+		case matrix.UpdateEvent:
+			oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
 			err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
 			if err != nil {
 				return
 			}
-		} else if neighbors.Prev != nil {
-			oobTarget := "afterend:#msg-" + neighbors.Prev.ID
-			err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
-			if err != nil {
-				return
-			}
-		} else {
-			oobTarget := "beforeend:#message-list"
-			err := renderInsertOOB(ctx, &buf, msg, continued, oobTarget)
-			if err != nil {
-				return
-			}
+		case matrix.RemoveEvent:
 		}
 
 		if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {

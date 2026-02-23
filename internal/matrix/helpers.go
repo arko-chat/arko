@@ -23,7 +23,7 @@ func generateNonce() (string, error) {
 		return "", fmt.Errorf("could not generate random nonce: %w", err)
 	}
 
-	return base64.RawURLEncoding.EncodeToString(nonceBytes), nil
+	return "pending-" + safeHashClass(base64.RawURLEncoding.EncodeToString(nonceBytes)), nil
 }
 
 func mxcToHTTP(uri id.ContentURI) string {

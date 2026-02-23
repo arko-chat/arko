@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -44,9 +45,10 @@ const (
 )
 
 type MessageTreeEvent struct {
-	EventType MessageTreeEventType
-	Message   models.Message
-	Neighbors Neighbors
+	EventType   MessageTreeEventType
+	UpdateNonce string
+	Message     models.Message
+	Neighbors   Neighbors
 }
 
 type Neighbors struct {
@@ -300,12 +302,19 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	m.RoomID = t.roomID
 
 	replacedPending := false
-	if existing, ok := t.nonces.Load(m.Nonce); ok {
-		t.BTreeG.Delete(existing)
+	replacedNonce := ""
+
+	// if message has nonce, it is meant to replace an existing message with
+	// "pending-<nonce>" as ID
+	if m.Nonce != "" {
+		if existing, ok := t.nonces.Load(m.Nonce); ok {
+			t.BTreeG.Delete(existing)
+			replacedNonce = m.Nonce
+			replacedPending = true
+		}
 		m.Nonce = ""
-		replacedPending = true
-	} else if m.Nonce != "" {
-		t.nonces.Store(m.Nonce, m)
+	} else if nonce, isNonce := strings.CutPrefix(m.ID, "pending-"); isNonce {
+		t.nonces.Store(nonce, m)
 	}
 
 	msg, replaced := t.BTreeG.Set(m)
@@ -319,9 +328,10 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 			}
 		} else {
 			t.listenerCh <- MessageTreeEvent{
-				Message:   msg,
-				EventType: UpdateEvent,
-				Neighbors: t.GetNeighbors(msg),
+				Message:     msg,
+				UpdateNonce: replacedNonce,
+				EventType:   UpdateEvent,
+				Neighbors:   t.GetNeighbors(msg),
 			}
 		}
 	}
@@ -405,11 +415,11 @@ func (t *MessageTree) eventToMessage(
 func (t *MessageTree) defaultMessage(ctx context.Context, content, nonce string) models.Message {
 	currUser, _ := t.matrixSession.GetUserProfile(ctx, t.matrixSession.id)
 	return models.Message{
+		ID:        nonce,
 		Content:   content,
 		Author:    currUser,
 		Timestamp: time.Now(),
 		RoomID:    t.roomID,
-		Nonce:     nonce,
 	}
 }
 

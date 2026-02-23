@@ -12,9 +12,13 @@ templ MessageBubbleInner(message models.Message) {
 			<span class="font-semibold text-sm text-content-primary cursor-pointer hover:underline transition-colors duration-150">
 				{ message.Author.Name }
 			</span>
-			<span class="text-[11px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-				{ utils.FormatTimestamp(message.Timestamp) }
-			</span>
+			if message.IsPending() {
+				<i class="fa-solid fa-spinner spinner text-xs text-brand"></i>
+			} else {
+				<span class="text-[11px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+					{ utils.FormatTimestamp(message.Timestamp) }
+				</span>
+			}
 		</div>
 		@messageBody(message)
 	</div>
@@ -23,9 +27,13 @@ templ MessageBubbleInner(message models.Message) {
 
 templ MessageBubbleContinuedInner(message models.Message) {
 	<div class="w-8 shrink-0 flex items-start justify-center pt-1">
-		<span class="text-[10px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150 leading-none">
-			{ utils.FormatTimestampShort(message.Timestamp) }
-		</span>
+		if message.IsPending() {
+			<i class="fa-solid fa-spinner spinner text-xs text-brand"></i>
+		} else {
+			<span class="text-[10px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity duration-150 leading-none">
+				{ utils.FormatTimestampShort(message.Timestamp) }
+			</span>
+		}
 	</div>
 	<div class="flex-1 min-w-0">
 		@messageBody(message)
@@ -85,9 +93,6 @@ templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
 			id={ "msg-" + message.ID }
 			hx-swap-oob={ swap }
 			class="flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative"
-			if message.Nonce != "" {
-				data-nonce={ message.Nonce }
-			}
 		>
 			@MessageBubbleContinuedInner(message)
 		</div>
@@ -96,9 +101,6 @@ templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
 			id={ "msg-" + message.ID }
 			hx-swap-oob={ swap }
 			class="flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative"
-			if message.Nonce != "" {
-				data-nonce={ message.Nonce }
-			}
 		>
 			@MessageBubbleInner(message)
 		</div>
@@ -119,22 +121,5 @@ templ MessageList(messages []models.Message, currentUserID string) {
 				@MessageBubble(messages[i])
 			}
 		}
-	</div>
-}
-
-templ MessageBubblePending(message models.Message) {
-	<div class="flex gap-3 px-4 py-1 relative message-pending" data-pending="true">
-		@Avatar(message.Author.Avatar, "md", true, false)
-		<div class="flex-1 min-w-0">
-			<div class="flex items-center gap-2 mb-0.5">
-				<span class="font-semibold text-sm text-content-primary">
-					{ message.Author.Name }
-				</span>
-				<i class="fa-solid fa-spinner spinner text-xs text-brand"></i>
-			</div>
-			<div class="text-sm text-content-secondary/60 leading-relaxed break-words">
-				{ message.Content }
-			</div>
-		</div>
 	</div>
 }
