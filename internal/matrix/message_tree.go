@@ -178,13 +178,8 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 				}
 
 				msg := t.eventToMessage(evt)
-				if cb != nil && msg != nil {
-
-					cb(MessageTreeEvent{
-						EventType: AddEvent,
-						Message:   *msg,
-						Neighbors: t.GetNeighbors(*msg),
-					})
+				if msg != nil {
+					t.Set(*msg)
 				}
 			case evt, ok := <-t.listenerCh:
 				if !ok {
