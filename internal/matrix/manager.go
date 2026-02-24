@@ -317,6 +317,9 @@ func (m *Manager) Logout(ctx context.Context, userID string) error {
 }
 
 func (m *Manager) Shutdown() {
+	if m.cancel != nil {
+		m.cancel()
+	}
 	for _, sess := range m.matrixSessions.All() {
 		sess.Close()
 	}
