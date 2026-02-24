@@ -1,8 +1,6 @@
 package service
 
 import (
-	"context"
-
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
@@ -31,9 +29,7 @@ func (s *BaseService) Matrix() *matrix.Manager {
 	return s.matrix
 }
 
-func (s *BaseService) GetCurrentUser(
-	ctx context.Context,
-) (models.User, error) {
+func (s *BaseService) GetCurrentUser() (models.User, error) {
 	return s.matrix.GetCurrentUser(s.matrix.GetCurrentUserID())
 }
 

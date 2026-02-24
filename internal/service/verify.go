@@ -20,7 +20,7 @@ func NewVerificationService(
 	}
 }
 
-func (s *VerificationService) IsVerified(ctx context.Context) bool {
+func (s *VerificationService) IsVerified() bool {
 	userID := s.GetCurrentUserID()
 	return s.matrix.GetMatrixSession(userID).IsVerified()
 }

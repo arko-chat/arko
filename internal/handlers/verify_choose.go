@@ -24,7 +24,7 @@ func (h *Handler) HandleVerifyChoosePage(
 		htmx.Redirect(w, r, path)
 	}
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		redirect("/")
 		return
 	}
@@ -34,7 +34,7 @@ func (h *Handler) HandleVerifyChoosePage(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return

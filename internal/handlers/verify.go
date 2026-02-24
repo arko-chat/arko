@@ -11,7 +11,6 @@ func (h *Handler) HandleVerifyPage(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
 	redirect := func(path string) {
@@ -23,7 +22,7 @@ func (h *Handler) HandleVerifyPage(
 		htmx.Redirect(w, r, path)
 	}
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		redirect("/")
 		return
 	}
@@ -80,7 +79,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 		htmx.Redirect(w, r, path)
 	}
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		redirect("/")
 		return
 	}
@@ -90,7 +89,7 @@ func (h *Handler) HandleVerifyWaitingPage(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return

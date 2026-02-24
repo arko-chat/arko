@@ -14,31 +14,31 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 	spaceID := chi.URLParam(r, "spaceID")
 	channelID := chi.URLParam(r, "channelID")
 
-	user, err := h.svc.User.GetCurrentUser(ctx)
+	user, err := h.svc.User.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	spaces, err := h.svc.Spaces.ListSpaces(ctx)
+	spaces, err := h.svc.Spaces.ListSpaces()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	detail, err := h.svc.Spaces.GetSpace(ctx, spaceID)
+	detail, err := h.svc.Spaces.GetSpace(spaceID)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	ch, err := h.svc.Spaces.GetChannel(ctx, spaceID, channelID)
+	ch, err := h.svc.Spaces.GetChannel(spaceID, channelID)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	messages, err := h.svc.Chat.GetRoomMessages(ctx, channelID)
+	messages, err := h.svc.Chat.GetRoomMessages(channelID)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

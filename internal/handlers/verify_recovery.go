@@ -15,7 +15,7 @@ func (h *Handler) HandleVerifyRecoveryPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/")
 			w.WriteHeader(http.StatusOK)
@@ -25,7 +25,7 @@ func (h *Handler) HandleVerifyRecoveryPage(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
@@ -55,7 +55,7 @@ func (h *Handler) HandleVerifyRecovery(
 
 	key := r.FormValue("recovery_key")
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return

@@ -55,7 +55,7 @@ func (h *Handler) HandleVerifyQRPage(
 		htmx.Redirect(w, r, path)
 	}
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		redirect("/")
 		return
 	}
@@ -77,7 +77,7 @@ func (h *Handler) HandleVerifyQRPage(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
@@ -117,7 +117,7 @@ func (h *Handler) HandleVerifyQRScannedPage(
 		htmx.Redirect(w, r, path)
 	}
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		redirect("/")
 		return
 	}
@@ -134,7 +134,7 @@ func (h *Handler) HandleVerifyQRScannedPage(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
@@ -162,7 +162,7 @@ func (h *Handler) HandleVerifyQRStatus(
 		w.WriteHeader(http.StatusOK)
 	}
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		redirect("/")
 		return
 	}
@@ -174,7 +174,7 @@ func (h *Handler) HandleVerifyQRStatus(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return

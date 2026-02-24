@@ -1,5 +1,3 @@
-// TODO: implement manager-level context
-
 package matrix
 
 import (
@@ -29,6 +27,8 @@ var ErrNotVerified = errors.New(
 
 type Manager struct {
 	hub            *ws.Hub
+	ctx            context.Context
+	cancel         context.CancelFunc
 	logger         *slog.Logger
 	cryptoDBPath   string
 	sentMsgIds     *lru.Cache[string, struct{}]
@@ -56,9 +56,12 @@ func NewManager(
 	logger *slog.Logger,
 	cryptoDBPath string,
 ) *Manager {
+	ctx, cancel := context.WithCancel(context.Background())
 	newLru, _ := lru.New[string, struct{}](50)
 	m := &Manager{
 		hub:            hub,
+		ctx:            ctx,
+		cancel:         cancel,
 		logger:         logger,
 		cryptoDBPath:   cryptoDBPath,
 		sentMsgIds:     newLru,
@@ -81,6 +84,10 @@ func NewManager(
 	m.restoreAllSessions()
 
 	return m
+}
+
+func (m *Manager) GetContext() context.Context {
+	return m.ctx
 }
 
 func (m *Manager) HasClient(userID string) bool {
@@ -262,7 +269,7 @@ func (m *Manager) restoreSession(
 		return fmt.Errorf("create client: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
 	defer cancel()
 
 	whoami, err := client.Whoami(ctx)
@@ -299,6 +306,9 @@ func (m *Manager) restoreSession(
 }
 
 func (m *Manager) Logout(ctx context.Context, userID string) error {
+	if m.cancel != nil {
+		m.cancel()
+	}
 	mSess, _ := m.matrixSessions.LoadAndDelete(userID)
 	mSess.GetClient().Logout(ctx)
 	mSess.Close()
@@ -354,7 +364,7 @@ func (m *Manager) startSync(sess *session.Session, client *mautrix.Client) {
 		return
 	}
 
-	newSession, err := m.NewMatrixSession(client, m.logger)
+	newSession, err := m.NewMatrixSession(m.ctx, client, m.logger)
 	if err != nil {
 		m.logger.Error("sync error",
 			"user", sess.UserID,

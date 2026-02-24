@@ -32,7 +32,7 @@ func (h *Handler) HandleVerifySASPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.Verification.IsVerified(ctx)
+	verified := h.svc.Verification.IsVerified()
 	if verified {
 		if isHtmx {
 			w.Header().Set("HX-Redirect", "/")
@@ -75,7 +75,7 @@ func (h *Handler) HandleVerifySASPage(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
@@ -151,7 +151,7 @@ func (h *Handler) HandleVerifySASWaitingPage(
 		htmx.Redirect(w, r, path)
 	}
 
-	if h.svc.Verification.IsVerified(ctx) {
+	if h.svc.Verification.IsVerified() {
 		redirect("/")
 		return
 	}
@@ -173,7 +173,7 @@ func (h *Handler) HandleVerifySASWaitingPage(
 		return
 	}
 
-	user, err := h.svc.Verification.GetCurrentUser(ctx)
+	user, err := h.svc.Verification.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return

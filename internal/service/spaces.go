@@ -1,8 +1,6 @@
 package service
 
 import (
-	"context"
-
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
@@ -21,26 +19,22 @@ func NewSpaceService(
 	}
 }
 
-func (s *SpaceService) ListSpaces(
-	ctx context.Context,
-) ([]models.Space, error) {
+func (s *SpaceService) ListSpaces() ([]models.Space, error) {
 	userID := s.GetCurrentUserID()
 	return s.matrix.ListSpaces(userID)
 }
 
 func (s *SpaceService) GetSpace(
-	ctx context.Context,
 	spaceID string,
 ) (models.SpaceDetail, error) {
 	userID := s.GetCurrentUserID()
-	return s.matrix.GetSpaceDetail(ctx, userID, spaceID)
+	return s.matrix.GetSpaceDetail(userID, spaceID)
 }
 
 func (s *SpaceService) GetChannel(
-	ctx context.Context,
 	spaceID string,
 	channelID string,
 ) (models.Channel, error) {
 	userID := s.GetCurrentUserID()
-	return s.matrix.GetChannel(ctx, userID, spaceID, channelID)
+	return s.matrix.GetChannel(userID, spaceID, channelID)
 }

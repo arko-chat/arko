@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -45,7 +44,7 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		author, err := h.svc.User.GetCurrentUser(r.Context())
+		author, err := h.svc.User.GetCurrentUser()
 		if err != nil {
 			return
 		}
@@ -57,7 +56,6 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 			"content", content,
 		)
 		err = h.svc.Chat.SendRoomMessage(
-			context.Background(),
 			roomID,
 			author,
 			content,

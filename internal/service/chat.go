@@ -30,7 +30,6 @@ func NewChatService(
 }
 
 func (s *ChatService) GetRoomMessages(
-	ctx context.Context,
 	roomID string,
 ) (*matrix.MessageTree, error) {
 	userID := s.GetCurrentUserID()
@@ -42,8 +41,8 @@ func (s *ChatService) GetRoomMessages(
 			return str, xsync.CancelOp
 		}
 
-		messageTree.Initialize(ctx)
-		messageTree.Listen(context.Background(), func(mte matrix.MessageTreeEvent) {
+		messageTree.Initialize(s.matrix.GetContext())
+		messageTree.Listen(s.matrix.GetContext(), func(mte matrix.MessageTreeEvent) {
 			log.Printf("mte: %v", mte)
 
 			neighbors := messageTree.GetNeighbors(mte.Message)
@@ -58,21 +57,21 @@ func (s *ChatService) GetRoomMessages(
 			case matrix.AddEvent:
 				if neighbors.Next != nil {
 					oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
-					err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
 					if err != nil {
 						log.Printf("err: %v", err)
 						return
 					}
 				} else if neighbors.Prev != nil {
 					oobTarget := "afterend:#msg-" + neighbors.Prev.ID
-					err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
 					if err != nil {
 						log.Printf("err: %v", err)
 						return
 					}
 				} else {
 					oobTarget := "beforeend:#message-list"
-					err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
 					if err != nil {
 						log.Printf("err: %v", err)
 						return
@@ -85,7 +84,7 @@ func (s *ChatService) GetRoomMessages(
 					return
 				}
 				oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
-				err := renderInsertOOB(context.Background(), &buf, msg, continued, oobTarget)
+				err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
 				if err != nil {
 					log.Printf("err: %v", err)
 					return
@@ -94,7 +93,7 @@ func (s *ChatService) GetRoomMessages(
 			}
 
 			if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {
-				err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(context.Background(), &buf)
+				err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(s.matrix.GetContext(), &buf)
 				if err != nil {
 					log.Printf("err: %v", err)
 					return
@@ -111,7 +110,6 @@ func (s *ChatService) GetRoomMessages(
 }
 
 func (s *ChatService) SendRoomMessage(
-	ctx context.Context,
 	roomID string,
 	author models.User,
 	content string,
@@ -119,7 +117,7 @@ func (s *ChatService) SendRoomMessage(
 	matrixSession := s.matrix.GetMatrixSession(author.ID)
 	messageTree := matrixSession.GetMessageTree(roomID)
 
-	return messageTree.SendMessage(ctx, content)
+	return messageTree.SendMessage(s.matrix.GetContext(), content)
 }
 
 func renderInsertOOB(

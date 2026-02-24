@@ -13,19 +13,19 @@ func (h *Handler) HandleFriends(w http.ResponseWriter, r *http.Request) {
 	state := h.session(r)
 	ctx := r.Context()
 
-	user, err := h.svc.User.GetCurrentUser(ctx)
+	user, err := h.svc.User.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	spaces, err := h.svc.Spaces.ListSpaces(ctx)
+	spaces, err := h.svc.Spaces.ListSpaces()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	fl, _ := h.svc.Friends.ListFriends(ctx)
+	fl, _ := h.svc.Friends.ListFriends()
 
 	if htmx.IsHTMX(r) {
 		if err := friendspage.Content(user, spaces, fl).Render(ctx, w); err != nil {
@@ -48,7 +48,7 @@ func (h *Handler) HandleFriendsFilter(
 		filter = "online"
 	}
 
-	_, err := h.svc.Friends.FilterFriends(r.Context(), filter)
+	_, err := h.svc.Friends.FilterFriends(filter)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
@@ -65,7 +65,7 @@ func (h *Handler) HandleFriendSearch(
 ) {
 	query := r.FormValue("search")
 
-	filtered, err := h.svc.Friends.SearchFriends(r.Context(), query)
+	filtered, err := h.svc.Friends.SearchFriends(query)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

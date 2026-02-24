@@ -89,8 +89,8 @@ func (m *MatrixSession) GetVerificationUIState() *VerificationUIState {
 	return m.verificationUIState
 }
 
-func (m *Manager) NewMatrixSession(client *mautrix.Client, logger *slog.Logger) (*MatrixSession, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, logger *slog.Logger) (*MatrixSession, error) {
+	ctx, cancel := context.WithCancel(ctx)
 
 	dbPath := fmt.Sprintf(
 		"%s/%s.db",
@@ -286,7 +286,7 @@ func (m *MatrixSession) GetUserProfile(
 	targetUserID string,
 ) (models.User, error) {
 	return cache.CachedSingle(m.profileCache, m.profileSfg, targetUserID, func() (models.User, error) {
-		ctx := context.Background()
+		ctx := m.context
 		target := id.UserID(targetUserID)
 		localpart := target.Localpart()
 
@@ -315,7 +315,7 @@ func (m *MatrixSession) GetUserProfile(
 
 func (m *MatrixSession) IsVerified() bool {
 	check := func() (bool, error) {
-		ctx := context.Background()
+		ctx := m.context
 		machine := m.GetCryptoHelper().Machine()
 		if machine == nil {
 			return false, fmt.Errorf("machine is nil")

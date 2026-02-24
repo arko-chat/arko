@@ -55,7 +55,7 @@ func (m *Manager) getActiveTransaction(
 			fmt.Errorf("no verification store for user")
 	}
 
-	txns, err := mSess.GetVerificationStore().GetAllVerificationTransactions(context.Background())
+	txns, err := mSess.GetVerificationStore().GetAllVerificationTransactions(m.GetContext())
 	if err != nil {
 		return verificationhelper.VerificationTransaction{},
 			fmt.Errorf("get transactions: %w", err)
@@ -256,7 +256,7 @@ func (m *Manager) HasCrossSigningKeys(userID string) bool {
 		return false
 	}
 
-	pubkeys := machine.GetOwnCrossSigningPublicKeys(context.Background())
+	pubkeys := machine.GetOwnCrossSigningPublicKeys(m.GetContext())
 	return pubkeys != nil
 }
 

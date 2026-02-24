@@ -13,32 +13,32 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	otherID := chi.URLParam(r, "userID")
 
-	user, err := h.svc.User.GetCurrentUser(ctx)
+	user, err := h.svc.User.GetCurrentUser()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	spaces, err := h.svc.Spaces.ListSpaces(ctx)
+	spaces, err := h.svc.Spaces.ListSpaces()
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	friendsList, _ := h.svc.Friends.ListFriends(ctx)
+	friendsList, _ := h.svc.Friends.ListFriends()
 
-	friend, err := h.svc.Friends.GetFriend(ctx, otherID)
+	friend, err := h.svc.Friends.GetFriend(otherID)
 	if err != nil {
 		h.serverError(w, r, err)
 		return
 	}
 
-	roomID, err := h.svc.Friends.GetFriendRoomID(ctx, otherID)
+	roomID, err := h.svc.Friends.GetFriendRoomID(otherID)
 	if err != nil {
 		roomID = "dm-" + otherID
 	}
 
-	messages, err := h.svc.Chat.GetRoomMessages(ctx, roomID)
+	messages, err := h.svc.Chat.GetRoomMessages(roomID)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

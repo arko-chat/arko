@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"strings"
 
 	"github.com/arko-chat/arko/internal/matrix"
@@ -23,22 +22,18 @@ func NewFriendsService(
 }
 
 func (s *FriendsService) GetFriendRoomID(
-	ctx context.Context,
 	otherUserID string,
 ) (string, error) {
 	userID := s.GetCurrentUserID()
-	return s.matrix.GetDMRoomID(ctx, userID, otherUserID)
+	return s.matrix.GetDMRoomID(userID, otherUserID)
 }
 
-func (s *FriendsService) ListFriends(
-	ctx context.Context,
-) ([]models.User, error) {
+func (s *FriendsService) ListFriends() ([]models.User, error) {
 	userID := s.GetCurrentUserID()
 	return s.matrix.ListDirectMessages(userID)
 }
 
 func (s *FriendsService) FilterFriends(
-	ctx context.Context,
 	filter string,
 ) ([]models.User, error) {
 	userID := s.GetCurrentUserID()
@@ -67,7 +62,6 @@ func (s *FriendsService) FilterFriends(
 }
 
 func (s *FriendsService) SearchFriends(
-	ctx context.Context,
 	query string,
 ) ([]models.User, error) {
 	userID := s.GetCurrentUserID()
@@ -87,7 +81,6 @@ func (s *FriendsService) SearchFriends(
 }
 
 func (s *FriendsService) GetFriend(
-	ctx context.Context,
 	otherUserID string,
 ) (models.User, error) {
 	userID := s.GetCurrentUserID()
