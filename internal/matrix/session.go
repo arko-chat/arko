@@ -31,6 +31,7 @@ type MatrixSession struct {
 
 	id                  string
 	manager             *Manager
+	seenAsVerified      atomic.Bool
 	logger              *slog.Logger
 	context             context.Context
 	cancel              context.CancelFunc
@@ -313,7 +314,7 @@ func (m *MatrixSession) GetUserProfile(
 }
 
 func (m *MatrixSession) IsVerified() bool {
-	cached, _ := cache.CachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, m.id, time.Minute*30, func() (bool, error) {
+	check := func() (bool, error) {
 		ctx := context.Background()
 		machine := m.GetCryptoHelper().Machine()
 		if machine == nil {
@@ -349,8 +350,17 @@ func (m *MatrixSession) IsVerified() bool {
 			"trust", trust.String(),
 		)
 		return false, fmt.Errorf("trust is not considered valid: %s", trust.String())
-	})
-	return cached
+	}
+
+	if m.seenAsVerified.Load() {
+		cached, _ := cache.CachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, m.id, time.Minute*30, check)
+		return cached
+	}
+
+	verified, _ := check()
+	m.seenAsVerified.Store(verified)
+
+	return verified
 }
 
 func (m *MatrixSession) Close() {
