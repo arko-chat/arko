@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/arko-chat/arko/components/features/friends"
-	"github.com/arko-chat/arko/components/sidebar"
+	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/htmx"
 	friendspage "github.com/arko-chat/arko/pages/friends"
 )

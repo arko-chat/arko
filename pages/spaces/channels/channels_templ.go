@@ -13,7 +13,7 @@ import (
 	"github.com/arko-chat/arko/components/features/channel"
 	"github.com/arko-chat/arko/components/features/chat"
 	"github.com/arko-chat/arko/components/layout"
-	"github.com/arko-chat/arko/components/sidebar"
+	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
