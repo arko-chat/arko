@@ -34,7 +34,7 @@ func (s *BaseService) Matrix() *matrix.Manager {
 func (s *BaseService) GetCurrentUser(
 	ctx context.Context,
 ) (models.User, error) {
-	return s.matrix.GetCurrentUser(ctx, s.matrix.GetCurrentUserID())
+	return s.matrix.GetCurrentUser(s.matrix.GetCurrentUserID())
 }
 
 func (s *BaseService) GetCurrentUserID() string {

@@ -32,7 +32,7 @@ func Auth(mgr *matrix.Manager, pages AuthPages) func(http.Handler) http.Handler 
 				return
 			}
 
-			if !mgr.GetMatrixSession(sess.UserID).IsVerified(r.Context()) {
+			if !mgr.GetMatrixSession(sess.UserID).IsVerified() {
 				if !strings.HasPrefix(r.URL.Path, "/verify") {
 					authRedirect(w, r, "/verify", pages.Verify)
 					return

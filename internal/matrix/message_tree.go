@@ -467,7 +467,7 @@ func (t *MessageTree) eventToMessage(
 		return nil
 	}
 
-	profile, _ := t.matrixSession.GetUserProfile(context.Background(), string(evt.Sender))
+	profile, _ := t.matrixSession.GetUserProfile(string(evt.Sender))
 
 	safeId := safeHashClass(evt.ID.String())
 
@@ -482,7 +482,7 @@ func (t *MessageTree) eventToMessage(
 }
 
 func (t *MessageTree) defaultMessage(ctx context.Context, content, nonce string) models.Message {
-	currUser, _ := t.matrixSession.GetUserProfile(ctx, t.matrixSession.id)
+	currUser, _ := t.matrixSession.GetUserProfile(t.matrixSession.id)
 	return models.Message{
 		ID:        nonce,
 		Content:   content,

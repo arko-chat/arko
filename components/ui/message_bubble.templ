@@ -26,7 +26,7 @@ templ MessageBubbleInner(message models.Message) {
 }
 
 templ MessageBubbleContinuedInner(message models.Message) {
-	<div class="w-8 shrink-0 flex items-start justify-center pt-1">
+	<div class="w-10 shrink-0 flex items-start justify-center pt-1">
 		if message.IsPending() {
 			<i class="fa-solid fa-spinner spinner text-xs text-brand"></i>
 		} else {

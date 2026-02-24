@@ -53,10 +53,10 @@ func resolveContentURIString(
 }
 
 func (m *Manager) GetCurrentUser(
-	ctx context.Context,
 	userID string,
 ) (models.User, error) {
 	return cache.CachedSingle(m.userCache, m.userSfg, userID, func() (models.User, error) {
+		ctx := context.Background()
 		client, err := m.GetClient(userID)
 		if err != nil {
 			return models.User{}, err
@@ -92,12 +92,12 @@ func (m *Manager) GetCurrentUser(
 }
 
 func (m *Manager) getRoomName(
-	ctx context.Context,
 	client *mautrix.Client,
 	roomID id.RoomID,
 ) string {
 	key := "name:" + roomID.String()
 	val, _ := cache.CachedSingle(m.roomCache, m.roomNameSfg, key, func() (string, error) {
+		ctx := context.Background()
 		var nameEvt event.RoomNameEventContent
 		err := client.StateEvent(ctx, roomID, event.StateRoomName, "", &nameEvt)
 		if err != nil || nameEvt.Name == "" {
@@ -109,12 +109,12 @@ func (m *Manager) getRoomName(
 }
 
 func (m *Manager) getRoomAvatar(
-	ctx context.Context,
 	client *mautrix.Client,
 	roomID id.RoomID,
 ) string {
 	key := "avatar:" + roomID.String()
 	val, _ := cache.CachedSingle(m.roomCache, m.roomAvatarSfg, key, func() (string, error) {
+		ctx := context.Background()
 		var avatarEvt event.RoomAvatarEventContent
 		err := client.StateEvent(ctx, roomID, event.StateRoomAvatar, "", &avatarEvt)
 		if err != nil {
@@ -129,10 +129,11 @@ func (m *Manager) getRoomAvatar(
 }
 
 func (m *Manager) ListSpaces(
-	ctx context.Context,
 	userID string,
 ) ([]models.Space, error) {
 	return cache.CachedSingle(m.spacesCache, m.spacesSfg, userID, func() ([]models.Space, error) {
+		ctx := context.Background()
+
 		client, err := m.GetClient(userID)
 		if err != nil {
 			return nil, err
@@ -151,8 +152,8 @@ func (m *Manager) ListSpaces(
 				continue
 			}
 
-			name := m.getRoomName(ctx, client, roomID)
-			avatar := m.getRoomAvatar(ctx, client, roomID)
+			name := m.getRoomName(client, roomID)
+			avatar := m.getRoomAvatar(client, roomID)
 
 			spaces = append(spaces, models.Space{
 				ID:      roomID.String(),
@@ -182,15 +183,15 @@ func (m *Manager) GetSpaceDetail(
 	}
 
 	roomID := id.RoomID(spaceID)
-	name := m.getRoomName(ctx, client, roomID)
-	avatar := m.getRoomAvatar(ctx, client, roomID)
+	name := m.getRoomName(client, roomID)
+	avatar := m.getRoomAvatar(client, roomID)
 
-	children, err := m.getSpaceChildren(ctx, client, roomID)
+	children, err := m.getSpaceChildren(client, roomID)
 	if err != nil {
 		children = nil
 	}
 
-	members, err := m.getRoomMembers(ctx, client, roomID)
+	members, err := m.getRoomMembers(client, roomID)
 	if err != nil {
 		members = nil
 	}
@@ -205,11 +206,11 @@ func (m *Manager) GetSpaceDetail(
 }
 
 func (m *Manager) getSpaceChildren(
-	ctx context.Context,
 	client *mautrix.Client,
 	spaceID id.RoomID,
 ) ([]models.Channel, error) {
 	return cache.CachedSingle(m.channelsCache, m.channelsSfg, spaceID.String(), func() ([]models.Channel, error) {
+		ctx := context.Background()
 		stateMap, err := client.State(ctx, spaceID)
 		if err != nil {
 			return nil, err
@@ -228,7 +229,7 @@ func (m *Manager) getSpaceChildren(
 			}
 
 			childRoomID := id.RoomID(stateKey)
-			childName := m.getRoomName(ctx, client, childRoomID)
+			childName := m.getRoomName(client, childRoomID)
 
 			channels = append(channels, models.Channel{
 				ID:      childRoomID.String(),
@@ -247,10 +248,10 @@ func (m *Manager) getSpaceChildren(
 }
 
 func (m *Manager) ListDirectMessages(
-	ctx context.Context,
 	userID string,
 ) ([]models.User, error) {
 	return cache.CachedSingle(m.dmCache, m.dmSfg, userID, func() ([]models.User, error) {
+		ctx := context.Background()
 		client, err := m.GetClient(userID)
 		if err != nil {
 			return nil, err
@@ -274,7 +275,7 @@ func (m *Manager) ListDirectMessages(
 			// Use the session's profile cache to resolve the friend's details
 			sess, ok := m.matrixSessions.Load(userID)
 			if ok {
-				profile, err := sess.GetUserProfile(ctx, uid)
+				profile, err := sess.GetUserProfile(uid)
 				if err == nil {
 					friends = append(friends, profile)
 					continue
@@ -339,7 +340,7 @@ func (m *Manager) GetChannel(
 	}
 
 	roomID := id.RoomID(channelID)
-	name := m.getRoomName(ctx, client, roomID)
+	name := m.getRoomName(client, roomID)
 
 	var topicEvt event.TopicEventContent
 	_ = client.StateEvent(ctx, roomID, event.StateTopic, "", &topicEvt)
@@ -354,11 +355,11 @@ func (m *Manager) GetChannel(
 }
 
 func (m *Manager) getRoomMembers(
-	ctx context.Context,
 	client *mautrix.Client,
 	roomID id.RoomID,
 ) ([]models.User, error) {
 	return cache.CachedSingle(m.membersCache, m.membersSfg, roomID.String(), func() ([]models.User, error) {
+		ctx := context.Background()
 		members, err := client.Members(ctx, roomID)
 		if err != nil {
 			return nil, err

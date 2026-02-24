@@ -34,7 +34,7 @@ func (s *FriendsService) ListFriends(
 	ctx context.Context,
 ) ([]models.User, error) {
 	userID := s.GetCurrentUserID()
-	return s.matrix.ListDirectMessages(ctx, userID)
+	return s.matrix.ListDirectMessages(userID)
 }
 
 func (s *FriendsService) FilterFriends(
@@ -42,7 +42,7 @@ func (s *FriendsService) FilterFriends(
 	filter string,
 ) ([]models.User, error) {
 	userID := s.GetCurrentUserID()
-	all, err := s.matrix.ListDirectMessages(ctx, userID)
+	all, err := s.matrix.ListDirectMessages(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (s *FriendsService) SearchFriends(
 	query string,
 ) ([]models.User, error) {
 	userID := s.GetCurrentUserID()
-	all, err := s.matrix.ListDirectMessages(ctx, userID)
+	all, err := s.matrix.ListDirectMessages(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,5 +91,5 @@ func (s *FriendsService) GetFriend(
 	otherUserID string,
 ) (models.User, error) {
 	userID := s.GetCurrentUserID()
-	return s.matrix.GetMatrixSession(userID).GetUserProfile(ctx, otherUserID)
+	return s.matrix.GetMatrixSession(userID).GetUserProfile(otherUserID)
 }

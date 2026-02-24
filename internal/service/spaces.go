@@ -25,7 +25,7 @@ func (s *SpaceService) ListSpaces(
 	ctx context.Context,
 ) ([]models.Space, error) {
 	userID := s.GetCurrentUserID()
-	return s.matrix.ListSpaces(ctx, userID)
+	return s.matrix.ListSpaces(userID)
 }
 
 func (s *SpaceService) GetSpace(

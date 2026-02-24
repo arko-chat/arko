@@ -22,6 +22,9 @@ func main() {
 		Level: slog.LevelDebug,
 	}))
 
+	os.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "0")
+	os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--enable-gpu")
+
 	cfg, err := config.Load()
 	if err != nil {
 		slogger.Error("failed to generate config", "err", err)
@@ -62,7 +65,6 @@ func main() {
 	defer w.Destroy()
 	w.SetTitle("Arko")
 	w.SetSize(1040, 768, webview.HintMin)
-	w.SetSize(1280, 800, webview.HintMax)
 	w.Navigate(addr)
 	w.Run()
 

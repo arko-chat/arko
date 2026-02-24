@@ -282,10 +282,10 @@ func (m *MatrixSession) GetMessageTree(roomID string) *MessageTree {
 }
 
 func (m *MatrixSession) GetUserProfile(
-	ctx context.Context,
 	targetUserID string,
 ) (models.User, error) {
 	return cache.CachedSingle(m.profileCache, m.profileSfg, targetUserID, func() (models.User, error) {
+		ctx := context.Background()
 		target := id.UserID(targetUserID)
 		localpart := target.Localpart()
 
@@ -312,8 +312,9 @@ func (m *MatrixSession) GetUserProfile(
 	})
 }
 
-func (m *MatrixSession) IsVerified(ctx context.Context) bool {
+func (m *MatrixSession) IsVerified() bool {
 	cached, _ := cache.CachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, m.id, time.Minute*30, func() (bool, error) {
+		ctx := context.Background()
 		machine := m.GetCryptoHelper().Machine()
 		if machine == nil {
 			return false, fmt.Errorf("machine is nil")
