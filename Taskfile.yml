@@ -10,13 +10,12 @@ tasks:
   default:
     desc: List available tasks
     cmds:
-      - task --list
+      - go tool task --list
 
   setup:
     desc: Install dev tooling
     cmds:
-      - go install github.com/a-h/templ/cmd/templ@latest
-      - go install github.com/bokwoon95/wgo@latest
+      - go mod tidy
       - cd frontend && bun install
 
   generate:
@@ -24,7 +23,7 @@ tasks:
     sources:
       - "**/*.templ"
     cmds:
-      - templ generate
+      - go tool templ generate
 
   dev:
     desc: Run dev mode (Vite + Go with hot reload)
@@ -42,7 +41,7 @@ tasks:
     internal: true
     cmds:
       - sleep 2
-      - "wgo -file .go -file .templ -xfile _templ.go templ generate :: go run -tags dev ./cmd/arko {{.CLI_ARGS}}"
+      - "go tool wgo -file .go -file .templ -xfile _templ.go go tool templ generate :: go run -tags dev ./cmd/arko {{.CLI_ARGS}}"
 
   build:frontend:
     desc: Build frontend assets
@@ -83,7 +82,7 @@ tasks:
     desc: Run linters
     cmds:
       - go vet ./...
-      - templ generate
+      - go tool templ generate
       - go build ./...
 
   test:

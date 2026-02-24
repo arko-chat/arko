@@ -22,6 +22,12 @@ Also, it's mostly a learning project of mine.
 ### Current techstack
 Go, Templ, HTMX, WebView (i am allergic to javascript)
 
+### Dependencies
+```
+# for Arch dev:
+paru -S libolm webkit2gtk gtk3
+```
+
 ### Getting Started
 stop. it's not ready yet.
 
