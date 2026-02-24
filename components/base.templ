@@ -11,7 +11,15 @@ templ Base(state *session.Session, title string) {
 		<head>
 			if state != nil && state.Theme != "" {
 				<script>
-          document.documentElement.classList.add({{ state.Theme }});
+					document.documentElement.classList.add({{ state.Theme }});
+				</script>
+			} else {
+				<script>
+          (function () {
+            var theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+            document.documentElement.classList.add(theme);
+            fetch("/api/theme/set?theme=" + theme, { method: "POST" });
+          })();
         </script>
 			}
 			if assets.IsDev() {

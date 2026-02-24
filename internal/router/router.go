@@ -63,6 +63,7 @@ func New(
 
 		r.Get("/api/media", h.HandleProxyMedia)
 		r.Post("/api/theme", h.HandleToggleTheme)
+		r.Post("/api/theme/set", h.HandleSetTheme)
 	})
 
 	return r
