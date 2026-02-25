@@ -3,6 +3,11 @@ package models
 import (
 	"strings"
 	"time"
+	"unsafe"
+
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 )
 
 type UserStatus string
@@ -76,6 +81,19 @@ type Message struct {
 	IsPinned           bool
 	IsSystem           bool
 	SystemIcon         string
+}
+
+func (m *Message) HTMLContent() string {
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse([]byte(m.Content))
+
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+	bs := markdown.Render(doc, renderer)
+
+	return *(*string)(unsafe.Pointer(&bs))
 }
 
 func (m *Message) IsPending() bool {

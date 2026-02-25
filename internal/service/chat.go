@@ -117,7 +117,7 @@ func (s *ChatService) SendRoomMessage(
 	matrixSession := s.matrix.GetMatrixSession(author.ID)
 	messageTree := matrixSession.GetMessageTree(roomID)
 
-	return messageTree.SendMessage(s.matrix.GetContext(), content)
+	return messageTree.SendMessage(content)
 }
 
 func renderInsertOOB(

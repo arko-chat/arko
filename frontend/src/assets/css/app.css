@@ -142,3 +142,19 @@
 .animate-slide-down {
   animation: slideDown 0.15s ease-out both;
 }
+
+.markdown-body {
+  --base-size-16: 0.8rem;
+  --base-size-24: 1.3rem;
+  --base-size-4: 0.1rem;
+  --base-size-40: 2rem;
+  --base-size-8: 0.2rem;
+  --base-text-weight-medium: 400;
+  --base-text-weight-normal: 300;
+  --base-text-weight-semibold: 500;
+  --fontStack-monospace: unset !important;
+  --fontStack-sansSerif: unset !important;
+  --bgColor-default: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+}
