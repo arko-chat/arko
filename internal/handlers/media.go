@@ -41,7 +41,7 @@ func (h *Handler) HandleProxyMedia(w http.ResponseWriter, r *http.Request) {
 	media, err := cache.CachedSingleWithTTL(
 		h.mediaCache,
 		h.mediaSfg,
-		mediaPath,
+		"hpm:"+mediaPath,
 		24*time.Hour,
 		func() (*MediaResponse, error) {
 			mediaURL := strings.TrimRight(sess.Homeserver, "/") + mediaPath

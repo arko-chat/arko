@@ -285,7 +285,7 @@ func (m *MatrixSession) GetMessageTree(roomID string) *MessageTree {
 func (m *MatrixSession) GetUserProfile(
 	targetUserID string,
 ) (models.User, error) {
-	return cache.CachedSingle(m.profileCache, m.profileSfg, targetUserID, func() (models.User, error) {
+	return cache.CachedSingle(m.profileCache, m.profileSfg, "gup:"+targetUserID, func() (models.User, error) {
 		ctx := m.context
 		target := id.UserID(targetUserID)
 		localpart := target.Localpart()
@@ -353,7 +353,7 @@ func (m *MatrixSession) IsVerified() bool {
 	}
 
 	if m.seenAsVerified.Load() {
-		cached, _ := cache.CachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, m.id, time.Minute*30, check)
+		cached, _ := cache.CachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, "iv:"+m.id, time.Minute*30, check)
 		return cached
 	}
 

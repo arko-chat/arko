@@ -398,7 +398,7 @@ func (t *MessageTree) GetNeighbors(m models.Message) Neighbors {
 }
 
 func (t *MessageTree) Chronological() []models.Message {
-	const cacheKey = "chrono_list"
+	cacheKey := "chrono_list:" + t.roomID
 
 	msgs, _ := cache.CachedSingle(t.chronoCache, t.chronoSfg, cacheKey, func() ([]models.Message, error) {
 		t.mu.RLock()
