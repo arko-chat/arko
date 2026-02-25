@@ -40,6 +40,8 @@ type MessageTree struct {
 	chronoCache *xsync.Map[string, cache.CacheEntry[[]models.Message]]
 	chronoSfg   *singleflight.Group
 
+	initialized atomic.Bool
+
 	wg sync.WaitGroup
 }
 
@@ -83,6 +85,10 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 }
 
 func (t *MessageTree) Initialize(ctx context.Context) {
+	if t.initialized.Swap(true) {
+		return
+	}
+
 	var encEvt event.EncryptionEventContent
 	err := t.matrixSession.GetClient().StateEvent(
 		ctx, id.RoomID(t.roomID), event.StateEncryption, "", &encEvt,
@@ -206,31 +212,11 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 					return
 				}
 				if evt == nil || evt.RoomID != id.RoomID(t.roomID) {
-					if evt != nil {
-						t.matrixSession.logger.Debug(
-							"received matrix event but not from room",
-							"roomID", t.roomID,
-							"evtRoomID", evt.RoomID,
-						)
-					}
-
 					continue
 				}
 
-				t.matrixSession.logger.Debug(
-					"received matrix event from room",
-					"roomID", t.roomID,
-				)
-
 				msg := t.eventToMessage(evt)
 				if msg != nil {
-					t.matrixSession.logger.Debug(
-						"parsed message",
-						"roomID", t.roomID,
-						"msgID", evt.ID,
-						"content", evt.Content,
-						"nonce", msg.Nonce,
-					)
 					t.Set(*msg)
 				}
 			}
@@ -251,12 +237,6 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 				if !ok {
 					return
 				}
-
-				t.matrixSession.logger.Debug(
-					"received message tree changes",
-					"roomID", t.roomID,
-					"type", evt.EventType,
-				)
 
 				if cb != nil {
 					cb(evt)
@@ -285,13 +265,15 @@ func (t *MessageTree) Close() {
 	t.wg.Wait()
 }
 
-func (t *MessageTree) SendMessage(ctx context.Context, body string) error {
+func (t *MessageTree) SendMessage(body string) error {
+	ctx := t.matrixSession.Context()
+
 	nonce, err := generateNonce()
 	if err != nil {
 		return err
 	}
 
-	t.Set(t.defaultMessage(ctx, body, nonce))
+	t.Set(t.defaultMessage(body, nonce))
 
 	rid := id.RoomID(t.roomID)
 	client := t.matrixSession.GetClient()
@@ -335,45 +317,19 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	// "pending-<nonce>" as ID
 	if m.Nonce != "" {
 		if existing, ok := t.nonces.Load(m.Nonce); ok {
-			t.matrixSession.logger.Debug(
-				"nonce found",
-				"nonce", m.Nonce,
-				"existing", existing,
-			)
 			t.BTreeG.Delete(existing)
-
-			t.matrixSession.logger.Debug(
-				"finished processing nonce",
-			)
 			replacedNonce = existing.ID
 			replacedPending = true
 			t.nonces.Delete(m.Nonce)
 		}
 		m.Nonce = ""
 	} else if strings.HasPrefix(m.ID, "pending-") {
-		t.matrixSession.logger.Debug(
-			"pending found",
-			"id", m.ID,
-		)
 		t.nonces.Store(m.ID, m)
 	}
 
 	_, replaced := t.BTreeG.Set(m)
 	t.chronoCache.Delete("chrono_list")
 	t.mu.Unlock()
-
-	t.matrixSession.logger.Debug(
-		"btree set",
-		"replaced", replaced,
-	)
-
-	t.matrixSession.logger.Debug(
-		"if stuck here, it's deadlock",
-	)
-
-	t.matrixSession.logger.Debug(
-		"check if listening",
-	)
 
 	if t.listening.Load() {
 		var treeEvt MessageTreeEvent
@@ -481,7 +437,7 @@ func (t *MessageTree) eventToMessage(
 	}
 }
 
-func (t *MessageTree) defaultMessage(ctx context.Context, content, nonce string) models.Message {
+func (t *MessageTree) defaultMessage(content, nonce string) models.Message {
 	currUser, _ := t.matrixSession.GetUserProfile(t.matrixSession.id)
 	return models.Message{
 		ID:        nonce,

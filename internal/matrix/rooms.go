@@ -161,6 +161,12 @@ func (m *Manager) ListSpaces(
 				Status:  "Online",
 				Address: encodeRoomID(roomID.String()),
 			})
+
+			// preload rooms
+			go m.getSpaceChildren(client, roomID)
+
+			// preload members
+			go m.getRoomMembers(client, roomID)
 		}
 
 		slices.SortFunc(spaces, func(a, b models.Space) int {
@@ -235,6 +241,13 @@ func (m *Manager) getSpaceChildren(
 				Type:    models.ChannelText,
 				SpaceID: spaceID.String(),
 			})
+
+			// preload messages
+			go func() {
+				mxSession := m.GetCurrentMatrixSession()
+				tree := mxSession.GetMessageTree(string(childRoomID))
+				tree.Initialize(m.ctx)
+			}()
 		}
 
 		slices.SortFunc(channels, func(a, b models.Channel) int {
@@ -288,6 +301,16 @@ func (m *Manager) ListDirectMessages(
 				Avatar: fmt.Sprintf("https://api.dicebear.com/7.x/avataaars/svg?seed=%s", localpart),
 				Status: models.StatusOffline,
 			})
+
+			// preload messages
+			go func() {
+				mxSession := m.GetCurrentMatrixSession()
+				roomID, err := m.GetDMRoomID(userID, uid)
+				if err == nil {
+					tree := mxSession.GetMessageTree(string(roomID))
+					tree.Initialize(m.ctx)
+				}
+			}()
 		}
 
 		slices.SortFunc(friends, func(a, b models.User) int {
