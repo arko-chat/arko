@@ -46,8 +46,7 @@ templ Chat(props Props) {
 			@ui.TypingIndicator([]string{})
 		</div>
 		@ui.MessageInput(props.Placeholder, "message", templ.Attributes{
-			"ws-send":              "",
-			"hx-on::after-request": "if(event.detail.successful) this.reset()",
+			"ws-send": "",
 		})
 	</div>
 }

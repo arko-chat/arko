@@ -64,12 +64,17 @@ templ Textarea(placeholder string, rows int, attributes templ.Attributes) {
 }
 
 templ MessageTextarea(placeholder string, extraClass string, attributes templ.Attributes) {
-	<textarea
-		rows="1"
-		placeholder={ placeholder }
-		{ attributes... }
-		class={ "w-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed max-h-48 block " + extraClass }
-		x-data
-		x-on:input="$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'"
-	></textarea>
+	<div x-data="{shiftPressed: false}">
+		<textarea
+			rows="1"
+			placeholder={ placeholder }
+			{ attributes... }
+			class={ "w-full h-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed max-h-48 block " + extraClass }
+			x-data
+			@keyup.enter="if (!shiftPressed) {$event.preventDefault();$event.target.form.requestSubmit();$event.target.form.reset();$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'}"
+			@keydown.shift="shiftPressed = true"
+			@keyup.shift="shiftPressed = false"
+			x-on:input="$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'"
+		></textarea>
+	</div>
 }

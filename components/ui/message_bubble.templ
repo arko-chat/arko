@@ -45,8 +45,8 @@ templ messageBody(message models.Message) {
 	if message.IsSystem {
 		@SystemMessage(message.SystemIcon, message.Content)
 	} else {
-		<div class="text-sm text-content-secondary leading-relaxed break-words">
-			{ message.Content }
+		<div class="markdown-body text-sm text-content-secondary leading-relaxed break-words">
+			@templ.Raw(message.HTMLContent())
 		</div>
 		if len(message.Attachments) > 0 {
 			<div class="flex flex-col gap-1.5 mt-1">

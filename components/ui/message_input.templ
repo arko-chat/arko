@@ -56,28 +56,82 @@ templ MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) 
 				>
 					<div class="absolute inset-x-0 -top-1 -bottom-1"></div>
 				</div>
-				<div class="flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0">
-					@IconButton("fa-solid fa-bold", "default", templ.Attributes{"type": "button", "title": "Bold"})
-					@IconButton("fa-solid fa-italic", "default", templ.Attributes{"type": "button", "title": "Italic"})
-					@IconButton("fa-solid fa-strikethrough", "default", templ.Attributes{"type": "button", "title": "Strikethrough"})
+				<div
+					class="flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0"
+					x-data="{
+            wrap(open, close = null) {
+                const ta = document.querySelector('#textarea-messageinput');
+                if (!ta) return;
+                const s = ta.selectionStart, e = ta.selectionEnd;
+                const sel = ta.value.slice(s, e);
+                const cl = close ?? open;
+                const replacement = open + sel + cl;
+                ta.setRangeText(replacement, s, e, 'end');
+                ta.setSelectionRange(s + open.length, s + open.length + sel.length);
+                ta.focus();
+            },
+            line(prefix) {
+                const ta = document.querySelector('#textarea-messageinput');
+                if (!ta) return;
+                const s = ta.selectionStart;
+                const lineStart = ta.value.lastIndexOf('\n', s - 1) + 1;
+                const lineEnd = ta.value.indexOf('\n', s);
+                const end = lineEnd === -1 ? ta.value.length : lineEnd;
+                const sel = ta.value.slice(lineStart, end);
+                const replacement = prefix + sel;
+                ta.setRangeText(replacement, lineStart, end, 'end');
+                ta.focus();
+            }
+        }"
+				>
+					@IconButton("fa-solid fa-bold", "default", templ.Attributes{
+						"type": "button", "title": "Bold",
+						"@click": "wrap('**')",
+					})
+					@IconButton("fa-solid fa-italic", "default", templ.Attributes{
+						"type": "button", "title": "Italic",
+						"@click": "wrap('_')",
+					})
+					@IconButton("fa-solid fa-strikethrough", "default", templ.Attributes{
+						"type": "button", "title": "Strikethrough",
+						"@click": "wrap('~~')",
+					})
 					<div class="w-px h-3.5 bg-border-divider mx-1"></div>
-					@IconButton("fa-solid fa-link", "default", templ.Attributes{"type": "button", "title": "Link"})
-					@IconButton("fa-solid fa-list-ul", "default", templ.Attributes{"type": "button", "title": "Bullet list"})
-					@IconButton("fa-solid fa-list-ol", "default", templ.Attributes{"type": "button", "title": "Numbered list"})
+					@IconButton("fa-solid fa-link", "default", templ.Attributes{
+						"type": "button", "title": "Link",
+						"@click": "wrap('[', '](url)')",
+					})
+					@IconButton("fa-solid fa-list-ul", "default", templ.Attributes{
+						"type": "button", "title": "Bullet list",
+						"@click": "line('- ')",
+					})
+					@IconButton("fa-solid fa-list-ol", "default", templ.Attributes{
+						"type": "button", "title": "Numbered list",
+						"@click": "line('1. ')",
+					})
 					<div class="w-px h-3.5 bg-border-divider mx-1"></div>
-					@IconButton("fa-solid fa-code", "default", templ.Attributes{"type": "button", "title": "Inline code"})
-					@IconButton("fa-solid fa-terminal", "default", templ.Attributes{"type": "button", "title": "Code block"})
-					@IconButton("fa-solid fa-quote-right", "default", templ.Attributes{"type": "button", "title": "Blockquote"})
+					@IconButton("fa-solid fa-code", "default", templ.Attributes{
+						"type": "button", "title": "Inline code",
+						"@click": "wrap('`')",
+					})
+					@IconButton("fa-solid fa-terminal", "default", templ.Attributes{
+						"type": "button", "title": "Code block",
+						"@click": "wrap('```\n', '\n```')",
+					})
+					@IconButton("fa-solid fa-quote-right", "default", templ.Attributes{
+						"type": "button", "title": "Blockquote",
+						"@click": "line('> ')",
+					})
 					<div class="flex-1"></div>
 					@IconButton("fa-solid fa-plus", "default", templ.Attributes{"type": "button", "title": "Attach file"})
 					@IconButton("fa-solid fa-face-smile", "default", templ.Attributes{"type": "button", "title": "Emoji"})
 					@IconButton("fa-solid fa-at", "default", templ.Attributes{"type": "button", "title": "Mention"})
 				</div>
 				@MessageTextarea(placeholder, "flex-1 max-h-none", templ.Attributes{
+					"id":           "textarea-messageinput",
 					"name":         name,
 					"autocomplete": "off",
 					"required":     true,
-					"onKeyDown":    "if(event.key==='Enter'&&!event.shiftKey){this.closest('form').requestSubmit()}",
 				})
 			</div>
 			<div class="flex items-center justify-between mt-1.5 px-0.5">

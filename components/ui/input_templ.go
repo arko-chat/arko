@@ -403,25 +403,29 @@ func MessageTextarea(placeholder string, extraClass string, attributes templ.Att
 			templ_7745c5c3_Var16 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		var templ_7745c5c3_Var17 = []any{"w-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed max-h-48 block " + extraClass}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<div x-data=\"{shiftPressed: false}\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var17 = []any{"w-full h-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed max-h-48 block " + extraClass}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var17...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<textarea rows=\"1\" placeholder=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<textarea rows=\"1\" placeholder=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(placeholder)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/input.templ`, Line: 69, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/input.templ`, Line: 70, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -429,7 +433,7 @@ func MessageTextarea(placeholder string, extraClass string, attributes templ.Att
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, " class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, " class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -442,7 +446,7 @@ func MessageTextarea(placeholder string, extraClass string, attributes templ.Att
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" x-data x-on:input=\"$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'\"></textarea>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" x-data @keyup.enter=\"if (!shiftPressed) {$event.preventDefault();$event.target.form.requestSubmit();$event.target.form.reset();$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'}\" @keydown.shift=\"shiftPressed = true\" @keyup.shift=\"shiftPressed = false\" x-on:input=\"$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'\"></textarea></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

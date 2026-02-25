@@ -124,19 +124,28 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"absolute inset-x-0 -top-1 -bottom-1\"></div></div><div class=\"flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"absolute inset-x-0 -top-1 -bottom-1\"></div></div><div class=\"flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0\" x-data=\"{\n            wrap(open, close = null) {\n                const ta = document.querySelector('#textarea-messageinput');\n                if (!ta) return;\n                const s = ta.selectionStart, e = ta.selectionEnd;\n                const sel = ta.value.slice(s, e);\n                const cl = close ?? open;\n                const replacement = open + sel + cl;\n                ta.setRangeText(replacement, s, e, 'end');\n                ta.setSelectionRange(s + open.length, s + open.length + sel.length);\n                ta.focus();\n            },\n            line(prefix) {\n                const ta = document.querySelector('#textarea-messageinput');\n                if (!ta) return;\n                const s = ta.selectionStart;\n                const lineStart = ta.value.lastIndexOf('\\n', s - 1) + 1;\n                const lineEnd = ta.value.indexOf('\\n', s);\n                const end = lineEnd === -1 ? ta.value.length : lineEnd;\n                const sel = ta.value.slice(lineStart, end);\n                const replacement = prefix + sel;\n                ta.setRangeText(replacement, lineStart, end, 'end');\n                ta.focus();\n            }\n        }\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-bold", "default", templ.Attributes{"type": "button", "title": "Bold"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-bold", "default", templ.Attributes{
+			"type": "button", "title": "Bold",
+			"@click": "wrap('**')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-italic", "default", templ.Attributes{"type": "button", "title": "Italic"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-italic", "default", templ.Attributes{
+			"type": "button", "title": "Italic",
+			"@click": "wrap('_')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-strikethrough", "default", templ.Attributes{"type": "button", "title": "Strikethrough"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-strikethrough", "default", templ.Attributes{
+			"type": "button", "title": "Strikethrough",
+			"@click": "wrap('~~')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -144,15 +153,24 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-link", "default", templ.Attributes{"type": "button", "title": "Link"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-link", "default", templ.Attributes{
+			"type": "button", "title": "Link",
+			"@click": "wrap('[', '](url)')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ul", "default", templ.Attributes{"type": "button", "title": "Bullet list"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ul", "default", templ.Attributes{
+			"type": "button", "title": "Bullet list",
+			"@click": "line('- ')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ol", "default", templ.Attributes{"type": "button", "title": "Numbered list"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ol", "default", templ.Attributes{
+			"type": "button", "title": "Numbered list",
+			"@click": "line('1. ')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -160,15 +178,24 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-code", "default", templ.Attributes{"type": "button", "title": "Inline code"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-code", "default", templ.Attributes{
+			"type": "button", "title": "Inline code",
+			"@click": "wrap('`')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-terminal", "default", templ.Attributes{"type": "button", "title": "Code block"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-terminal", "default", templ.Attributes{
+			"type": "button", "title": "Code block",
+			"@click": "wrap('```\n', '\n```')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-quote-right", "default", templ.Attributes{"type": "button", "title": "Blockquote"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-quote-right", "default", templ.Attributes{
+			"type": "button", "title": "Blockquote",
+			"@click": "line('> ')",
+		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -193,10 +220,10 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = MessageTextarea(placeholder, "flex-1 max-h-none", templ.Attributes{
+			"id":           "textarea-messageinput",
 			"name":         name,
 			"autocomplete": "off",
 			"required":     true,
-			"onKeyDown":    "if(event.key==='Enter'&&!event.shiftKey){this.closest('form').requestSubmit()}",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -208,7 +235,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs("for")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 85, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 139, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
