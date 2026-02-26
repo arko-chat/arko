@@ -39,6 +39,7 @@ func ResizableHandle(targetSelector string, storageKey string, minWidth int, max
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
 			window.addEventListener('mousemove', (e) => {
 				if (!dragging) return;
+				e.preventDefault();
 				const target = document.querySelector('%s');
 				if (!target) return;
 				const diff = %s ? (e.clientX - startX) : (startX - e.clientX);
@@ -56,7 +57,7 @@ func ResizableHandle(targetSelector string, storageKey string, minWidth int, max
 			});
 		`, targetSelector, boolToJS(leftSide), minWidth, maxWidth, storageKey, storageKey))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 27, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 28, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -68,6 +69,7 @@ func ResizableHandle(targetSelector string, storageKey string, minWidth int, max
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
+			$event.preventDefault();
 			dragging = true;
 			startX = $event.clientX;
 			const target = document.querySelector('%s');
@@ -76,7 +78,7 @@ func ResizableHandle(targetSelector string, storageKey string, minWidth int, max
 			document.body.style.userSelect = 'none';
 		`, targetSelector))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 35, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 37, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -123,7 +125,7 @@ func ResizablePanel(id string, storageKey string, defaultWidth string, class str
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 43, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 45, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -149,7 +151,7 @@ func ResizablePanel(id string, storageKey string, defaultWidth string, class str
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: var(--%s, %s)", storageKey, defaultWidth))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 45, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 47, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -200,6 +202,7 @@ func ResizableRowHandle(targetSelector string, storageKey string, minHeight int,
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
 			window.addEventListener('mousemove', (e) => {
 				if (!dragging) return;
+				e.preventDefault();
 				const target = document.querySelector('%s');
 				if (!target) return;
 				const diff = startY - e.clientY;
@@ -217,7 +220,7 @@ func ResizableRowHandle(targetSelector string, storageKey string, minHeight int,
 			});
 		`, targetSelector, minHeight, maxHeight, storageKey, storageKey))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 73, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 76, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -229,6 +232,7 @@ func ResizableRowHandle(targetSelector string, storageKey string, minHeight int,
 		}
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
+			$event.preventDefault();
 			dragging = true;
 			startY = $event.clientY;
 			const target = document.querySelector('%s');
@@ -237,7 +241,7 @@ func ResizableRowHandle(targetSelector string, storageKey string, minHeight int,
 			document.body.style.userSelect = 'none';
 		`, targetSelector))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 81, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 85, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {

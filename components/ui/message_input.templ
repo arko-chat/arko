@@ -60,29 +60,40 @@ templ MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) 
 					class="flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0"
 					x-data="{
             wrap(open, close = null) {
-                const ta = document.querySelector('#textarea-messageinput');
-                if (!ta) return;
-                const s = ta.selectionStart, e = ta.selectionEnd;
-                const sel = ta.value.slice(s, e);
-                const cl = close ?? open;
-                const replacement = open + sel + cl;
-                ta.setRangeText(replacement, s, e, 'end');
-                ta.setSelectionRange(s + open.length, s + open.length + sel.length);
-                ta.focus();
+              const ta = document.querySelector('#textarea-messageinput');
+              if (!ta) return;
+              const s = ta.selectionStart, e = ta.selectionEnd;
+              const sel = ta.value.slice(s, e);
+              const cl = close ?? open;
+              const replacement = open + sel + cl;
+              ta.setRangeText(replacement, s, e, 'end');
+              ta.setSelectionRange(s + open.length, s + open.length + sel.length);
+              ta.focus();
+            },
+            codeBlock() {
+              const ta = document.querySelector('#textarea-messageinput');
+              if (!ta) return;
+              const s = ta.selectionStart, e = ta.selectionEnd;
+              const sel = ta.value.slice(s, e);
+              const open = '```\n', close = '\n```';
+              const replacement = open + sel + close;
+              ta.setRangeText(replacement, s, e, 'end');
+              ta.setSelectionRange(s + open.length, s + open.length + sel.length);
+              ta.focus();
             },
             line(prefix) {
-                const ta = document.querySelector('#textarea-messageinput');
-                if (!ta) return;
-                const s = ta.selectionStart;
-                const lineStart = ta.value.lastIndexOf('\n', s - 1) + 1;
-                const lineEnd = ta.value.indexOf('\n', s);
-                const end = lineEnd === -1 ? ta.value.length : lineEnd;
-                const sel = ta.value.slice(lineStart, end);
-                const replacement = prefix + sel;
-                ta.setRangeText(replacement, lineStart, end, 'end');
-                ta.focus();
+              const ta = document.querySelector('#textarea-messageinput');
+              if (!ta) return;
+              const s = ta.selectionStart;
+              const lineStart = ta.value.lastIndexOf('\n', s - 1) + 1;
+              const lineEnd = ta.value.indexOf('\n', s);
+              const end = lineEnd === -1 ? ta.value.length : lineEnd;
+              const sel = ta.value.slice(lineStart, end);
+              const replacement = prefix + sel;
+              ta.setRangeText(replacement, lineStart, end, 'end');
+              ta.focus();
             }
-        }"
+          }"
 				>
 					@IconButton("fa-solid fa-bold", "default", templ.Attributes{
 						"type": "button", "title": "Bold",
@@ -116,7 +127,7 @@ templ MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) 
 					})
 					@IconButton("fa-solid fa-terminal", "default", templ.Attributes{
 						"type": "button", "title": "Code block",
-						"@click": "wrap('```\n', '\n```')",
+						"@click": "codeBlock()",
 					})
 					@IconButton("fa-solid fa-quote-right", "default", templ.Attributes{
 						"type": "button", "title": "Blockquote",

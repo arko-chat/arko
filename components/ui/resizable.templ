@@ -9,6 +9,7 @@ templ ResizableHandle(targetSelector string, storageKey string, minWidth int, ma
 		x-init={ fmt.Sprintf(`
 			window.addEventListener('mousemove', (e) => {
 				if (!dragging) return;
+				e.preventDefault();
 				const target = document.querySelector('%s');
 				if (!target) return;
 				const diff = %s ? (e.clientX - startX) : (startX - e.clientX);
@@ -26,6 +27,7 @@ templ ResizableHandle(targetSelector string, storageKey string, minWidth int, ma
 			});
 		`, targetSelector, boolToJS(leftSide), minWidth, maxWidth, storageKey, storageKey) }
 		@mousedown={ fmt.Sprintf(`
+			$event.preventDefault();
 			dragging = true;
 			startX = $event.clientX;
 			const target = document.querySelector('%s');
@@ -55,6 +57,7 @@ templ ResizableRowHandle(targetSelector string, storageKey string, minHeight int
 		x-init={ fmt.Sprintf(`
 			window.addEventListener('mousemove', (e) => {
 				if (!dragging) return;
+				e.preventDefault();
 				const target = document.querySelector('%s');
 				if (!target) return;
 				const diff = startY - e.clientY;
@@ -72,6 +75,7 @@ templ ResizableRowHandle(targetSelector string, storageKey string, minHeight int
 			});
 		`, targetSelector, minHeight, maxHeight, storageKey, storageKey) }
 		@mousedown={ fmt.Sprintf(`
+			$event.preventDefault();
 			dragging = true;
 			startY = $event.clientY;
 			const target = document.querySelector('%s');

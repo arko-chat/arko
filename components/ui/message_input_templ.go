@@ -124,7 +124,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"absolute inset-x-0 -top-1 -bottom-1\"></div></div><div class=\"flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0\" x-data=\"{\n            wrap(open, close = null) {\n                const ta = document.querySelector('#textarea-messageinput');\n                if (!ta) return;\n                const s = ta.selectionStart, e = ta.selectionEnd;\n                const sel = ta.value.slice(s, e);\n                const cl = close ?? open;\n                const replacement = open + sel + cl;\n                ta.setRangeText(replacement, s, e, 'end');\n                ta.setSelectionRange(s + open.length, s + open.length + sel.length);\n                ta.focus();\n            },\n            line(prefix) {\n                const ta = document.querySelector('#textarea-messageinput');\n                if (!ta) return;\n                const s = ta.selectionStart;\n                const lineStart = ta.value.lastIndexOf('\\n', s - 1) + 1;\n                const lineEnd = ta.value.indexOf('\\n', s);\n                const end = lineEnd === -1 ? ta.value.length : lineEnd;\n                const sel = ta.value.slice(lineStart, end);\n                const replacement = prefix + sel;\n                ta.setRangeText(replacement, lineStart, end, 'end');\n                ta.focus();\n            }\n        }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"absolute inset-x-0 -top-1 -bottom-1\"></div></div><div class=\"flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0\" x-data=\"{\n            wrap(open, close = null) {\n              const ta = document.querySelector('#textarea-messageinput');\n              if (!ta) return;\n              const s = ta.selectionStart, e = ta.selectionEnd;\n              const sel = ta.value.slice(s, e);\n              const cl = close ?? open;\n              const replacement = open + sel + cl;\n              ta.setRangeText(replacement, s, e, 'end');\n              ta.setSelectionRange(s + open.length, s + open.length + sel.length);\n              ta.focus();\n            },\n            codeBlock() {\n              const ta = document.querySelector('#textarea-messageinput');\n              if (!ta) return;\n              const s = ta.selectionStart, e = ta.selectionEnd;\n              const sel = ta.value.slice(s, e);\n              const open = '```\\n', close = '\\n```';\n              const replacement = open + sel + close;\n              ta.setRangeText(replacement, s, e, 'end');\n              ta.setSelectionRange(s + open.length, s + open.length + sel.length);\n              ta.focus();\n            },\n            line(prefix) {\n              const ta = document.querySelector('#textarea-messageinput');\n              if (!ta) return;\n              const s = ta.selectionStart;\n              const lineStart = ta.value.lastIndexOf('\\n', s - 1) + 1;\n              const lineEnd = ta.value.indexOf('\\n', s);\n              const end = lineEnd === -1 ? ta.value.length : lineEnd;\n              const sel = ta.value.slice(lineStart, end);\n              const replacement = prefix + sel;\n              ta.setRangeText(replacement, lineStart, end, 'end');\n              ta.focus();\n            }\n          }\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -187,7 +187,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		}
 		templ_7745c5c3_Err = IconButton("fa-solid fa-terminal", "default", templ.Attributes{
 			"type": "button", "title": "Code block",
-			"@click": "wrap('```\n', '\n```')",
+			"@click": "codeBlock()",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -235,7 +235,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs("for")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 139, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 150, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
