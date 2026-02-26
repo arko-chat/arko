@@ -82,14 +82,14 @@ func Content(user models.User) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\"><div class=\"w-full max-w-md mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4\"><i class=\"fa-solid fa-check text-success text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">QR Code Scanned</h1><p class=\"text-sm text-content-muted\">The other device has scanned your QR code. Did it confirm the verification looks correct?</p></div><div class=\"px-8 pt-4 pb-2\"><div class=\"flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle\"><img src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div hx-ext=\"ws\" ws-connect=\"/ws/verify\"><div id=\"ws-verify-redirect\"></div><main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\"><div class=\"w-full max-w-md mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4\"><i class=\"fa-solid fa-check text-success text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">QR Code Scanned</h1><p class=\"text-sm text-content-muted\">The other device has scanned your QR code. Did it confirm the verification looks correct?</p></div><div class=\"px-8 pt-4 pb-2\"><div class=\"flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle\"><img src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(user.Avatar)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 31, Col: 24}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 33, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -102,7 +102,7 @@ func Content(user models.User) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(user.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 33, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 35, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -115,7 +115,7 @@ func Content(user models.User) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(user.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 36, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 38, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -128,13 +128,13 @@ func Content(user models.User) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(user.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 37, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/qr/scanned/scanned.templ`, Line: 39, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></div></div></div><div class=\"px-8 pt-4 pb-2\"><div class=\"flex items-start gap-3 p-3 rounded-md bg-warning/5 border border-warning/15\"><i class=\"fa-solid fa-triangle-exclamation text-warning text-sm shrink-0 mt-0.5\"></i><p class=\"text-xs text-content-secondary leading-relaxed\">Only confirm if the other device shows that it successfully verified this session. If you're unsure, cancel and try again.</p></div></div><div class=\"px-8 pt-4 pb-8\"><div class=\"flex gap-3\"><button hx-post=\"/verify/cancel\" hx-swap=\"none\" class=\"flex-1 outline-none border border-border-subtle rounded-md px-3 py-2.5 text-sm font-semibold bg-surface-sunken text-content-secondary hover:bg-surface-alt cursor-pointer transition-all duration-150 active:scale-[0.98]\"><i class=\"fa-solid fa-xmark text-xs mr-1\"></i> Cancel</button> <button hx-post=\"/verify/qr/confirm\" hx-swap=\"none\" class=\"flex-1 outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-success text-white hover:bg-success/90 cursor-pointer transition-all duration-150 active:scale-[0.98]\"><i class=\"fa-solid fa-check text-xs mr-1\"></i> Confirm Verified</button></div></div></div></div></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></div></div></div><div class=\"px-8 pt-4 pb-2\"><div class=\"flex items-start gap-3 p-3 rounded-md bg-warning/5 border border-warning/15\"><i class=\"fa-solid fa-triangle-exclamation text-warning text-sm shrink-0 mt-0.5\"></i><p class=\"text-xs text-content-secondary leading-relaxed\">Only confirm if the other device shows that it successfully verified this session. If you're unsure, cancel and try again.</p></div></div><div class=\"px-8 pt-4 pb-8\"><div id=\"qr-scanned-buttons\" class=\"flex gap-3\"><button ws-send name=\"action\" value=\"cancel\" class=\"flex-1 outline-none border border-border-subtle rounded-md px-3 py-2.5 text-sm font-semibold bg-surface-sunken text-content-secondary hover:bg-surface-alt cursor-pointer transition-all duration-150 active:scale-[0.98]\"><i class=\"fa-solid fa-xmark text-xs mr-1\"></i> Cancel</button> <button ws-send hx-vals='{\"action\": \"CONFIRM_QR\"}' class=\"flex-1 outline-none border-none rounded-md px-3 py-2.5 text-sm font-semibold bg-success text-white hover:bg-success/90 cursor-pointer transition-all duration-150 active:scale-[0.98]\"><i class=\"fa-solid fa-check text-xs mr-1\"></i> Confirm Verified</button></div></div></div></div></main></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

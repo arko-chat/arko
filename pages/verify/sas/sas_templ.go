@@ -130,8 +130,7 @@ func Content(user models.User, emojis []EmojiItem) templ.Component {
 		}
 		templ_7745c5c3_Err = ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
 			"ws-send":         "",
-			"name":            "action",
-			"value":           "cancel",
+			"hx-vals":         `{"action": "SAS_CANCEL"}`,
 			"hx-indicator":    "#sas-buttons",
 			"hx-disabled-elt": "#sas-buttons button",
 		}).Render(ctx, templ_7745c5c3_Buffer)
@@ -140,8 +139,7 @@ func Content(user models.User, emojis []EmojiItem) templ.Component {
 		}
 		templ_7745c5c3_Err = ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
 			"ws-send":         "",
-			"name":            "action",
-			"value":           "confirm",
+			"hx-vals":         `{"action": "SAS_CONFIRM"}`,
 			"hx-indicator":    "#sas-buttons",
 			"hx-disabled-elt": "#sas-buttons button",
 		}).Render(ctx, templ_7745c5c3_Buffer)

@@ -95,7 +95,7 @@ func Chat(props Props) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div id=\"messages\" class=\"flex-1 overflow-y-auto flex flex-col-reverse\"><div id=\"message-list\" class=\"flex flex-col py-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div id=\"messages\" class=\"flex-1 overflow-y-auto flex flex-col\"><div id=\"message-list\" class=\"flex flex-col py-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -132,7 +132,7 @@ func Chat(props Props) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><script>\n\t\t(function () {\n\t\t\tconst messages = document.getElementById(\"messages\");\n\n\t\t\tfunction isNearBottom() {\n\t\t\t\treturn (\n\t\t\t\t\tmessages.scrollHeight - messages.scrollTop - messages.clientHeight < 100\n\t\t\t\t);\n\t\t\t}\n\n\t\t\tfunction scrollToBottom() {\n\t\t\t\tmessages.scrollTop = messages.scrollHeight;\n\t\t\t}\n\n\t\t\tscrollToBottom();\n\n\t\t\tconst observer = new MutationObserver(() => {\n\t\t\t\tif (isNearBottom()) {\n\t\t\t\t\tscrollToBottom();\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tobserver.observe(document.getElementById(\"message-list\"), {\n\t\t\t\tchildList: true,\n\t\t\t\tsubtree: true,\n\t\t\t});\n\t\t})();\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
