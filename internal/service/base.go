@@ -8,12 +8,12 @@ import (
 
 type BaseService struct {
 	matrix *matrix.Manager
-	hub    *ws.Hub
+	hub    ws.WSHub
 }
 
 func NewBaseService(
 	mgr *matrix.Manager,
-	hub *ws.Hub,
+	hub ws.WSHub,
 ) *BaseService {
 	return &BaseService{
 		matrix: mgr,
@@ -21,7 +21,7 @@ func NewBaseService(
 	}
 }
 
-func (s *BaseService) Hub() *ws.Hub {
+func (s *BaseService) Hub() ws.WSHub {
 	return s.hub
 }
 

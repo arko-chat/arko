@@ -2,7 +2,8 @@ package service
 
 import (
 	"github.com/arko-chat/arko/internal/matrix"
-	"github.com/arko-chat/arko/internal/ws"
+	chatws "github.com/arko-chat/arko/internal/ws/chat"
+	verifyws "github.com/arko-chat/arko/internal/ws/verify"
 )
 
 type Services struct {
@@ -15,13 +16,14 @@ type Services struct {
 
 func New(
 	mgr *matrix.Manager,
-	hub *ws.Hub,
+	chatHub *chatws.Hub,
+	verifyHub *verifyws.Hub,
 ) *Services {
 	return &Services{
-		Chat:         NewChatService(mgr, hub),
-		Friends:      NewFriendsService(mgr, hub),
-		Spaces:       NewSpaceService(mgr, hub),
-		User:         NewUserService(mgr, hub),
-		Verification: NewVerificationService(mgr, hub),
+		Chat:         NewChatService(mgr, chatHub),
+		Friends:      NewFriendsService(mgr, chatHub),
+		Spaces:       NewSpaceService(mgr, chatHub),
+		User:         NewUserService(mgr, chatHub),
+		Verification: NewVerificationService(mgr, verifyHub),
 	}
 }

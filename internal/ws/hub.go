@@ -5,50 +5,44 @@ import (
 	"sync"
 )
 
-type Hub struct {
-	mu     sync.RWMutex
-	rooms  map[string]map[*Client]struct{}
-	logger *slog.Logger
+type BaseHub struct {
+	mu      sync.RWMutex
+	buckets map[string]map[WSClient]struct{}
+	Logger  *slog.Logger
 }
 
-func NewHub(logger *slog.Logger) *Hub {
-	return &Hub{
-		rooms:  make(map[string]map[*Client]struct{}),
-		logger: logger,
+func NewBaseHub(logger *slog.Logger) *BaseHub {
+	return &BaseHub{
+		buckets: make(map[string]map[WSClient]struct{}),
+		Logger:  logger,
 	}
 }
 
-func (h *Hub) Register(roomID string, c *Client) {
+func (h *BaseHub) Register(key string, c WSClient) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if h.rooms[roomID] == nil {
-		h.rooms[roomID] = make(map[*Client]struct{})
+	if h.buckets[key] == nil {
+		h.buckets[key] = make(map[WSClient]struct{})
 	}
-	h.rooms[roomID][c] = struct{}{}
-	h.logger.Debug("ws register",
-		"room", roomID,
-		"user", c.UserID,
-		"clients", len(h.rooms[roomID]),
-	)
+	h.buckets[key][c] = struct{}{}
 }
 
-func (h *Hub) Unregister(roomID string, c *Client) {
+func (h *BaseHub) Unregister(key string, c WSClient) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if _, ok := h.rooms[roomID]; !ok {
+	if _, ok := h.buckets[key]; !ok {
 		return
 	}
-	delete(h.rooms[roomID], c)
-	close(c.Send)
-	if len(h.rooms[roomID]) == 0 {
-		delete(h.rooms, roomID)
+	delete(h.buckets[key], c)
+	close(c.GetSend())
+	if len(h.buckets[key]) == 0 {
+		delete(h.buckets, key)
 	}
-	h.logger.Debug("ws unregister", "room", roomID, "user", c.UserID)
 }
 
-func (h *Hub) Broadcast(roomID string, data []byte) {
+func (h *BaseHub) Send(key string, data []byte, onDrop func(c WSClient)) {
 	if data == nil {
 		return
 	}
@@ -56,21 +50,27 @@ func (h *Hub) Broadcast(roomID string, data []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	sent := 0
-	for c := range h.rooms[roomID] {
+	for c := range h.buckets[key] {
 		select {
-		case c.Send <- data:
-			sent++
+		case c.GetSend() <- data:
 		default:
-			h.logger.Warn("ws dropped message",
-				"room", roomID,
-				"user", c.UserID,
-			)
+			if onDrop != nil {
+				onDrop(c)
+			}
 		}
 	}
+}
 
-	h.logger.Debug("ws broadcast",
-		"room", roomID,
-		"recipients", sent,
-	)
+func (h *BaseHub) Count(key string) int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.buckets[key])
+}
+
+func (h *BaseHub) Broadcast(key string, data []byte) {
+	h.Logger.Warn("Broadcast unimplemented")
+}
+
+func (h *BaseHub) Push(key string, data []byte) {
+	h.Logger.Warn("Push unimplemented")
 }

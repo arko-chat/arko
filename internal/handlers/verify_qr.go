@@ -24,20 +24,6 @@ func (h *Handler) HandleVerifyStartQR(
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) HandleVerifyQRConfirm(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	ctx := r.Context()
-
-	if err := h.svc.Verification.ConfirmQRVerification(ctx); err != nil {
-		h.logger.Error("QR verification confirm failed", "err", err)
-	}
-
-	w.Header().Set("HX-Redirect", "/verify")
-	w.WriteHeader(http.StatusOK)
-}
-
 func (h *Handler) HandleVerifyQRPage(
 	w http.ResponseWriter,
 	r *http.Request,

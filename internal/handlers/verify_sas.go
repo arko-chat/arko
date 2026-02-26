@@ -100,40 +100,6 @@ func (h *Handler) HandleVerifySASPage(
 	}
 }
 
-func (h *Handler) HandleVerifyConfirm(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	ctx := r.Context()
-
-	if err := h.svc.Verification.ConfirmVerification(ctx); err != nil {
-		h.logger.Error("verification confirm failed",
-			"user",
-			"err", err,
-		)
-	}
-
-	w.Header().Set("HX-Redirect", "/verify")
-	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handler) HandleVerifyCancel(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	ctx := r.Context()
-
-	if err := h.svc.Verification.CancelVerification(ctx); err != nil {
-		h.logger.Error("verification cancel failed",
-			"user",
-			"err", err,
-		)
-	}
-
-	w.Header().Set("HX-Redirect", "/verify")
-	w.WriteHeader(http.StatusOK)
-}
-
 func (h *Handler) HandleVerifySASWaitingPage(
 	w http.ResponseWriter,
 	r *http.Request,

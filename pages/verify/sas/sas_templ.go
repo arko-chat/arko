@@ -88,7 +88,7 @@ func Content(user models.User, emojis []EmojiItem) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\" hx-get=\"/verify/sas\" hx-trigger=\"every 3s\" hx-swap=\"outerHTML\" hx-target=\"this\"><div class=\"w-full max-w-lg mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4\"><i class=\"fa-solid fa-shield-check text-success text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">Confirm Emojis</h1><p class=\"text-sm text-content-muted\">Verify that the following emojis match what is shown on your other device.</p></div><div class=\"px-8 pt-4 pb-4\"><div class=\"grid grid-cols-7 gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div hx-ext=\"ws\" ws-connect=\"/ws/verify\"><div id=\"ws-verify-redirect\"></div><main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\"><div class=\"w-full max-w-lg mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4\"><i class=\"fa-solid fa-shield-check text-success text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">Confirm Emojis</h1><p class=\"text-sm text-content-muted\">Verify that the following emojis match what is shown on your other device.</p></div><div class=\"px-8 pt-4 pb-4\"><div class=\"grid grid-cols-7 gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -100,7 +100,7 @@ func Content(user models.User, emojis []EmojiItem) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(e.Emoji)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/sas.templ`, Line: 44, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/sas.templ`, Line: 40, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -113,7 +113,7 @@ func Content(user models.User, emojis []EmojiItem) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(e.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/sas.templ`, Line: 45, Col: 94}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/sas.templ`, Line: 41, Col: 95}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -129,8 +129,9 @@ func Content(user models.User, emojis []EmojiItem) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
-			"hx-post":         "/verify/cancel",
-			"hx-swap":         "none",
+			"ws-send":         "",
+			"name":            "action",
+			"value":           "cancel",
 			"hx-indicator":    "#sas-buttons",
 			"hx-disabled-elt": "#sas-buttons button",
 		}).Render(ctx, templ_7745c5c3_Buffer)
@@ -138,15 +139,16 @@ func Content(user models.User, emojis []EmojiItem) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
-			"hx-post":         "/verify/confirm",
-			"hx-swap":         "none",
+			"ws-send":         "",
+			"name":            "action",
+			"value":           "confirm",
 			"hx-indicator":    "#sas-buttons",
 			"hx-disabled-elt": "#sas-buttons button",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div></div></div></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div></div></div></main></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

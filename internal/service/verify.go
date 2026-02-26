@@ -5,6 +5,7 @@ import (
 
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/ws"
+	verifyws "github.com/arko-chat/arko/internal/ws/verify"
 )
 
 type VerificationService struct {
@@ -13,11 +14,19 @@ type VerificationService struct {
 
 func NewVerificationService(
 	mgr *matrix.Manager,
-	hub *ws.Hub,
+	hub ws.WSHub,
 ) *VerificationService {
 	return &VerificationService{
 		BaseService: NewBaseService(mgr, hub),
 	}
+}
+
+func (s *VerificationService) GetWSHub() *verifyws.Hub {
+	hub, ok := s.hub.(*verifyws.Hub)
+	if !ok {
+		return nil
+	}
+	return hub
 }
 
 func (s *VerificationService) IsVerified() bool {

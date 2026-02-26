@@ -13,61 +13,58 @@ templ Page(state *session.Session, user models.User, qrCodeSVG string) {
 }
 
 templ Content(user models.User, qrCodeSVG string) {
-	<main
-		class="flex items-center justify-center w-full h-screen bg-surface-overlay"
-		hx-get="/verify/qr/status"
-		hx-trigger="every 3s"
-		hx-swap="outerHTML"
-		hx-target="this"
-	>
-		<div class="w-full max-w-md mx-4">
-			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
-				<div class="px-8 pt-8 pb-2 text-center">
-					<div class="w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4">
-						<i class="fa-solid fa-qrcode text-brand text-2xl"></i>
+	<div hx-ext="ws" ws-connect="/ws/verify">
+		<div id="ws-verify-redirect"></div>
+		<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+			<div class="w-full max-w-md mx-4">
+				<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+					<div class="px-8 pt-8 pb-2 text-center">
+						<div class="w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4">
+							<i class="fa-solid fa-qrcode text-brand text-2xl"></i>
+						</div>
+						<h1 class="text-xl font-bold text-content-primary mb-1">Scan QR Code</h1>
+						<p class="text-sm text-content-muted">
+							Open another Matrix session and scan this code to verify your identity.
+						</p>
 					</div>
-					<h1 class="text-xl font-bold text-content-primary mb-1">Scan QR Code</h1>
-					<p class="text-sm text-content-muted">
-						Open another Matrix session and scan this code to verify your identity.
-					</p>
-				</div>
-				<div class="px-8 pt-4 pb-4 flex flex-col items-center gap-3">
-					<div class="p-3 rounded-xl bg-white border-2 border-border-subtle shadow-sm">
-						@templ.Raw(qrCodeSVG)
-					</div>
-					<div class="flex items-center justify-center gap-2 py-1">
-						<span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
-						<span class="text-xs text-content-muted font-medium">Waiting for scan…</span>
-					</div>
-				</div>
-				<div class="px-8 pt-2 pb-6">
-					<div class="flex items-start gap-3 p-3 rounded-md bg-info/5 border border-info/15">
-						<i class="fa-solid fa-circle-info text-info text-sm shrink-0 mt-0.5"></i>
-						<div class="text-xs text-content-secondary leading-relaxed space-y-1">
-							<p class="font-semibold text-content-primary">How to scan:</p>
-							<ol class="list-decimal list-inside space-y-1">
-								<li>Open Element or another Matrix client on a verified device</li>
-								<li>Accept the incoming verification request</li>
-								<li>Tap <strong>Scan QR code</strong> and point your camera here</li>
-								<li>Confirm on that device once scanned</li>
-							</ol>
+					<div class="px-8 pt-4 pb-4 flex flex-col items-center gap-3">
+						<div class="p-3 rounded-xl bg-white border-2 border-border-subtle shadow-sm">
+							@templ.Raw(qrCodeSVG)
+						</div>
+						<div class="flex items-center justify-center gap-2 py-1">
+							<span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
+							<span class="text-xs text-content-muted font-medium">Waiting for scan…</span>
 						</div>
 					</div>
-				</div>
-				<div class="px-8 py-4 bg-surface-alt border-t border-border-divider flex items-center justify-between gap-4">
-					<a
-						href="/verify/choose"
-						class="text-xs text-content-muted hover:text-content-primary transition-colors"
-					>
-						<i class="fa-solid fa-arrow-left text-[10px] mr-1"></i>
-						Back
-					</a>
-					<p class="text-[11px] text-content-faint text-right leading-relaxed">
-						Can't scan?
-						<a href="/verify/choose" class="text-brand hover:underline">Try another method</a>
-					</p>
+					<div class="px-8 pt-2 pb-6">
+						<div class="flex items-start gap-3 p-3 rounded-md bg-info/5 border border-info/15">
+							<i class="fa-solid fa-circle-info text-info text-sm shrink-0 mt-0.5"></i>
+							<div class="text-xs text-content-secondary leading-relaxed space-y-1">
+								<p class="font-semibold text-content-primary">How to scan:</p>
+								<ol class="list-decimal list-inside space-y-1">
+									<li>Open Element or another Matrix client on a verified device</li>
+									<li>Accept the incoming verification request</li>
+									<li>Tap <strong>Scan QR code</strong> and point your camera here</li>
+									<li>Confirm on that device once scanned</li>
+								</ol>
+							</div>
+						</div>
+					</div>
+					<div class="px-8 py-4 bg-surface-alt border-t border-border-divider flex items-center justify-between gap-4">
+						<a
+							href="/verify/choose"
+							class="text-xs text-content-muted hover:text-content-primary transition-colors"
+						>
+							<i class="fa-solid fa-arrow-left text-[10px] mr-1"></i>
+							Back
+						</a>
+						<p class="text-[11px] text-content-faint text-right leading-relaxed">
+							Can't scan?
+							<a href="/verify/choose" class="text-brand hover:underline">Try another method</a>
+						</p>
+					</div>
 				</div>
 			</div>
-		</div>
-	</main>
+		</main>
+	</div>
 }

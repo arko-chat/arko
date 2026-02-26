@@ -82,14 +82,14 @@ func Content(user models.User) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\" hx-get=\"/verify/sas/waiting\" hx-trigger=\"every 3s\" hx-swap=\"outerHTML\" hx-target=\"this\"><div class=\"w-full max-w-md mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4 relative\"><i class=\"fa-solid fa-spinner spinner text-brand text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">Waiting for Other Device</h1><p class=\"text-sm text-content-muted\">Accept the verification request on your other Matrix session to compare emojis.</p></div><div class=\"px-8 pt-2 pb-2\"><div class=\"flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle\"><img src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div hx-ext=\"ws\" ws-connect=\"/ws/verify\"><div id=\"ws-verify-redirect\"></div><main class=\"flex items-center justify-center w-full h-screen bg-surface-overlay\"><div class=\"w-full max-w-md mx-4\"><div class=\"bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden\"><div class=\"px-8 pt-8 pb-2 text-center\"><div class=\"w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4 relative\"><i class=\"fa-solid fa-spinner spinner text-brand text-2xl\"></i></div><h1 class=\"text-xl font-bold text-content-primary mb-1\">Waiting for Other Device</h1><p class=\"text-sm text-content-muted\">Accept the verification request on your other Matrix session to compare emojis.</p></div><div class=\"px-8 pt-2 pb-2\"><div class=\"flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle\"><img src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(user.Avatar)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 37, Col: 24}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 33, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -102,7 +102,7 @@ func Content(user models.User) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(user.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 39, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 35, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -115,7 +115,7 @@ func Content(user models.User) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(user.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 42, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 38, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -128,13 +128,13 @@ func Content(user models.User) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(user.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 43, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `pages/verify/sas/waiting/waiting.templ`, Line: 39, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></div></div></div><div class=\"px-8 pt-4 pb-8\"><div class=\"space-y-4\"><div class=\"flex items-start gap-3 p-3 rounded-md bg-info/5 border border-info/15\"><i class=\"fa-solid fa-circle-info text-info text-sm shrink-0 mt-0.5\"></i><div class=\"text-xs text-content-secondary leading-relaxed space-y-2\"><p class=\"font-semibold text-content-primary\">How to verify:</p><ol class=\"list-decimal list-inside space-y-1\"><li>Open Element or another Matrix client where you're already signed in</li><li>You should see a verification request for this session</li><li>Accept it and compare the emojis shown on both devices</li><li>Once confirmed, this page will redirect automatically</li></ol></div></div><div class=\"flex items-center justify-center gap-2 py-2\"><span class=\"w-1.5 h-1.5 rounded-full bg-brand animate-pulse\"></span> <span class=\"text-xs text-content-muted font-medium\">Waiting for other device…</span></div></div></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider\"><p class=\"text-[11px] text-content-faint text-center leading-relaxed\">Changed your mind? <a href=\"/verify/choose\" class=\"text-brand hover:underline\">Choose a different method</a> or <a href=\"/logout\" class=\"text-brand hover:underline\">log out</a>.</p></div></div></div></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></div></div></div><div class=\"px-8 pt-4 pb-8\"><div class=\"space-y-4\"><div class=\"flex items-start gap-3 p-3 rounded-md bg-info/5 border border-info/15\"><i class=\"fa-solid fa-circle-info text-info text-sm shrink-0 mt-0.5\"></i><div class=\"text-xs text-content-secondary leading-relaxed space-y-2\"><p class=\"font-semibold text-content-primary\">How to verify:</p><ol class=\"list-decimal list-inside space-y-1\"><li>Open Element or another Matrix client where you're already signed in</li><li>You should see a verification request for this session</li><li>Accept it and compare the emojis shown on both devices</li><li>Once confirmed, this page will redirect automatically</li></ol></div></div><div class=\"flex items-center justify-center gap-2 py-2\"><span class=\"w-1.5 h-1.5 rounded-full bg-brand animate-pulse\"></span> <span class=\"text-xs text-content-muted font-medium\">Waiting for other device…</span></div></div></div><div class=\"px-8 py-4 bg-surface-alt border-t border-border-divider\"><p class=\"text-[11px] text-content-faint text-center leading-relaxed\">Changed your mind? <a href=\"/verify/choose\" class=\"text-brand hover:underline\">Choose a different method</a> or <a href=\"/logout\" class=\"text-brand hover:underline\">log out</a>.</p></div></div></div></main></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

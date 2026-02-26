@@ -1,67 +1,29 @@
 package ws
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 4096
-)
-
-type Client struct {
-	Hub    *Hub
-	RoomID string
-	UserID string
-	Conn   *websocket.Conn
-	Send   chan []byte
+type BaseClient struct {
+	Conn *websocket.Conn
+	Send chan []byte
 }
 
-type incomingMessage struct {
-	Message string `json:"message"`
-	Nonce   string `json:"nonce"`
-}
-
-type MessageHandler func(userID, content string)
-
-func (c *Client) ReadPump(onMessage MessageHandler) {
-	defer func() {
-		c.Hub.Unregister(c.RoomID, c)
-		c.Conn.Close()
-	}()
-
-	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(string) error {
-		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
-
-	for {
-		_, raw, err := c.Conn.ReadMessage()
-		if err != nil {
-			break
-		}
-
-		var msg incomingMessage
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			continue
-		}
-		if msg.Message == "" {
-			continue
-		}
-
-		onMessage(c.UserID, msg.Message)
+func NewBaseClient(conn *websocket.Conn) *BaseClient {
+	return &BaseClient{
+		Conn: conn,
+		Send: make(chan []byte, 256),
 	}
 }
 
-func (c *Client) WritePump() {
-	ticker := time.NewTicker(pingPeriod)
+func (c *BaseClient) GetSend() chan []byte {
+	return c.Send
+}
+
+func (c *BaseClient) WritePump() {
+	ticker := time.NewTicker(PingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
@@ -70,7 +32,7 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case msg, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -79,7 +41,7 @@ func (c *Client) WritePump() {
 				return
 			}
 		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

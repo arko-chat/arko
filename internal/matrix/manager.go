@@ -15,7 +15,6 @@ import (
 	"github.com/arko-chat/arko/internal/cache"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
-	"github.com/arko-chat/arko/internal/ws"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/puzpuzpuz/xsync/v4"
 )
@@ -26,7 +25,6 @@ var ErrNotVerified = errors.New(
 )
 
 type Manager struct {
-	hub            *ws.Hub
 	ctx            context.Context
 	cancel         context.CancelFunc
 	logger         *slog.Logger
@@ -52,14 +50,12 @@ type Manager struct {
 }
 
 func NewManager(
-	hub *ws.Hub,
 	logger *slog.Logger,
 	cryptoDBPath string,
 ) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
 	newLru, _ := lru.New[string, struct{}](50)
 	m := &Manager{
-		hub:            hub,
 		ctx:            ctx,
 		cancel:         cancel,
 		logger:         logger,

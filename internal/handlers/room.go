@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/arko-chat/arko/internal/ws"
+	chatws "github.com/arko-chat/arko/internal/ws/chat"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
 )
@@ -28,12 +29,11 @@ func (h *Handler) HandleRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hub := h.svc.Chat.Hub()
-	client := &ws.Client{
-		Hub:    hub,
-		RoomID: roomID,
-		UserID: state.UserID,
-		Conn:   conn,
-		Send:   make(chan []byte, 64),
+	client := &chatws.Client{
+		Hub:        hub,
+		RoomID:     roomID,
+		UserID:     state.UserID,
+		BaseClient: ws.NewBaseClient(conn),
 	}
 
 	hub.Register(roomID, client)

@@ -11,6 +11,7 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
+	chatws "github.com/arko-chat/arko/internal/ws/chat"
 	"github.com/puzpuzpuz/xsync/v4"
 )
 
@@ -21,12 +22,20 @@ type ChatService struct {
 
 func NewChatService(
 	mgr *matrix.Manager,
-	hub *ws.Hub,
+	hub ws.WSHub,
 ) *ChatService {
 	return &ChatService{
 		BaseService:     NewBaseService(mgr, hub),
 		initializedTree: xsync.NewMap[string, struct{}](),
 	}
+}
+
+func (s *ChatService) GetWSHub() *chatws.Hub {
+	hub, ok := s.hub.(*chatws.Hub)
+	if !ok {
+		return nil
+	}
+	return hub
 }
 
 func (s *ChatService) GetRoomMessages(
@@ -35,6 +44,7 @@ func (s *ChatService) GetRoomMessages(
 	userID := s.GetCurrentUserID()
 	matrixSession := s.matrix.GetMatrixSession(userID)
 	messageTree := matrixSession.GetMessageTree(roomID)
+	hub := s.GetWSHub()
 
 	s.initializedTree.Compute(roomID, func(str struct{}, loaded bool) (struct{}, xsync.ComputeOp) {
 		if loaded {
@@ -100,7 +110,9 @@ func (s *ChatService) GetRoomMessages(
 				}
 			}
 
-			s.hub.Broadcast(roomID, buf.Bytes())
+			if hub != nil {
+				hub.Broadcast(roomID, buf.Bytes())
+			}
 		})
 
 		return struct{}{}, xsync.UpdateOp

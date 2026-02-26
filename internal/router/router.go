@@ -45,11 +45,8 @@ func New(
 		r.Get("/verify/qr", h.HandleVerifyQRPage)
 		r.Get("/verify/qr/status", h.HandleVerifyQRStatus)
 		r.Get("/verify/qr/scanned", h.HandleVerifyQRScannedPage)
-		r.Post("/verify/qr/confirm", h.HandleVerifyQRConfirm)
 		r.Get("/verify/sas", h.HandleVerifySASPage)
 		r.Get("/verify/sas/waiting", h.HandleVerifySASWaitingPage)
-		r.Post("/verify/confirm", h.HandleVerifyConfirm)
-		r.Post("/verify/cancel", h.HandleVerifyCancel)
 		r.Get("/verify/recovery", h.HandleVerifyRecoveryPage)
 		r.Post("/verify/recovery", h.HandleVerifyRecovery)
 
@@ -59,7 +56,9 @@ func New(
 		r.Get("/dm/{userID}", h.HandleDM)
 		r.Get("/spaces/{spaceID}", h.HandleSpaces)
 		r.Get("/spaces/{spaceID}/channels/{channelID}", h.HandleChannels)
+
 		r.Get("/ws/room/{roomID}", h.HandleRoom)
+		r.Get("/ws/verify", h.HandleVerifyWS)
 
 		r.Get("/api/media", h.HandleProxyMedia)
 		r.Post("/api/theme", h.HandleToggleTheme)

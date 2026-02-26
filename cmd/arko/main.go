@@ -13,7 +13,8 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/router"
 	"github.com/arko-chat/arko/internal/service"
-	"github.com/arko-chat/arko/internal/ws"
+	chatws "github.com/arko-chat/arko/internal/ws/chat"
+	verifyws "github.com/arko-chat/arko/internal/ws/verify"
 	webview "github.com/webview/webview_go"
 )
 
@@ -36,14 +37,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	hub := ws.NewHub(slogger)
+	chatHub := chatws.NewHub(slogger)
+	verifyHub := verifyws.NewHub(slogger)
+
 	mgr := matrix.NewManager(
-		hub,
 		slogger,
 		cfg.CryptoDBPath,
 	)
 
-	svc := service.New(mgr, hub)
+	svc := service.New(mgr, chatHub, verifyHub)
 	h := handlers.New(svc, slogger)
 	mux := router.New(h, mgr)
 

@@ -14,7 +14,7 @@ type FriendsService struct {
 
 func NewFriendsService(
 	mgr *matrix.Manager,
-	hub *ws.Hub,
+	hub ws.WSHub,
 ) *FriendsService {
 	return &FriendsService{
 		BaseService: NewBaseService(mgr, hub),
