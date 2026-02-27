@@ -2,28 +2,84 @@ package urlpreviews
 
 import (
 	"compress/gzip"
+	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/arko-chat/arko/internal/models"
 	"golang.org/x/net/html"
+	"golang.org/x/time/rate"
 )
 
+var (
+	hostLimiters   = make(map[string]*rate.Limiter)
+	hostLimitersMu sync.Mutex
+
+	client = &http.Client{
+		Timeout: 10 * time.Second,
+	}
+)
+
+func limiterForHost(host string) *rate.Limiter {
+	hostLimitersMu.Lock()
+	defer hostLimitersMu.Unlock()
+
+	if l, ok := hostLimiters[host]; ok {
+		return l
+	}
+
+	l := rate.NewLimiter(rate.Every(2*time.Second), 1)
+	hostLimiters[host] = l
+	return l
+}
+
 func FetchEmbed(rawURL string) (*models.Embed, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	if err := limiterForHost(parsed.Host).Wait(ctx); err != nil {
+		return nil, err
+	}
+
+	return fetchHTMLEmbed(rawURL)
+}
+
+const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+	"AppleWebKit/537.36 (KHTML, like Gecko) " +
+	"Chrome/122.0.0.0 Safari/537.36"
+
+func fetchHTMLEmbed(rawURL string) (*models.Embed, error) {
 	req, err := newRequest(rawURL)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusTooManyRequests {
+		return nil, fmt.Errorf("rate limited by %s", req.URL.Host)
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(
+			"unexpected status %d from %s",
+			res.StatusCode,
+			req.URL.Host,
+		)
+	}
 
 	body, err := readBody(res)
 	if err != nil {
@@ -58,9 +114,14 @@ func FetchEmbed(rawURL string) (*models.Embed, error) {
 			for _, attr := range node.Attr {
 				switch strings.ToLower(attr.Key) {
 				case "property":
-					applyMetaProperty(strings.ToLower(attr.Val), node, embed)
+					applyMetaProperty(
+						strings.ToLower(attr.Val),
+						node,
+						embed,
+					)
 				case "name":
-					if strings.ToLower(attr.Val) == "description" && embed.Description == "" {
+					if strings.ToLower(attr.Val) == "description" &&
+						embed.Description == "" {
 						embed.Description = metaContent(node)
 					}
 				}
@@ -77,8 +138,8 @@ func newRequest(rawURL string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	req.Header.Set("Connection", "keep-alive")
@@ -111,7 +172,8 @@ func resolveFavicon(rawURL string, node *html.Node) string {
 		return ""
 	}
 
-	if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
+	if strings.HasPrefix(link, "http://") ||
+		strings.HasPrefix(link, "https://") {
 		return link
 	}
 
@@ -120,7 +182,11 @@ func resolveFavicon(rawURL string, node *html.Node) string {
 		return ""
 	}
 
-	return (&url.URL{Scheme: parsed.Scheme, Host: parsed.Host, Path: link}).String()
+	return (&url.URL{
+		Scheme: parsed.Scheme,
+		Host:   parsed.Host,
+		Path:   link,
+	}).String()
 }
 
 func metaContent(node *html.Node) string {
@@ -132,7 +198,11 @@ func metaContent(node *html.Node) string {
 	return ""
 }
 
-func applyMetaProperty(nodeType string, node *html.Node, embed *models.Embed) {
+func applyMetaProperty(
+	nodeType string,
+	node *html.Node,
+	embed *models.Embed,
+) {
 	if !strings.HasPrefix(nodeType, "og:") {
 		return
 	}

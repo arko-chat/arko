@@ -126,7 +126,7 @@ func (t *MessageTree) sendEventToListeners(treeEvt MessageTreeEvent) {
 	}
 }
 
-func (t *MessageTree) populateEmbed(msg *models.Message) {
+func (t *MessageTree) populateEmbed(msg models.Message) []models.Embed {
 	urls := urlpreviews.ExtractURLs(msg.Content)
 	var urlWg sync.WaitGroup
 	var embedsMu sync.Mutex
@@ -142,19 +142,13 @@ func (t *MessageTree) populateEmbed(msg *models.Message) {
 		})
 	}
 	urlWg.Wait()
-
-	if len(embeds) == 0 {
-		return
-	}
-
-	msg.Embeds = embeds
+	return embeds
 }
 
 func (t *MessageTree) fetchAndApplyEmbeds(msg models.Message) {
 	cacheKey := fmt.Sprintf("embed:%s:%s", t.roomID, msg.ID)
-	result, _ := cache.CachedSingle(t.embedCache, t.embedSfg, cacheKey, func() ([]models.Embed, error) {
-		t.populateEmbed(&msg)
-		return msg.Embeds, nil
+	result, _ := cache.CachedSingleWithTTL(t.embedCache, t.embedSfg, cacheKey, 24*time.Hour, func() ([]models.Embed, error) {
+		return t.populateEmbed(msg), nil
 	})
 
 	msg.Embeds = result
