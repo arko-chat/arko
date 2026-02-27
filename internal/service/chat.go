@@ -90,14 +90,19 @@ func (s *ChatService) GetRoomMessages(
 
 			case matrix.UpdateEvent:
 				if mte.UpdateNonce == "" {
-					log.Printf("err: no updatenonce")
-					return
-				}
-				oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
-				err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
-				if err != nil {
-					log.Printf("err: %v", err)
-					return
+					oobTarget := "outerHTML:#msg-" + mte.Message.ID
+					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
+					if err != nil {
+						log.Printf("err: %v", err)
+						return
+					}
+				} else {
+					oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
+					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
+					if err != nil {
+						log.Printf("err: %v", err)
+						return
+					}
 				}
 			case matrix.RemoveEvent:
 			}

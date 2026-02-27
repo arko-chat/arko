@@ -11,6 +11,7 @@ import (
 
 	"github.com/arko-chat/arko/internal/cache"
 	"github.com/arko-chat/arko/internal/models"
+	urlpreviews "github.com/arko-chat/arko/internal/url_previews"
 	"github.com/puzpuzpuz/xsync/v4"
 	"github.com/tidwall/btree"
 	"golang.org/x/sync/singleflight"
@@ -39,6 +40,9 @@ type MessageTree struct {
 
 	chronoCache *xsync.Map[string, cache.CacheEntry[[]models.Message]]
 	chronoSfg   *singleflight.Group
+
+	embedCache *xsync.Map[string, cache.CacheEntry[[]models.Embed]]
+	embedSfg   *singleflight.Group
 
 	initialized atomic.Bool
 
@@ -81,6 +85,8 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 		roomID:        roomID,
 		chronoCache:   xsync.NewMap[string, cache.CacheEntry[[]models.Message]](),
 		chronoSfg:     &singleflight.Group{},
+		embedCache:    xsync.NewMap[string, cache.CacheEntry[[]models.Embed]](),
+		embedSfg:      &singleflight.Group{},
 	}
 }
 
@@ -96,6 +102,75 @@ func (t *MessageTree) Initialize(ctx context.Context) {
 	t.isEncrypted = err == nil && encEvt.Algorithm != ""
 
 	t.PopulateTree(ctx, "", "", 50)
+}
+
+func (t *MessageTree) sendEventToListeners(treeEvt MessageTreeEvent) {
+	if t.listening.Load() {
+		select {
+		case t.listenerCh <- treeEvt:
+			t.matrixSession.logger.Debug(
+				"sent event to listener channel",
+				"id", treeEvt.Message.ID,
+			)
+		case <-t.listenerCtx.Done():
+			t.matrixSession.logger.Debug("listener context done, skipping send")
+		default:
+			go func(evt MessageTreeEvent) {
+				select {
+				case t.listenerCh <- evt:
+				case <-time.After(5 * time.Second):
+					t.matrixSession.logger.Warn("dropped message tree event due to timeout")
+				}
+			}(treeEvt)
+		}
+	}
+}
+
+func (t *MessageTree) populateEmbed(msg *models.Message) {
+	urls := urlpreviews.ExtractURLs(msg.Content)
+	var urlWg sync.WaitGroup
+	var embedsMu sync.Mutex
+	embeds := make([]models.Embed, 0, len(urls))
+	for _, url := range urls {
+		urlWg.Go(func() {
+			embed, err := urlpreviews.FetchEmbed(url)
+			if err == nil {
+				embedsMu.Lock()
+				embeds = append(embeds, *embed)
+				embedsMu.Unlock()
+			}
+		})
+	}
+	urlWg.Wait()
+
+	if len(embeds) == 0 {
+		return
+	}
+
+	msg.Embeds = embeds
+}
+
+func (t *MessageTree) fetchAndApplyEmbeds(msg models.Message) {
+	cacheKey := fmt.Sprintf("embed:%s:%s", t.roomID, msg.ID)
+	result, _ := cache.CachedSingle(t.embedCache, t.embedSfg, cacheKey, func() ([]models.Embed, error) {
+		t.populateEmbed(&msg)
+		return msg.Embeds, nil
+	})
+
+	msg.Embeds = result
+	if len(msg.Embeds) == 0 {
+		return
+	}
+
+	t.mu.Lock()
+	t.BTreeG.Set(msg)
+	t.chronoCache.Delete("chrono_list")
+	t.mu.Unlock()
+
+	t.sendEventToListeners(MessageTreeEvent{
+		Message:   msg,
+		EventType: UpdateEvent,
+	})
 }
 
 func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit int) {
@@ -311,10 +386,9 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 
 	replacedPending := false
 	replacedNonce := ""
+	isPending := false
 
 	t.mu.Lock()
-	// if message has nonce, it is meant to replace an existing message with
-	// "pending-<nonce>" as ID
 	if m.Nonce != "" {
 		if existing, ok := t.nonces.Load(m.Nonce); ok {
 			t.BTreeG.Delete(existing)
@@ -324,6 +398,7 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 		}
 		m.Nonce = ""
 	} else if strings.HasPrefix(m.ID, "pending-") {
+		isPending = true
 		t.nonces.Store(m.ID, m)
 	}
 
@@ -346,25 +421,14 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 			}
 		}
 
+		t.sendEventToListeners(treeEvt)
+	}
+
+	if !isPending {
 		if t.listening.Load() {
-			select {
-			case t.listenerCh <- treeEvt:
-				t.matrixSession.logger.Debug(
-					"sent event to listener channel",
-					"id", m.ID,
-				)
-			case <-t.listenerCtx.Done():
-				t.matrixSession.logger.Debug("listener context done, skipping send")
-			default:
-				// Fallback: If channel is full, send in goroutine to prevent tree deadlock
-				go func(evt MessageTreeEvent) {
-					select {
-					case t.listenerCh <- evt:
-					case <-time.After(5 * time.Second):
-						t.matrixSession.logger.Warn("dropped message tree event due to timeout")
-					}
-				}(treeEvt)
-			}
+			go t.fetchAndApplyEmbeds(m)
+		} else {
+			t.fetchAndApplyEmbeds(m)
 		}
 	}
 
