@@ -3,7 +3,6 @@ import "htmx-ext-loading-states";
 import htmx from "htmx.org";
 import Alpine from "alpinejs";
 import type { Alpine as AlpineType } from "alpinejs";
-import 'github-markdown-css/github-markdown.css';
 
 declare global {
   interface Window {

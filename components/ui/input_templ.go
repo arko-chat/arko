@@ -403,11 +403,11 @@ func MessageTextarea(placeholder string, extraClass string, attributes templ.Att
 			templ_7745c5c3_Var16 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<div x-data=\"{shiftPressed: false}\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<div x-data class=\"flex-1 min-h-0 overflow-hidden h-full\" @click=\"$el.querySelector('textarea').focus()\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var17 = []any{"w-full h-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed max-h-48 block " + extraClass}
+		var templ_7745c5c3_Var17 = []any{"w-full h-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed block " + extraClass}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var17...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -446,7 +446,7 @@ func MessageTextarea(placeholder string, extraClass string, attributes templ.Att
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" x-data @keyup.enter=\"if (!shiftPressed) {$event.preventDefault();$event.target.form.requestSubmit();$event.target.form.reset();$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'}\" @keydown.shift=\"shiftPressed = true\" @keyup.shift=\"shiftPressed = false\" x-on:input=\"$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'\"></textarea></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" @keydown=\"\n\t\t\t\tif ($event.key === 'Enter' && !$event.shiftKey) {\n\t\t\t\t\t$event.preventDefault();\n\t\t\t\t\t$event.target.form.requestSubmit();\n\t\t\t\t\t$event.target.form.reset();\n\t\t\t\t\t$el.style.height = 'auto';\n\t\t\t\t\tconst container = document.querySelector('#message-input-body');\n\t\t\t\t\tif (container) {\n\t\t\t\t\t\tconst saved = localStorage.getItem('message-input-height') || '120';\n\t\t\t\t\t\tcontainer.style.height = saved + 'px';\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\" x-on:input=\"\n\t\t\t\t$el.style.height = 'auto';\n\t\t\t\t$el.style.height = $el.scrollHeight + 'px';\n\t\t\t\tconst container = document.querySelector('#message-input-body');\n\t\t\t\tif (container) {\n\t\t\t\t\tconst minHeight = parseInt(localStorage.getItem('message-input-height') || '120');\n\t\t\t\t\tconst toolbar = container.querySelector('.border-b');\n\t\t\t\t\tconst toolbarHeight = toolbar ? toolbar.offsetHeight : 0;\n\t\t\t\t\tconst handle = container.firstElementChild;\n\t\t\t\t\tconst handleHeight = handle ? handle.offsetHeight : 4;\n\t\t\t\t\tconst needed = $el.scrollHeight + toolbarHeight + handleHeight + 20;\n\t\t\t\t\tconst newHeight = Math.max(minHeight, Math.min(480, needed));\n\t\t\t\t\tcontainer.style.height = newHeight + 'px';\n\t\t\t\t\tdocument.documentElement.style.setProperty('--message-input-height', newHeight + 'px');\n\t\t\t\t}\n\t\t\t\"></textarea></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
