@@ -47,7 +47,8 @@ templ Base(state *session.Session, title string) {
 		</head>
 		<body
 			class="h-full overflow-hidden font-sans bg-surface-overlay"
-			hx-ext="loading-states"
+			hx-ext="ws,loading-states,response-targets"
+			ws-connect="/ws"
 		>
 			{ children... }
 			<script type="module" src={ assets.JS("src/assets/js/index.ts") }></script>

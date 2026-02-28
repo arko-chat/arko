@@ -14,7 +14,6 @@ import (
 	urlpreviews "github.com/arko-chat/arko/internal/url_previews"
 	"github.com/puzpuzpuz/xsync/v4"
 	"github.com/tidwall/btree"
-	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/crypto"
 	"maunium.net/go/mautrix/event"
@@ -38,11 +37,7 @@ type MessageTree struct {
 	roomID      string
 	isEncrypted bool
 
-	chronoCache *xsync.Map[string, cache.CacheEntry[[]models.Message]]
-	chronoSfg   *singleflight.Group
-
-	embedCache *xsync.Map[string, cache.CacheEntry[[]models.Embed]]
-	embedSfg   *singleflight.Group
+	embedCache *cache.Cache[[]models.Embed]
 
 	initialized atomic.Bool
 
@@ -87,10 +82,7 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 		matrixSession: mxSession,
 		nonces:        xsync.NewMap[string, models.Message](),
 		roomID:        roomID,
-		chronoCache:   xsync.NewMap[string, cache.CacheEntry[[]models.Message]](),
-		chronoSfg:     &singleflight.Group{},
-		embedCache:    xsync.NewMap[string, cache.CacheEntry[[]models.Embed]](),
-		embedSfg:      &singleflight.Group{},
+		embedCache:    cache.New[[]models.Embed](24 * time.Hour),
 	}
 }
 
@@ -151,7 +143,7 @@ func (t *MessageTree) populateEmbed(msg models.Message) []models.Embed {
 
 func (t *MessageTree) fetchAndApplyEmbeds(msg models.Message) {
 	cacheKey := fmt.Sprintf("embed:%s:%s", t.roomID, msg.ID)
-	result, _ := cache.CachedSingleWithTTL(t.embedCache, t.embedSfg, cacheKey, 24*time.Hour, func() ([]models.Embed, error) {
+	result, _ := t.embedCache.Get(cacheKey, func() ([]models.Embed, error) {
 		return t.populateEmbed(msg), nil
 	})
 
@@ -162,17 +154,12 @@ func (t *MessageTree) fetchAndApplyEmbeds(msg models.Message) {
 
 	t.mu.Lock()
 	t.BTreeG.Set(msg)
-	t.chronoCache.Delete("chrono_list")
 	t.mu.Unlock()
 
 	t.sendEventToListeners(MessageTreeEvent{
 		Message:   msg,
 		EventType: UpdateEvent,
 	})
-}
-
-func (t *MessageTree) HasMore() bool {
-	return !t.noMoreHistory.Load()
 }
 
 func (t *MessageTree) LoadHistory(ctx context.Context, limit int) bool {
@@ -422,7 +409,6 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	}
 
 	_, replaced := t.BTreeG.Set(m)
-	t.chronoCache.Delete("chrono_list")
 	t.mu.Unlock()
 
 	if t.listening.Load() {
@@ -444,11 +430,7 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	}
 
 	if !isPending {
-		if t.listening.Load() {
-			go t.fetchAndApplyEmbeds(m)
-		} else {
-			t.fetchAndApplyEmbeds(m)
-		}
+		go t.fetchAndApplyEmbeds(m)
 	}
 
 	return m, replaced
@@ -481,21 +463,15 @@ func (t *MessageTree) GetNeighbors(m models.Message) Neighbors {
 }
 
 func (t *MessageTree) Chronological() []models.Message {
-	cacheKey := "chrono_list:" + t.roomID
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 
-	msgs, _ := cache.CachedSingle(t.chronoCache, t.chronoSfg, cacheKey, func() ([]models.Message, error) {
-		t.mu.RLock()
-		defer t.mu.RUnlock()
-
-		items := make([]models.Message, 0, t.Len())
-		t.Reverse(func(item models.Message) bool {
-			items = append(items, item)
-			return true
-		})
-		return items, nil
+	items := make([]models.Message, 0, t.Len())
+	t.Reverse(func(item models.Message) bool {
+		items = append(items, item)
+		return true
 	})
-
-	return msgs
+	return items
 }
 
 func (t *MessageTree) eventToMessage(

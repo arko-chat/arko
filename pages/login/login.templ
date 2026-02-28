@@ -2,6 +2,7 @@ package loginpage
 
 import (
 	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/session"
 )
@@ -23,71 +24,67 @@ templ Content() {
 					<h1 class="text-xl font-bold text-content-primary mb-1">Welcome to Arko</h1>
 					<p class="text-sm text-content-muted">Sign in with your Matrix account</p>
 				</div>
-				<div class="px-8 pt-4 pb-8">
-					<form
-						id="login-form"
-						hx-post="/login/submit"
-						hx-target="#login-error"
-						hx-swap="innerHTML"
-						class="space-y-4"
-					>
-						<div id="login-error"></div>
-						@ui.InputGroup("Homeserver", true, "e.g. matrix.org or your-server.com", ui.TextInputWithIcon(
-							"matrix.org",
-							"🌐",
-							"left",
-							templ.Attributes{
-								"name":         "homeserver",
-								"required":     true,
-								"autocomplete": "url",
-								"value":        "matrix.org",
-							},
-						))
-						@ui.InputGroup("Username", true, "", ui.TextInputWithIcon(
-							"your_username",
-							"@",
-							"left",
-							templ.Attributes{
-								"name":         "username",
-								"required":     true,
-								"autocomplete": "username",
-							},
-						))
-						<div class="pt-2">
-							@ui.ButtonWithSpinner("Sign In", "fa-solid fa-right-to-bracket text-xs", "primary", "w-full py-2.5", templ.Attributes{
-								"type":            "submit",
-								"hx-indicator":    "#login-form",
-								"hx-disabled-elt": "#login-form button[type=submit]",
-							})
-						</div>
-					</form>
-				</div>
-				<div class="px-8 py-4 bg-surface-alt border-t border-border-divider">
-					<p class="text-[11px] text-content-faint text-center leading-relaxed">
-						Arko connects to any Matrix homeserver.
-						<a
-							href="https://matrix.org/try-matrix/"
-							target="_blank"
-							class="text-brand hover:underline"
-						>
-							Don't have an account?
-						</a>
-					</p>
-				</div>
+				@loginBody()
+				@loginFooter()
 			</div>
-			<div class="mt-4 text-center">
-				<p class="text-[11px] text-content-faint">
-					Powered by the
-					<a
-						href="https://matrix.org"
-						target="_blank"
-						class="text-brand hover:underline"
-					>
-						Matrix
-					</a>
-					protocol
-				</p>
-			</div>
+			@authui.BelowCard(loginPoweredBy())
 		</div>
 	</main>
+}
+
+templ loginBody() {
+	<div class="px-8 pt-4 pb-8">
+		<form
+			id="login-form"
+			hx-post="/login/submit"
+			hx-target="#login-error"
+			hx-swap="innerHTML"
+			class="space-y-4"
+		>
+			<div id="login-error"></div>
+			@ui.InputGroup("Homeserver", true, "e.g. matrix.org or your-server.com", ui.TextInputWithIcon(
+				"matrix.org",
+				"🌐",
+				"left",
+				templ.Attributes{
+					"name":         "homeserver",
+					"required":     true,
+					"autocomplete": "url",
+					"value":        "matrix.org",
+				},
+			))
+			@ui.InputGroup("Username", true, "", ui.TextInputWithIcon(
+				"your_username",
+				"@",
+				"left",
+				templ.Attributes{
+					"name":         "username",
+					"required":     true,
+					"autocomplete": "username",
+				},
+			))
+			<div class="pt-2">
+				@ui.ButtonWithSpinner("Sign In", "fa-solid fa-right-to-bracket text-xs", "primary", "w-full py-2.5", templ.Attributes{
+					"type":            "submit",
+					"hx-indicator":    "#login-form",
+					"hx-disabled-elt": "#login-form button[type=submit]",
+				})
+			</div>
+		</form>
+	</div>
+}
+
+templ loginFooter() {
+	@authui.CardFooterCentered(authui.FooterText(
+		templ.Raw(`Arko connects to any Matrix homeserver. `),
+		authui.FooterLink("Don't have an account?", "https://matrix.org/try-matrix/", "text-brand hover:underline"),
+	))
+}
+
+templ loginPoweredBy() {
+	<p class="text-[11px] text-content-faint">
+		Powered by the
+		<a href="https://matrix.org" target="_blank" class="text-brand hover:underline">Matrix</a>
+		protocol
+	</p>
 }

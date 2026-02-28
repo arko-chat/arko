@@ -2,6 +2,7 @@ package verifywaitingpage
 
 import (
 	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
@@ -13,56 +14,37 @@ templ Page(state *session.Session, user models.User) {
 }
 
 templ Content(user models.User) {
-	<div hx-ext="ws" ws-connect="/ws/verify">
-		<div id="ws-verify-redirect"></div>
-		<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
-			<div class="w-full max-w-md mx-4">
-				<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
-					<div class="px-8 pt-8 pb-2 text-center">
-						<div class="w-14 h-14 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4 relative">
-							<i class="fa-solid fa-spinner spinner text-brand text-2xl"></i>
-						</div>
-						<h1 class="text-xl font-bold text-content-primary mb-1">Setting Up Encryption</h1>
-						<p class="text-sm text-content-muted">
-							Cross-signing keys are being generated. This should only take a moment.
-						</p>
-					</div>
-					<div class="px-8 pt-2 pb-2">
-						<div class="flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle">
-							<img
-								src={ user.Avatar }
-								class="w-9 h-9 rounded-full"
-								alt={ user.Name }
-							/>
-							<div class="flex flex-col min-w-0">
-								<span class="text-sm font-semibold text-content-primary truncate">{ user.Name }</span>
-								<span class="text-xs text-content-faint truncate">{ user.ID }</span>
-							</div>
-						</div>
-					</div>
-					<div class="px-8 pt-4 pb-8">
-						<div class="space-y-4">
-							<div class="flex items-start gap-3 p-3 rounded-md bg-info/5 border border-info/15">
-								<i class="fa-solid fa-circle-info text-info text-sm shrink-0 mt-0.5"></i>
-								<p class="text-xs text-content-secondary leading-relaxed">
-									Arko is uploading your cross-signing keys to the Matrix server. Once complete, you'll be able to choose how to verify this session.
-								</p>
-							</div>
-							<div class="flex items-center justify-center gap-2 py-2">
-								<span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
-								<span class="text-xs text-content-muted font-medium">Waiting for key upload…</span>
-							</div>
-						</div>
-					</div>
-					<div class="px-8 py-4 bg-surface-alt border-t border-border-divider">
-						<p class="text-[11px] text-content-faint text-center leading-relaxed">
-							Taking too long?
-							<a href="/logout" class="text-brand hover:underline">Log out</a>
-							and try again.
-						</p>
-					</div>
-				</div>
-			</div>
-		</main>
+	@authui.Card(
+		authui.IconOpts{
+			Icon:    "fa-solid fa-spinner spinner",
+			BgClass: "bg-brand/10 border border-brand/20",
+			Color:   "text-brand",
+		},
+		"Setting Up Encryption",
+		"Cross-signing keys are being generated. This should only take a moment.",
+		authui.UserCard(user),
+		waitingBody(),
+		waitingFooter(),
+	)
+}
+
+templ waitingBody() {
+	<div class="px-8 pt-4 pb-8 space-y-4">
+		@authui.InfoBox(authui.InfoBoxInfo, infoText())
+		@authui.WaitingIndicator("Waiting for key upload…")
 	</div>
+}
+
+templ infoText() {
+	<p>
+		Arko is uploading your cross-signing keys to the Matrix server. Once complete, you'll be able to choose how to verify this session.
+	</p>
+}
+
+templ waitingFooter() {
+	@authui.CardFooterCentered(authui.FooterText(
+		templ.Raw(`Taking too long? `),
+		authui.FooterLink("Log out", "/logout", "text-brand hover:underline"),
+		templ.Raw(` and try again.`),
+	))
 }

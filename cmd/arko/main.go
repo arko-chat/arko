@@ -7,14 +7,15 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
+	"runtime"
 
 	"github.com/arko-chat/arko/internal/config"
 	"github.com/arko-chat/arko/internal/handlers"
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/router"
 	"github.com/arko-chat/arko/internal/service"
-	chatws "github.com/arko-chat/arko/internal/ws/chat"
-	verifyws "github.com/arko-chat/arko/internal/ws/verify"
+	"github.com/arko-chat/arko/internal/ws"
 	webview "github.com/webview/webview_go"
 )
 
@@ -37,16 +38,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	chatHub := chatws.NewHub(slogger)
-	verifyHub := verifyws.NewHub(slogger)
-
 	mgr := matrix.NewManager(
 		slogger,
 		cfg.CryptoDBPath,
 	)
 
-	svc := service.New(mgr, chatHub, verifyHub)
-	h := handlers.New(svc, slogger)
+	wsHub := ws.NewHub(slogger)
+	svc := service.New(mgr, wsHub)
+	h := handlers.New(wsHub, svc, slogger)
 	mux := router.New(h, mgr)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -68,6 +67,29 @@ func main() {
 	w.SetTitle("Arko")
 	w.SetSize(1040, 768, webview.HintMin)
 	w.Navigate(addr)
+	w.Init(`
+    document.addEventListener("click", function(e) {
+        const a = e.target.closest("a");
+        if (!a || !a.href) return;
+        const url = a.href;
+        if (url.startsWith("http://127.0.0.1") || url.startsWith("/")) return;
+        e.preventDefault();
+        openExternal(url);
+    });
+`)
+
+	w.Bind("openExternal", func(url string) error {
+		var cmd *exec.Cmd
+		switch runtime.GOOS {
+		case "windows":
+			cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		case "darwin":
+			cmd = exec.Command("open", url)
+		default:
+			cmd = exec.Command("xdg-open", url)
+		}
+		return cmd.Start()
+	})
 	w.Run()
 
 	slogger.Info("window closed, shutting down")

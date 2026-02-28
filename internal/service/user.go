@@ -16,7 +16,7 @@ type UserService struct {
 
 func NewUserService(
 	mgr *matrix.Manager,
-	hub ws.WSHub,
+	hub *ws.Hub,
 ) *UserService {
 	return &UserService{
 		BaseService: NewBaseService(mgr, hub),

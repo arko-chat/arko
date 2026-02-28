@@ -7,53 +7,54 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type CacheEntry[T any] struct {
+type entry[T any] struct {
 	value     T
 	fetchedAt time.Time
 }
 
-func CachedSingle[T any](
-	cache *xsync.Map[string, CacheEntry[T]],
-	sfg *singleflight.Group,
-	key string,
-	fn func() (T, error),
-) (T, error) {
-	return CachedSingleWithTTL(cache, sfg, key, 3*time.Second, fn)
+type Cache[T any] struct {
+	store *xsync.Map[string, entry[T]]
+	sfg   singleflight.Group
+	ttl   time.Duration
 }
 
-func CachedSingleWithTTL[T any](
-	cache *xsync.Map[string, CacheEntry[T]],
-	sfg *singleflight.Group,
-	key string,
-	ttl time.Duration,
-	fn func() (T, error),
-) (T, error) {
-	entry, ok := cache.Load(key)
-	if ok {
-		if time.Since(entry.fetchedAt) > ttl {
+func New[T any](ttl time.Duration) *Cache[T] {
+	return &Cache[T]{
+		store: xsync.NewMap[string, entry[T]](),
+		ttl:   ttl,
+	}
+}
+
+func NewDefault[T any]() *Cache[T] {
+	return New[T](3 * time.Second)
+}
+
+func (c *Cache[T]) Get(key string, fn func() (T, error)) (T, error) {
+	if e, ok := c.store.Load(key); ok {
+		if time.Since(e.fetchedAt) > c.ttl {
 			go func() {
-				sfg.Do(key, func() (any, error) {
-					result, err := fn()
+				c.sfg.Do(key, func() (any, error) {
+					res, err := fn()
 					if err == nil {
-						cache.Store(key, CacheEntry[T]{value: result, fetchedAt: time.Now()})
+						c.store.Store(key, entry[T]{value: res, fetchedAt: time.Now()})
 					}
 					return nil, nil
 				})
 			}()
 		}
-		return entry.value, nil
+		return e.value, nil
 	}
 
-	v, err, _ := sfg.Do(key, func() (any, error) {
-		if e, ok := cache.Load(key); ok {
+	v, err, _ := c.sfg.Do(key, func() (any, error) {
+		if e, ok := c.store.Load(key); ok {
 			return e, nil
 		}
 		res, err := fn()
 		if err != nil {
 			return nil, err
 		}
-		newEntry := CacheEntry[T]{value: res, fetchedAt: time.Now()}
-		cache.Store(key, newEntry)
+		newEntry := entry[T]{value: res, fetchedAt: time.Now()}
+		c.store.Store(key, newEntry)
 		return newEntry, nil
 	})
 
@@ -61,5 +62,13 @@ func CachedSingleWithTTL[T any](
 		var zero T
 		return zero, err
 	}
-	return v.(CacheEntry[T]).value, nil
+	return v.(entry[T]).value, nil
+}
+
+func (c *Cache[T]) Invalidate(key string) {
+	c.store.Delete(key)
+}
+
+func (c *Cache[T]) Clear() {
+	c.store.Clear()
 }

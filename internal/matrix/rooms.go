@@ -10,7 +10,6 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"github.com/arko-chat/arko/internal/cache"
 	"github.com/arko-chat/arko/internal/models"
 )
 
@@ -54,7 +53,7 @@ func resolveContentURIString(
 func (m *Manager) GetCurrentUser(
 	userID string,
 ) (models.User, error) {
-	return cache.CachedSingle(m.userCache, m.userSfg, "gcu:"+userID, func() (models.User, error) {
+	return m.userCache.Get("gcu:"+userID, func() (models.User, error) {
 		ctx := m.GetContext()
 		client, err := m.GetClient(userID)
 		if err != nil {
@@ -95,7 +94,7 @@ func (m *Manager) getRoomName(
 	roomID id.RoomID,
 ) string {
 	key := "grn:" + roomID.String()
-	val, _ := cache.CachedSingle(m.roomCache, m.roomNameSfg, key, func() (string, error) {
+	val, _ := m.roomCache.Get(key, func() (string, error) {
 		ctx := m.GetContext()
 		var nameEvt event.RoomNameEventContent
 		err := client.StateEvent(ctx, roomID, event.StateRoomName, "", &nameEvt)
@@ -112,7 +111,7 @@ func (m *Manager) getRoomAvatar(
 	roomID id.RoomID,
 ) string {
 	key := "gra:" + roomID.String()
-	val, _ := cache.CachedSingle(m.roomCache, m.roomAvatarSfg, key, func() (string, error) {
+	val, _ := m.roomCache.Get(key, func() (string, error) {
 		ctx := m.GetContext()
 		var avatarEvt event.RoomAvatarEventContent
 		err := client.StateEvent(ctx, roomID, event.StateRoomAvatar, "", &avatarEvt)
@@ -130,7 +129,7 @@ func (m *Manager) getRoomAvatar(
 func (m *Manager) ListSpaces(
 	userID string,
 ) ([]models.Space, error) {
-	return cache.CachedSingle(m.spacesCache, m.spacesSfg, "ls:"+userID, func() ([]models.Space, error) {
+	return m.spacesCache.Get("ls:"+userID, func() ([]models.Space, error) {
 		ctx := m.GetContext()
 
 		client, err := m.GetClient(userID)
@@ -213,7 +212,7 @@ func (m *Manager) getSpaceChildren(
 	client *mautrix.Client,
 	spaceID id.RoomID,
 ) ([]models.Channel, error) {
-	return cache.CachedSingle(m.channelsCache, m.channelsSfg, "gsc:"+spaceID.String(), func() ([]models.Channel, error) {
+	return m.channelsCache.Get("gsc:"+spaceID.String(), func() ([]models.Channel, error) {
 		ctx := m.GetContext()
 		stateMap, err := client.State(ctx, spaceID)
 		if err != nil {
@@ -261,7 +260,7 @@ func (m *Manager) getSpaceChildren(
 func (m *Manager) ListDirectMessages(
 	userID string,
 ) ([]models.User, error) {
-	return cache.CachedSingle(m.dmCache, m.dmSfg, "ldm:"+userID, func() ([]models.User, error) {
+	return m.dmCache.Get("ldm:"+userID, func() ([]models.User, error) {
 		ctx := m.GetContext()
 		client, err := m.GetClient(userID)
 		if err != nil {
@@ -377,7 +376,7 @@ func (m *Manager) getRoomMembers(
 	client *mautrix.Client,
 	roomID id.RoomID,
 ) ([]models.User, error) {
-	return cache.CachedSingle(m.membersCache, m.membersSfg, "grm:"+roomID.String(), func() ([]models.User, error) {
+	return m.membersCache.Get("grm:"+roomID.String(), func() ([]models.User, error) {
 		ctx := m.GetContext()
 		members, err := client.Members(ctx, roomID)
 		if err != nil {

@@ -34,6 +34,30 @@ type VerificationUIState struct {
 	Done         bool
 }
 
+type VerificationEventType string
+
+const (
+	VerificationEventRequested VerificationEventType = "requested"
+	VerificationEventReady     VerificationEventType = "ready"
+	VerificationEventCancelled VerificationEventType = "cancelled"
+	VerificationEventDone      VerificationEventType = "done"
+	VerificationEventShowSAS   VerificationEventType = "show_sas"
+	VerificationEventQRScanned VerificationEventType = "qr_scanned"
+)
+
+type VerificationMethod string
+
+const (
+	VerificationMethodSAS  VerificationMethod = "sas"
+	VerificationMethodQR   VerificationMethod = "qr"
+	VerificationMethodNone VerificationMethod = "none"
+)
+
+type VerificationEvent struct {
+	Type   VerificationEventType
+	Method VerificationMethod
+}
+
 func (s *VerificationUIState) Clear() {
 	s.Emojis = nil
 	s.Decimals = [3]uint{}
@@ -273,6 +297,14 @@ type verificationCallbacks struct {
 	client  *mautrix.Client
 }
 
+func (c *verificationCallbacks) broadcast(evt VerificationEvent) {
+	mSess, ok := c.manager.matrixSessions.Load(c.userID)
+	if !ok {
+		return
+	}
+	mSess.broadcastVerificationEvent(evt)
+}
+
 func (c *verificationCallbacks) VerificationRequested(
 	ctx context.Context,
 	txnID id.VerificationTransactionID,
@@ -296,6 +328,7 @@ func (c *verificationCallbacks) VerificationRequested(
 			"err", err,
 		)
 	}
+	c.broadcast(VerificationEvent{Type: VerificationEventRequested})
 }
 
 func (c *verificationCallbacks) VerificationReady(
@@ -314,13 +347,17 @@ func (c *verificationCallbacks) VerificationReady(
 		"supportsQR", supportsScanQRCode,
 	)
 
+	method := VerificationMethodSAS
 	if qrCode != nil {
+		method = VerificationMethodQR
 		c.manager.matrixSessions.Compute(c.userID, func(oldValue *MatrixSession, loaded bool) (newValue *MatrixSession, op xsync.ComputeOp) {
 			oldValue.GetVerificationUIState().QRCode = qrCode
 			oldValue.GetVerificationUIState().QRActive = true
 			return oldValue, xsync.UpdateOp
 		})
 	}
+
+	c.broadcast(VerificationEvent{Type: VerificationEventReady, Method: method})
 }
 
 func (c *verificationCallbacks) VerificationCancelled(
@@ -340,6 +377,8 @@ func (c *verificationCallbacks) VerificationCancelled(
 		"code", code,
 		"reason", reason,
 	)
+
+	c.broadcast(VerificationEvent{Type: VerificationEventCancelled})
 }
 
 func (c *verificationCallbacks) VerificationDone(
@@ -357,54 +396,43 @@ func (c *verificationCallbacks) VerificationDone(
 		return
 	}
 
-	txn, err := mSess.GetVerificationStore().GetVerificationTransaction(ctx, txnID)
-	if err != nil {
-		all, _ := mSess.GetVerificationStore().GetAllVerificationTransactions(ctx)
-		c.manager.logger.Error("verification transaction missing",
+	machine := mSess.GetCryptoHelper().Machine()
+	if machine == nil {
+		return
+	}
+
+	device, err := machine.CryptoStore.GetDevice(
+		ctx, id.UserID(c.userID), machine.Client.DeviceID,
+	)
+	if err != nil || device == nil {
+		c.manager.logger.Error("failed to get device for self-signing",
 			"user", c.userID,
-			"method", method,
-			"txnID", txnID,
-			"allTxns", all,
 			"error", err,
 		)
-		return
+	} else if err := machine.SignOwnDevice(ctx, device); err != nil {
+		c.manager.logger.Error("failed to self-sign device after verification",
+			"user", c.userID,
+			"error", err,
+		)
+	}
+
+	if err := machine.ShareKeys(ctx, -1); err != nil {
+		c.manager.logger.Error("failed to share keys after verification",
+			"user", c.userID,
+			"error", err,
+		)
 	}
 
 	c.manager.logger.Info("verification done",
 		"user", c.userID,
 		"method", method,
 		"txnID", txnID,
-		"state", txn.VerificationState,
-		"theirDone", txn.ReceivedTheirDone,
-		"theirMAC", txn.ReceivedTheirMAC,
-		"ourDone", txn.SentOurDone,
-		"ourMAC", txn.SentOurMAC,
-		"sentToDeviceIDs", txn.SentToDeviceIDs,
-		"theirDeviceID", txn.TheirDeviceID,
-		"theirUserID", txn.TheirUserID,
 	)
 
-	machine := mSess.GetCryptoHelper().Machine()
-	if machine == nil {
-		return
-	}
+	mSess.verifiedCache.Invalidate("iv:" + c.userID)
+	mSess.seenAsVerified.Store(false)
 
-	if txn.ReceivedTheirMAC && txn.SentOurMAC {
-		device, err := machine.CryptoStore.GetDevice(
-			ctx, id.UserID(c.userID), machine.Client.DeviceID,
-		)
-		if err != nil || device == nil {
-			c.manager.logger.Error("failed to get device",
-				"user", c.userID,
-				"error", err,
-			)
-			return
-		}
-
-		device.Trust = id.TrustStateCrossSignedTOFU
-		_ = machine.CryptoStore.PutDevice(ctx, id.UserID(c.userID), device)
-		machine.ShareKeys(ctx, -1)
-	}
+	mSess.broadcastVerificationEvent(VerificationEvent{Type: VerificationEventDone})
 }
 
 func (c *verificationCallbacks) ShowSAS(
@@ -439,6 +467,7 @@ func (c *verificationCallbacks) ShowSAS(
 	})
 
 	c.manager.logger.Info("SAS ready to confirm", "user", c.userID, "txnID", txnID)
+	c.broadcast(VerificationEvent{Type: VerificationEventShowSAS})
 }
 
 func (c *verificationCallbacks) QRCodeScanned(
@@ -451,4 +480,5 @@ func (c *verificationCallbacks) QRCodeScanned(
 	})
 
 	c.manager.logger.Info("QR code scanned by other device", "user", c.userID, "txnID", txnID)
+	c.broadcast(VerificationEvent{Type: VerificationEventQRScanned})
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	"github.com/puzpuzpuz/xsync/v4"
-	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/crypto/cryptohelper"
 	"maunium.net/go/mautrix/crypto/ssss"
@@ -29,26 +28,26 @@ import (
 type MatrixSession struct {
 	sync.Mutex
 
-	id                  string
-	manager             *Manager
-	seenAsVerified      atomic.Bool
-	logger              *slog.Logger
-	context             context.Context
-	cancel              context.CancelFunc
-	client              *mautrix.Client
-	ssssMachine         *ssss.Machine
-	cryptoHelper        *cryptohelper.CryptoHelper
-	verificationStore   *InMemoryVerificationStore
-	verificationUIState *VerificationUIState
-	verificationHelper  *verificationhelper.VerificationHelper
-	keyBackupMgr        *KeyBackupManager
-	listeners           *xsync.Map[uint64, chan *event.Event]
-	idCounter           atomic.Uint64
+	id                    string
+	manager               *Manager
+	seenAsVerified        atomic.Bool
+	logger                *slog.Logger
+	context               context.Context
+	cancel                context.CancelFunc
+	client                *mautrix.Client
+	ssssMachine           *ssss.Machine
+	cryptoHelper          *cryptohelper.CryptoHelper
+	verificationStore     *InMemoryVerificationStore
+	verificationUIState   *VerificationUIState
+	verificationHelper    *verificationhelper.VerificationHelper
+	verificationListeners *xsync.Map[uint64, chan VerificationEvent]
+	verificationIdCounter atomic.Uint64
+	keyBackupMgr          *KeyBackupManager
+	listeners             *xsync.Map[uint64, chan *event.Event]
+	idCounter             atomic.Uint64
 
-	profileCache  *xsync.Map[string, cache.CacheEntry[models.User]]
-	profileSfg    *singleflight.Group
-	verifiedCache *xsync.Map[string, cache.CacheEntry[bool]]
-	verifiedSfg   *singleflight.Group
+	profileCache  *cache.Cache[models.User]
+	verifiedCache *cache.Cache[bool]
 
 	messageTrees *xsync.Map[string, *MessageTree]
 }
@@ -177,23 +176,22 @@ func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, 
 	}()
 
 	mSess := &MatrixSession{
-		id:                  s.UserID,
-		manager:             m,
-		logger:              logger,
-		context:             ctx,
-		cancel:              cancel,
-		client:              client,
-		cryptoHelper:        helper,
-		verificationStore:   store,
-		verificationHelper:  vh,
-		verificationUIState: &VerificationUIState{},
-		ssssMachine:         ssss.NewSSSSMachine(client),
-		listeners:           xsync.NewMap[uint64, chan *event.Event](),
-		messageTrees:        xsync.NewMap[string, *MessageTree](),
-		profileCache:        xsync.NewMap[string, cache.CacheEntry[models.User]](),
-		profileSfg:          &singleflight.Group{},
-		verifiedCache:       xsync.NewMap[string, cache.CacheEntry[bool]](),
-		verifiedSfg:         &singleflight.Group{},
+		id:                    s.UserID,
+		manager:               m,
+		logger:                logger,
+		context:               ctx,
+		cancel:                cancel,
+		client:                client,
+		cryptoHelper:          helper,
+		verificationStore:     store,
+		verificationHelper:    vh,
+		verificationUIState:   &VerificationUIState{},
+		verificationListeners: xsync.NewMap[uint64, chan VerificationEvent](),
+		ssssMachine:           ssss.NewSSSSMachine(client),
+		listeners:             xsync.NewMap[uint64, chan *event.Event](),
+		messageTrees:          xsync.NewMap[string, *MessageTree](),
+		profileCache:          cache.NewDefault[models.User](),
+		verifiedCache:         cache.New[bool](time.Minute * 30),
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
@@ -206,6 +204,13 @@ func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, 
 	mSess.initSyncHandlers()
 
 	return mSess, nil
+}
+
+func (m *MatrixSession) broadcastVerificationEvent(evt VerificationEvent) {
+	m.verificationListeners.Range(func(_ uint64, ch chan VerificationEvent) bool {
+		ch <- evt
+		return true
+	})
 }
 
 func (m *MatrixSession) initSyncHandlers() {
@@ -237,23 +242,23 @@ func (m *MatrixSession) initSyncHandlers() {
 	)
 
 	syncer.OnEventType(event.StateMember, func(ctx context.Context, evt *event.Event) {
-		m.manager.membersCache.Delete(evt.RoomID.String())
-		m.profileCache.Delete(evt.GetStateKey())
-		m.manager.dmCache.Delete(m.id)
+		m.manager.membersCache.Invalidate("grm:" + string(evt.RoomID))
+		m.profileCache.Invalidate("gup:" + evt.GetStateKey())
+		m.manager.dmCache.Invalidate("ldm:" + m.id)
 	})
 
 	syncer.OnEventType(event.StateSpaceChild, func(ctx context.Context, evt *event.Event) {
-		m.manager.channelsCache.Delete(evt.RoomID.String())
+		m.manager.channelsCache.Invalidate("gsc:" + evt.RoomID.String())
 	})
 
 	syncer.OnEventType(event.AccountDataDirectChats, func(ctx context.Context, evt *event.Event) {
-		m.manager.dmCache.Delete(m.id)
+		m.manager.dmCache.Invalidate("ldm:" + m.id)
 	})
 
 	syncer.OnEventType(event.EphemeralEventPresence, func(ctx context.Context, evt *event.Event) {
-		m.profileCache.Delete(evt.Sender.String())
+		m.profileCache.Invalidate("gup:" + evt.Sender.String())
 		if evt.Sender.String() == m.id {
-			m.manager.userCache.Delete(m.id)
+			m.manager.userCache.Invalidate("gcu:" + m.id)
 		}
 	})
 }
@@ -263,6 +268,25 @@ func (m *MatrixSession) listenEvents() (chan *event.Event, uint64) {
 	listenCh := make(chan *event.Event, 16)
 	m.listeners.Store(id, listenCh)
 	return listenCh, id
+}
+
+func (m *MatrixSession) VerificationEvents(ctx context.Context) (<-chan VerificationEvent, func()) {
+	id := m.verificationIdCounter.Add(1)
+	ch := make(chan VerificationEvent, 16)
+	m.verificationListeners.Store(id, ch)
+
+	cancel := func() {
+		if ch, ok := m.verificationListeners.LoadAndDelete(id); ok {
+			close(ch)
+		}
+	}
+
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
+
+	return ch, cancel
 }
 
 func (m *MatrixSession) closeEventListener(id uint64) {
@@ -285,7 +309,7 @@ func (m *MatrixSession) GetMessageTree(roomID string) *MessageTree {
 func (m *MatrixSession) GetUserProfile(
 	targetUserID string,
 ) (models.User, error) {
-	return cache.CachedSingle(m.profileCache, m.profileSfg, "gup:"+targetUserID, func() (models.User, error) {
+	return m.profileCache.Get("gup:"+targetUserID, func() (models.User, error) {
 		ctx := m.context
 		target := id.UserID(targetUserID)
 		localpart := target.Localpart()
@@ -341,7 +365,7 @@ func (m *MatrixSession) IsVerified() bool {
 			return false, err
 		}
 
-		if trust == id.TrustStateCrossSignedTOFU {
+		if trust >= id.TrustStateCrossSignedTOFU {
 			return true, nil
 		}
 
@@ -353,7 +377,7 @@ func (m *MatrixSession) IsVerified() bool {
 	}
 
 	if m.seenAsVerified.Load() {
-		cached, _ := cache.CachedSingleWithTTL(m.verifiedCache, m.verifiedSfg, "iv:"+m.id, time.Minute*30, check)
+		cached, _ := m.verifiedCache.Get("iv:"+m.id, check)
 		return cached
 	}
 
@@ -378,6 +402,10 @@ func (m *MatrixSession) Close() {
 		return true, false
 	})
 	m.listeners.DeleteMatching(func(_ uint64, value chan *event.Event) (delete bool, stop bool) {
+		close(value)
+		return true, false
+	})
+	m.verificationListeners.DeleteMatching(func(_ uint64, value chan VerificationEvent) (delete bool, stop bool) {
 		close(value)
 		return true, false
 	})

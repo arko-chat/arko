@@ -8,25 +8,17 @@ import (
 
 type BaseService struct {
 	matrix *matrix.Manager
-	hub    ws.WSHub
+	hub    *ws.Hub
 }
 
 func NewBaseService(
 	mgr *matrix.Manager,
-	hub ws.WSHub,
+	hub *ws.Hub,
 ) *BaseService {
 	return &BaseService{
 		matrix: mgr,
 		hub:    hub,
 	}
-}
-
-func (s *BaseService) Hub() ws.WSHub {
-	return s.hub
-}
-
-func (s *BaseService) Matrix() *matrix.Manager {
-	return s.matrix
 }
 
 func (s *BaseService) GetCurrentUser() (models.User, error) {

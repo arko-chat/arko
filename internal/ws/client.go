@@ -1,50 +1,117 @@
 package ws
 
 import (
+	"context"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-type BaseClient struct {
-	Conn *websocket.Conn
-	Send chan []byte
+type Client struct {
+	ctx          context.Context
+	cancel       context.CancelFunc
+	Hub          *Hub
+	UserID       string
+	activeRoom   string
+	activeRoomMu sync.Mutex
+	conn         *websocket.Conn
+	send         chan []byte
+	closeOnce    sync.Once
 }
 
-func NewBaseClient(conn *websocket.Conn) *BaseClient {
-	return &BaseClient{
-		Conn: conn,
-		Send: make(chan []byte, 256),
+type ClientRequest struct {
+	Action  string `json:"action"`
+	RoomID  string `json:"roomID"`
+	Message string `json:"message"`
+}
+
+func NewClient(hub *Hub, conn *websocket.Conn, userID string) *Client {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &Client{
+		ctx:    ctx,
+		cancel: cancel,
+		Hub:    hub,
+		UserID: userID,
+		conn:   conn,
+		send:   make(chan []byte, 256),
 	}
 }
 
-func (c *BaseClient) GetSend() chan []byte {
-	return c.Send
+func (c *Client) Close() {
+	c.closeOnce.Do(func() {
+		c.cancel()
+
+		if c.Hub != nil {
+			c.Hub.Unregister(c)
+		}
+
+		c.conn.Close()
+	})
 }
 
-func (c *BaseClient) WritePump() {
+func (c *Client) SetActiveRoom(roomID string) {
+	c.activeRoomMu.Lock()
+	defer c.activeRoomMu.Unlock()
+	c.activeRoom = roomID
+}
+
+func (c *Client) GetActiveRoom() string {
+	c.activeRoomMu.Lock()
+	defer c.activeRoomMu.Unlock()
+	return c.activeRoom
+}
+
+func (c *Client) WritePump() {
 	ticker := time.NewTicker(PingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
+		c.Close()
 	}()
 
 	for {
 		select {
-		case msg, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
+		case <-c.ctx.Done():
+			c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
+			c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			return
+		case msg, ok := <-c.send:
 			if !ok {
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
+				c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 				return
 			}
-			if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+			c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
+			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 				return
 			}
 		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
-			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}
+	}
+}
+
+func (c *Client) ReadPump(onMessage func(ctx context.Context, raw []byte)) {
+	defer c.Close()
+
+	c.conn.SetReadLimit(MaxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(PongWait))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(PongWait))
+		return nil
+	})
+
+	for {
+		_, raw, err := c.conn.ReadMessage()
+		if err != nil {
+			return
+		}
+		if len(raw) == 0 {
+			continue
+		}
+		onMessage(c.ctx, raw)
 	}
 }

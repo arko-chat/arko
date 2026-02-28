@@ -1,0 +1,166 @@
+package authui
+
+import "github.com/arko-chat/arko/internal/models"
+
+type IconOpts struct {
+	Icon    string
+	BgClass string
+	Color   string
+}
+
+templ Card(icon IconOpts, title string, subtitle string, children ...templ.Component) {
+	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+		<div class="w-full max-w-md mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				<div class="px-8 pt-8 pb-2 text-center">
+					<div class={ "w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4", icon.BgClass }>
+						<i class={ icon.Icon, icon.Color, "text-2xl" }></i>
+					</div>
+					<h1 class="text-xl font-bold text-content-primary mb-1">{ title }</h1>
+					<p class="text-sm text-content-muted">{ subtitle }</p>
+				</div>
+				for _, child := range children {
+					@child
+				}
+			</div>
+		</div>
+	</main>
+}
+
+templ WideCard(icon IconOpts, title string, subtitle string, children ...templ.Component) {
+	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+		<div class="w-full max-w-lg mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				<div class="px-8 pt-8 pb-2 text-center">
+					<div class={ "w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4", icon.BgClass }>
+						<i class={ icon.Icon, icon.Color, "text-2xl" }></i>
+					</div>
+					<h1 class="text-xl font-bold text-content-primary mb-1">{ title }</h1>
+					<p class="text-sm text-content-muted">{ subtitle }</p>
+				</div>
+				for _, child := range children {
+					@child
+				}
+			</div>
+		</div>
+	</main>
+}
+
+templ UserCard(user models.User) {
+	<div class="px-8 pt-2 pb-2">
+		<div class="flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle">
+			<img
+				src={ user.Avatar }
+				class="w-9 h-9 rounded-full"
+				alt={ user.Name }
+			/>
+			<div class="flex flex-col min-w-0">
+				<span class="text-sm font-semibold text-content-primary truncate">{ user.Name }</span>
+				<span class="text-xs text-content-faint truncate">{ user.ID }</span>
+			</div>
+		</div>
+	</div>
+}
+
+type InfoBoxVariant string
+
+const (
+	InfoBoxInfo    InfoBoxVariant = "info"
+	InfoBoxWarning InfoBoxVariant = "warning"
+)
+
+templ InfoBox(variant InfoBoxVariant, children ...templ.Component) {
+	<div
+		class={
+			"flex items-start gap-3 p-3 rounded-md",
+			templ.KV("bg-info/5 border border-info/15", variant == InfoBoxInfo),
+			templ.KV("bg-warning/5 border border-warning/15", variant == InfoBoxWarning),
+		}
+	>
+		<i
+			class={
+				"text-sm shrink-0 mt-0.5",
+				templ.KV("fa-solid fa-circle-info text-info", variant == InfoBoxInfo),
+				templ.KV("fa-solid fa-triangle-exclamation text-warning", variant == InfoBoxWarning),
+			}
+		></i>
+		<div class="text-xs text-content-secondary leading-relaxed">
+			for _, child := range children {
+				@child
+			}
+		</div>
+	</div>
+}
+
+templ WaitingIndicator(label string) {
+	<div class="flex items-center justify-center gap-2 py-2">
+		<span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
+		<span class="text-xs text-content-muted font-medium">{ label }</span>
+	</div>
+}
+
+templ BelowCard(children ...templ.Component) {
+	<div class="mt-4 text-center">
+		for _, child := range children {
+			@child
+		}
+	</div>
+}
+
+type FooterLinkOpts struct {
+	Label string
+	Href  string
+	Class string
+}
+
+templ CardFooter(left *FooterLinkOpts, right templ.Component) {
+	<div class="px-8 py-4 bg-surface-alt border-t border-border-divider flex items-center justify-between gap-4">
+		if left != nil {
+			<a href={ templ.SafeURL(left.Href) } class="text-xs text-content-muted hover:text-content-primary transition-colors">
+				<i class="fa-solid fa-arrow-left text-[10px] mr-1"></i>
+				{ left.Label }
+			</a>
+		}
+		@right
+	</div>
+}
+
+templ CardFooterCentered(children ...templ.Component) {
+	<div class="px-8 py-4 bg-surface-alt border-t border-border-divider">
+		for _, child := range children {
+			@child
+		}
+	</div>
+}
+
+templ FooterText(children ...templ.Component) {
+	<p class="text-[11px] text-content-faint text-center leading-relaxed">
+		for _, child := range children {
+			@child
+		}
+	</p>
+}
+
+templ FooterTextRight(children ...templ.Component) {
+	<p class="text-[11px] text-content-faint text-right leading-relaxed">
+		for _, child := range children {
+			@child
+		}
+	</p>
+}
+
+templ FooterLink(label string, href string, class string) {
+	<a href={ templ.SafeURL(href) } class={ class }>{ label }</a>
+}
+
+templ ReturnBanner() {
+	<div class="px-8 pt-6 pb-0">
+		<a
+			href="/"
+			class="inline-flex items-center gap-1.5 text-xs text-content-muted hover:text-content-primary transition-colors duration-150"
+		>
+			<i class="fa-solid fa-arrow-left text-[10px]"></i>
+			Return to Arko
+		</a>
+	</div>
+}

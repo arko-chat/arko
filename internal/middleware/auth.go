@@ -17,7 +17,13 @@ type AuthPages struct {
 func Auth(mgr *matrix.Manager, pages AuthPages) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			isWS := strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
 			sess := GetSession(r.Context())
+
+			if isWS {
+				next.ServeHTTP(w, r)
+				return
+			}
 
 			if !sess.LoggedIn || sess.UserID == "" {
 				authRedirect(w, r, "/login", pages.Login)

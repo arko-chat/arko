@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/id"
 
@@ -34,19 +33,12 @@ type Manager struct {
 	currSession    atomic.Pointer[MatrixSession]
 	verifiedCache  bool
 
-	userCache     *xsync.Map[string, cache.CacheEntry[models.User]]
-	userSfg       *singleflight.Group
-	roomCache     *xsync.Map[string, cache.CacheEntry[string]]
-	roomNameSfg   *singleflight.Group
-	roomAvatarSfg *singleflight.Group
-	channelsCache *xsync.Map[string, cache.CacheEntry[[]models.Channel]]
-	channelsSfg   *singleflight.Group
-	spacesCache   *xsync.Map[string, cache.CacheEntry[[]models.Space]]
-	spacesSfg     *singleflight.Group
-	dmCache       *xsync.Map[string, cache.CacheEntry[[]models.User]]
-	dmSfg         *singleflight.Group
-	membersCache  *xsync.Map[string, cache.CacheEntry[[]models.User]]
-	membersSfg    *singleflight.Group
+	userCache     *cache.Cache[models.User]
+	roomCache     *cache.Cache[string]
+	channelsCache *cache.Cache[[]models.Channel]
+	spacesCache   *cache.Cache[[]models.Space]
+	dmCache       *cache.Cache[[]models.User]
+	membersCache  *cache.Cache[[]models.User]
 }
 
 func NewManager(
@@ -62,19 +54,12 @@ func NewManager(
 		cryptoDBPath:   cryptoDBPath,
 		sentMsgIds:     newLru,
 		matrixSessions: xsync.NewMap[string, *MatrixSession](),
-		userCache:      xsync.NewMap[string, cache.CacheEntry[models.User]](),
-		roomCache:      xsync.NewMap[string, cache.CacheEntry[string]](),
-		channelsCache:  xsync.NewMap[string, cache.CacheEntry[[]models.Channel]](),
-		spacesCache:    xsync.NewMap[string, cache.CacheEntry[[]models.Space]](),
-		dmCache:        xsync.NewMap[string, cache.CacheEntry[[]models.User]](),
-		membersCache:   xsync.NewMap[string, cache.CacheEntry[[]models.User]](),
-		userSfg:        &singleflight.Group{},
-		roomNameSfg:    &singleflight.Group{},
-		roomAvatarSfg:  &singleflight.Group{},
-		spacesSfg:      &singleflight.Group{},
-		dmSfg:          &singleflight.Group{},
-		membersSfg:     &singleflight.Group{},
-		channelsSfg:    &singleflight.Group{},
+		userCache:      cache.NewDefault[models.User](),
+		roomCache:      cache.NewDefault[string](),
+		channelsCache:  cache.NewDefault[[]models.Channel](),
+		spacesCache:    cache.NewDefault[[]models.Space](),
+		dmCache:        cache.NewDefault[[]models.User](),
+		membersCache:   cache.NewDefault[[]models.User](),
 	}
 
 	m.restoreAllSessions()

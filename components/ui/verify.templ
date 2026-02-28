@@ -1,0 +1,88 @@
+package ui
+
+import "github.com/arko-chat/arko/internal/models"
+
+templ Shell() {
+	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+		<div class="w-full max-w-md mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				{ children... }
+			</div>
+		</div>
+	</main>
+}
+
+templ WideShell() {
+	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
+		<div class="w-full max-w-lg mx-4">
+			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
+				{ children... }
+			</div>
+		</div>
+	</main>
+}
+
+templ CardHeader(icon string, colorBase string, title string, description string) {
+	<div class="px-8 pt-8 pb-2 text-center">
+		<div
+			class={
+				"w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4",
+				"bg-" + colorBase + "/10 border border-" + colorBase + "/20",
+			}
+		>
+			<i class={ icon, "text-" + colorBase + " text-2xl" }></i>
+		</div>
+		<h1 class="text-xl font-bold text-content-primary mb-1">{ title }</h1>
+		<p class="text-sm text-content-muted">{ description }</p>
+	</div>
+}
+
+templ UserCardSection(user models.User) {
+	<div class="px-8 pt-2 pb-2">
+		<div class="flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle">
+			<img src={ user.Avatar } class="w-9 h-9 rounded-full" alt={ user.Name }/>
+			<div class="flex flex-col min-w-0">
+				<span class="text-sm font-semibold text-content-primary truncate">{ user.Name }</span>
+				<span class="text-xs text-content-faint truncate">{ user.ID }</span>
+			</div>
+		</div>
+	</div>
+}
+
+templ InfoBox(icon string, iconColor string, bgColor string) {
+	<div class={ "flex items-start gap-3 p-3 rounded-md", "bg-" + bgColor + "/5 border border-" + bgColor + "/15" }>
+		<i class={ icon, "text-" + iconColor + " text-sm shrink-0 mt-0.5" }></i>
+		<div class="text-xs text-content-secondary leading-relaxed">
+			{ children... }
+		</div>
+	</div>
+}
+
+templ WaitingIndicator(label string) {
+	<div class="flex items-center justify-center gap-2 py-2">
+		<span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
+		<span class="text-xs text-content-muted font-medium">{ label }</span>
+	</div>
+}
+
+templ FooterNote() {
+	<div class="px-8 py-4 bg-surface-alt border-t border-border-divider">
+		<p class="text-[11px] text-content-faint text-center leading-relaxed">
+			{ children... }
+		</p>
+	</div>
+}
+
+templ FooterSplit(left templ.Component, right templ.Component) {
+	<div class="px-8 py-4 bg-surface-alt border-t border-border-divider flex items-center justify-between gap-4">
+		@left
+		@right
+	</div>
+}
+
+templ BackLink(href string) {
+	<a href={ templ.SafeURL(href) } class="text-xs text-content-muted hover:text-content-primary transition-colors">
+		<i class="fa-solid fa-arrow-left text-[10px] mr-1"></i>
+		Back
+	</a>
+}

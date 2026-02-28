@@ -1,5 +1,6 @@
 import "htmx-ext-ws";
 import "htmx-ext-loading-states";
+import "htmx-ext-response-targets";
 import htmx from "htmx.org";
 import Alpine from "alpinejs";
 import type { Alpine as AlpineType } from "alpinejs";
@@ -48,6 +49,16 @@ document.addEventListener("htmx:wsBeforeMessage", (e: Event) => {
   }
 });
 
+document.addEventListener("htmx:wsAfterMessage", function(e: Event) {
+  const detail = (e as CustomEvent<{ message: string }>).detail;
+  try {
+    const msg = JSON.parse(detail.message);
+    if (msg.redirect) {
+      window.location.href = msg.redirect;
+    }
+  } catch (_) { }
+});
+
 document.addEventListener("htmx:beforeSwap", (e: Event) => {
   const detail = (e as CustomEvent).detail as { target: HTMLElement | null };
   const currentWs = document.querySelector<HTMLElement>("[ws-connect]");
@@ -61,5 +72,4 @@ document.addEventListener("htmx:beforeSwap", (e: Event) => {
     htmx.trigger(currentWs, "htmx:wsClose");
   }
 });
-
 

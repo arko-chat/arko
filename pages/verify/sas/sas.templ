@@ -2,6 +2,7 @@ package verifysaspage
 
 import (
 	"github.com/arko-chat/arko/components"
+	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
@@ -19,48 +20,47 @@ templ Page(state *session.Session, user models.User, emojis []EmojiItem) {
 }
 
 templ Content(user models.User, emojis []EmojiItem) {
-	<div hx-ext="ws" ws-connect="/ws/verify">
-		<div id="ws-verify-redirect"></div>
-		<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
-			<div class="w-full max-w-lg mx-4">
-				<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
-					<div class="px-8 pt-8 pb-2 text-center">
-						<div class="w-14 h-14 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4">
-							<i class="fa-solid fa-shield-check text-success text-2xl"></i>
-						</div>
-						<h1 class="text-xl font-bold text-content-primary mb-1">Confirm Emojis</h1>
-						<p class="text-sm text-content-muted">
-							Verify that the following emojis match what is shown on your other device.
-						</p>
-					</div>
-					<div class="px-8 pt-4 pb-4">
-						<div class="grid grid-cols-7 gap-2">
-							for _, e := range emojis {
-								<div class="flex flex-col items-center gap-1 p-2 rounded-md bg-surface-sunken border border-border-subtle">
-									<span class="text-2xl">{ e.Emoji }</span>
-									<span class="text-[10px] text-content-faint leading-tight text-center">{ e.Description }</span>
-								</div>
-							}
-						</div>
-					</div>
-					<div class="px-8 pt-2 pb-8">
-						<div id="sas-buttons" class="flex gap-3">
-							@ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
-								"ws-send":         "",
-								"hx-vals":         `{"action": "SAS_CANCEL"}`,
-								"hx-indicator":    "#sas-buttons",
-								"hx-disabled-elt": "#sas-buttons button",
-							})
-							@ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
-								"ws-send":         "",
-								"hx-vals":         `{"action": "SAS_CONFIRM"}`,
-								"hx-indicator":    "#sas-buttons",
-								"hx-disabled-elt": "#sas-buttons button",
-							})
-						</div>
-					</div>
+	@authui.WideCard(
+		authui.IconOpts{
+			Icon:    "fa-solid fa-shield-check",
+			BgClass: "bg-success/10 border border-success/20",
+			Color:   "text-success",
+		},
+		"Confirm Emojis",
+		"Verify that the following emojis match what is shown on your other device.",
+		emojiGrid(emojis),
+		sasButtons(),
+	)
+}
+
+templ emojiGrid(emojis []EmojiItem) {
+	<div class="px-8 pt-4 pb-4">
+		<div class="grid grid-cols-7 gap-2">
+			for _, e := range emojis {
+				<div class="flex flex-col items-center gap-1 p-2 rounded-md bg-surface-sunken border border-border-subtle">
+					<span class="text-2xl">{ e.Emoji }</span>
+					<span class="text-[10px] text-content-faint leading-tight text-center">{ e.Description }</span>
 				</div>
-			</div>
-		</main>
+			}
+		</div>
+	</div>
+}
+
+templ sasButtons() {
+	<div class="px-8 pt-2 pb-8">
+		<div id="sas-buttons" class="flex gap-3">
+			@ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
+				"ws-send":         "",
+				"hx-vals":         `{"action": "SAS_CANCEL"}`,
+				"hx-indicator":    "#sas-buttons",
+				"hx-disabled-elt": "#sas-buttons button",
+			})
+			@ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
+				"ws-send":         "",
+				"hx-vals":         `{"action": "SAS_CONFIRM"}`,
+				"hx-indicator":    "#sas-buttons",
+				"hx-disabled-elt": "#sas-buttons button",
+			})
+		</div>
 	</div>
 }

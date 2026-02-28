@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"fmt"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
 )
@@ -9,7 +10,6 @@ type Props struct {
 	RoomID            string
 	Placeholder       string
 	Messages          []models.Message
-	HasMore           bool
 	CurrentUserID     string
 	CurrentUserName   string
 	CurrentUserAvatar string
@@ -21,12 +21,15 @@ type Props struct {
 templ Chat(props Props) {
 	<div
 		class="w-full h-full flex flex-col"
-		hx-ext="ws"
-		ws-connect={ "/ws/room/" + props.RoomID }
 		id="chat-container"
 		data-user-name={ props.CurrentUserName }
 		data-user-avatar={ props.CurrentUserAvatar }
 	>
+		<div
+			ws-send
+			hx-trigger="load"
+			hx-vals={ fmt.Sprintf(`{"action": "SUBSCRIBE_ROOM", "roomID": "%s"}`, props.RoomID) }
+		></div>
 		if props.Topic != "" {
 			@ui.TopicBanner(props.Topic)
 		}
@@ -40,15 +43,17 @@ templ Chat(props Props) {
 				} else if props.ChannelName != "" {
 					@ui.ChannelWelcome(props.ChannelName, props.Topic)
 				}
-				@ui.MoreMessageScrollSensor(props.RoomID, props.HasMore)
+				@ui.MoreMessageScrollSensor(props.RoomID)
 				@ui.MessageList(props.Messages, props.CurrentUserID)
 			</div>
 		</div>
 		<div id="typing-indicator" class="shrink-0">
 			@ui.TypingIndicator([]string{})
 		</div>
+		@ui.Alert("test")
 		@ui.MessageInput(props.Placeholder, "message", templ.Attributes{
 			"ws-send": "",
+			"hx-vals": fmt.Sprintf(`{"action": "ROOM_MESSAGE", "roomID": "%s"}`, props.RoomID),
 		})
 	</div>
 }

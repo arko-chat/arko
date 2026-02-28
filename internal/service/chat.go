@@ -11,7 +11,6 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
-	chatws "github.com/arko-chat/arko/internal/ws/chat"
 	"github.com/puzpuzpuz/xsync/v4"
 )
 
@@ -22,7 +21,7 @@ type ChatService struct {
 
 func NewChatService(
 	mgr *matrix.Manager,
-	hub ws.WSHub,
+	hub *ws.Hub,
 ) *ChatService {
 	return &ChatService{
 		BaseService:     NewBaseService(mgr, hub),
@@ -30,16 +29,8 @@ func NewChatService(
 	}
 }
 
-func (s *ChatService) GetWSHub() *chatws.Hub {
-	hub, ok := s.hub.(*chatws.Hub)
-	if !ok {
-		return nil
-	}
-	return hub
-}
-
 func (s *ChatService) LoadRoomHistory(roomID string, limit int) (bool, error) {
-	tree, err := s.GetRoomMessages(roomID)
+	tree, err := s.GetRoomMessageTree(roomID)
 	if err != nil {
 		return false, err
 	}
@@ -47,13 +38,12 @@ func (s *ChatService) LoadRoomHistory(roomID string, limit int) (bool, error) {
 	return hasMore, nil
 }
 
-func (s *ChatService) GetRoomMessages(
+func (s *ChatService) GetRoomMessageTree(
 	roomID string,
 ) (*matrix.MessageTree, error) {
 	userID := s.GetCurrentUserID()
 	matrixSession := s.matrix.GetMatrixSession(userID)
 	messageTree := matrixSession.GetMessageTree(roomID)
-	hub := s.GetWSHub()
 
 	s.initializedTree.Compute(roomID, func(str struct{}, loaded bool) (struct{}, xsync.ComputeOp) {
 		if loaded {
@@ -124,8 +114,8 @@ func (s *ChatService) GetRoomMessages(
 				}
 			}
 
-			if hub != nil {
-				hub.Broadcast(roomID, buf.Bytes())
+			if s.hub != nil {
+				s.hub.BroadcastToRoom(roomID, buf.Bytes())
 			}
 		})
 

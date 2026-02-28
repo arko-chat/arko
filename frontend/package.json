@@ -23,6 +23,7 @@
     "caniuse-lite": "^1.0.30001770",
     "github-markdown-css": "^5.9.0",
     "htmx-ext-loading-states": "^2.0.2",
+    "htmx-ext-response-targets": "^2.0.4",
     "htmx-ext-ws": "^2.0.4",
     "htmx.org": "^2.0.8"
   }

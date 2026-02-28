@@ -12,7 +12,7 @@ type SpaceService struct {
 
 func NewSpaceService(
 	mgr *matrix.Manager,
-	hub ws.WSHub,
+	hub *ws.Hub,
 ) *SpaceService {
 	return &SpaceService{
 		BaseService: NewBaseService(mgr, hub),

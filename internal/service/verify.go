@@ -5,7 +5,6 @@ import (
 
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/ws"
-	verifyws "github.com/arko-chat/arko/internal/ws/verify"
 )
 
 type VerificationService struct {
@@ -14,24 +13,64 @@ type VerificationService struct {
 
 func NewVerificationService(
 	mgr *matrix.Manager,
-	hub ws.WSHub,
+	hub *ws.Hub,
 ) *VerificationService {
 	return &VerificationService{
 		BaseService: NewBaseService(mgr, hub),
 	}
 }
 
-func (s *VerificationService) GetWSHub() *verifyws.Hub {
-	hub, ok := s.hub.(*verifyws.Hub)
-	if !ok {
-		return nil
-	}
-	return hub
-}
-
 func (s *VerificationService) IsVerified() bool {
 	userID := s.GetCurrentUserID()
 	return s.matrix.GetMatrixSession(userID).IsVerified()
+}
+
+func (s *VerificationService) ListenVerifyEvents(ctx context.Context) {
+	userID := s.GetCurrentUserID()
+	sess := s.matrix.GetMatrixSession(userID)
+	if sess == nil {
+		return
+	}
+
+	events, cleanup := sess.VerificationEvents(ctx)
+
+	go func() {
+		defer cleanup()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case ev, ok := <-events:
+				if !ok {
+					return
+				}
+				msg := verificationEventToWS(ev)
+				if msg == nil {
+					continue
+				}
+				s.hub.Push(userID, msg)
+			}
+		}
+	}()
+}
+
+func verificationEventToWS(ev matrix.VerificationEvent) []byte {
+	switch ev.Type {
+	case matrix.VerificationEventShowSAS:
+		return ws.RedirectMessage("/verify/sas")
+	case matrix.VerificationEventCancelled:
+		return ws.RedirectMessage("/verify")
+	case matrix.VerificationEventDone:
+		return ws.RedirectMessage("/")
+	case matrix.VerificationEventReady:
+		if ev.Method == matrix.VerificationMethodQR {
+			return ws.RedirectMessage("/verify/qr")
+		}
+		return ws.RedirectMessage("/verify/sas/waiting")
+	case matrix.VerificationEventQRScanned:
+		return ws.RedirectMessage("/verify/qr/scanned")
+	}
+	return nil
 }
 
 func (s *VerificationService) HasCrossSigningKeys() bool {

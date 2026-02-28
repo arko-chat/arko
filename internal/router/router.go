@@ -37,6 +37,8 @@ func New(
 			Verify: h.HandleVerifyPage,
 		}))
 
+		r.Get("/ws", h.HandleWS)
+
 		r.Get("/verify", h.HandleVerifyPage)
 		r.Get("/verify/waiting", h.HandleVerifyWaitingPage)
 		r.Get("/verify/choose", h.HandleVerifyChoosePage)
@@ -58,9 +60,6 @@ func New(
 		r.Get("/spaces/{spaceID}/channels/{channelID}", h.HandleChannels)
 
 		r.Get("/rooms/{roomID}/history", h.HandleRoomHistory)
-
-		r.Get("/ws/room/{roomID}", h.HandleRoom)
-		r.Get("/ws/verify", h.HandleVerifyWS)
 
 		r.Get("/api/media", h.HandleProxyMedia)
 		r.Post("/api/theme", h.HandleToggleTheme)

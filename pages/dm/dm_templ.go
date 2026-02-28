@@ -17,7 +17,7 @@ import (
 	"github.com/arko-chat/arko/internal/session"
 )
 
-func Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, hasMore bool, roomID string) templ.Component {
+func Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -50,7 +50,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, frien
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = Content(user, spaces, friendsList, friend, messages, hasMore, roomID).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Content(user, spaces, friendsList, friend, messages, roomID).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -64,7 +64,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, frien
 	})
 }
 
-func Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, hasMore bool, roomID string) templ.Component {
+func Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -111,7 +111,6 @@ func Content(user models.User, spaces []models.Space, friendsList []models.User,
 		}
 		templ_7745c5c3_Err = chat.Chat(chat.Props{
 			RoomID:            roomID,
-			HasMore:           hasMore,
 			Placeholder:       "Message " + friend.Name,
 			Messages:          messages,
 			CurrentUserID:     user.ID,

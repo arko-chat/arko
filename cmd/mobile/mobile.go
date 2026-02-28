@@ -13,8 +13,7 @@ import (
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/router"
 	"github.com/arko-chat/arko/internal/service"
-	chatws "github.com/arko-chat/arko/internal/ws/chat"
-	verifyws "github.com/arko-chat/arko/internal/ws/verify"
+	"github.com/arko-chat/arko/internal/ws"
 )
 
 var (
@@ -47,11 +46,10 @@ func Start(dataDir string) (string, error) {
 		return "", fmt.Errorf("failed to create crypto db directory: %w", err)
 	}
 
-	chatHub := chatws.NewHub(slogger)
-	verifyHub := verifyws.NewHub(slogger)
 	mgr := matrix.NewManager(slogger, cryptoDBPath)
-	svc := service.New(mgr, chatHub, verifyHub)
-	h := handlers.New(svc, slogger)
+	wsHub := ws.NewHub(slogger)
+	svc := service.New(mgr, wsHub)
+	h := handlers.New(wsHub, svc, slogger)
 	mux := router.New(h, mgr)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")

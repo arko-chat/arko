@@ -5,9 +5,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
-
-	"github.com/arko-chat/arko/internal/cache"
 )
 
 type MediaResponse struct {
@@ -38,40 +35,37 @@ func (h *Handler) HandleProxyMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	media, err := cache.CachedSingleWithTTL(
-		h.mediaCache,
-		h.mediaSfg,
+	media, err := h.mediaCache.Get(
 		"hpm:"+mediaPath,
-		24*time.Hour,
-		func() (*MediaResponse, error) {
+		func() (MediaResponse, error) {
 			mediaURL := strings.TrimRight(sess.Homeserver, "/") + mediaPath
 			req, err := http.NewRequestWithContext(r.Context(), "GET", mediaURL, nil)
 			if err != nil {
-				return nil, err
+				return MediaResponse{}, err
 			}
 			req.Header.Set("Authorization", "Bearer "+sess.AccessToken)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				return nil, err
+				return MediaResponse{}, err
 			}
 			defer resp.Body.Close()
 
 			if resp.ContentLength > MaxCacheableMediaSize {
-				return nil, errMediaTooLarge
+				return MediaResponse{}, errMediaTooLarge
 			}
 
 			lr := io.LimitReader(resp.Body, MaxCacheableMediaSize+1)
 			body, err := io.ReadAll(lr)
 			if err != nil {
-				return nil, err
+				return MediaResponse{}, err
 			}
 
 			if len(body) > MaxCacheableMediaSize {
-				return nil, errMediaTooLarge
+				return MediaResponse{}, errMediaTooLarge
 			}
 
-			return &MediaResponse{
+			return MediaResponse{
 				ContentType: resp.Header.Get("Content-Type"),
 				Body:        body,
 				StatusCode:  resp.StatusCode,
