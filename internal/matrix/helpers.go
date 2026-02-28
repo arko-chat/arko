@@ -26,6 +26,16 @@ func generateNonce() (string, error) {
 	return "pending-" + safeHashClass(base64.RawURLEncoding.EncodeToString(nonceBytes)), nil
 }
 
+func generateDecryptingNonce() (string, error) {
+	nonceBytes := make([]byte, 16)
+
+	if _, err := rand.Read(nonceBytes); err != nil {
+		return "", fmt.Errorf("could not generate random nonce: %w", err)
+	}
+
+	return "decrypting-" + safeHashClass(base64.RawURLEncoding.EncodeToString(nonceBytes)), nil
+}
+
 func mxcToHTTP(uri id.ContentURI) string {
 	if uri.IsEmpty() {
 		return ""

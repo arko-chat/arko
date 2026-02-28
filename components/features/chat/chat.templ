@@ -50,7 +50,6 @@ templ Chat(props Props) {
 		<div id="typing-indicator" class="shrink-0">
 			@ui.TypingIndicator([]string{})
 		</div>
-		@ui.Alert("test")
 		@ui.MessageInput(props.Placeholder, "message", templ.Attributes{
 			"ws-send": "",
 			"hx-vals": fmt.Sprintf(`{"action": "ROOM_MESSAGE", "roomID": "%s"}`, props.RoomID),

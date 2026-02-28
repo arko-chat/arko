@@ -78,6 +78,7 @@ type Message struct {
 	LastThreadReply    time.Time
 	Attachments        []Attachment
 	Embeds             []Embed
+	Undecryptable      bool
 	IsPinned           bool
 	IsSystem           bool
 	SystemIcon         string
@@ -98,6 +99,10 @@ func (m *Message) HTMLContent() string {
 
 func (m *Message) IsPending() bool {
 	return strings.HasPrefix(m.ID, "pending-")
+}
+
+func (m *Message) IsDecrypting() bool {
+	return strings.HasPrefix(m.ID, "decrypting-")
 }
 
 type AttachmentType string

@@ -131,10 +131,6 @@ func Chat(props Props) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = ui.Alert("test").Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
 		templ_7745c5c3_Err = ui.MessageInput(props.Placeholder, "message", templ.Attributes{
 			"ws-send": "",
 			"hx-vals": fmt.Sprintf(`{"action": "ROOM_MESSAGE", "roomID": "%s"}`, props.RoomID),

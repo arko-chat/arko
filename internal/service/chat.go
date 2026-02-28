@@ -104,6 +104,15 @@ func (s *ChatService) GetRoomMessageTree(
 					}
 				}
 			case matrix.RemoveEvent:
+				_, err := fmt.Fprintf(
+					&buf,
+					`<div id="msg-%s" hx-swap-oob="delete"></div>`,
+					mte.Message.ID,
+				)
+				if err != nil {
+					log.Printf("err: %v", err)
+					return
+				}
 			}
 
 			if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {

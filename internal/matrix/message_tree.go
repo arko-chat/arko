@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -175,6 +176,17 @@ func (t *MessageTree) LoadHistory(ctx context.Context, limit int) bool {
 	return !t.noMoreHistory.Load()
 }
 
+func (t *MessageTree) DeleteMessage(msg models.Message) {
+	t.mu.Lock()
+	t.BTreeG.Delete(msg)
+	t.mu.Unlock()
+
+	t.sendEventToListeners(MessageTreeEvent{
+		Message:   msg,
+		EventType: RemoveEvent,
+	})
+}
+
 func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit int) {
 	userID := id.UserID(t.matrixSession.id)
 	roomID := t.roomID
@@ -232,19 +244,30 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 						encContent.SessionID, evt.Sender, encContent.DeviceID,
 					)
 
-					go func(e *event.Event, content *event.EncryptedEventContent) {
-						if cryptoHelper.WaitForSession(ctx, rid, content.SenderKey, content.SessionID, 20*time.Second) {
-							dec, retryErr := cryptoHelper.Decrypt(ctx, e)
+					nonce, _ := generateDecryptingNonce()
+					placeholder := t.decryptingMessage(evt, nonce)
+					t.Set(placeholder)
+
+					go func() {
+						if cryptoHelper.WaitForSession(ctx, rid, encContent.SenderKey, encContent.SessionID, 10*time.Second) {
+							dec, retryErr := cryptoHelper.Decrypt(ctx, evt)
 							if retryErr == nil {
 								if msg := t.eventToMessage(dec); msg != nil {
+									msg.Nonce = nonce
 									t.Set(*msg)
 								}
-								_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, content.SessionID)
+								_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, encContent.SessionID)
 							} else {
-								t.Set(t.undecryptableMessage(e))
+								msg := t.undecryptableMessage(evt)
+								msg.Nonce = nonce
+								t.Set(msg)
 							}
+						} else {
+							msg := t.undecryptableMessage(evt)
+							msg.Nonce = nonce
+							t.Set(msg)
 						}
-					}(evt, encContent)
+					}()
 				} else {
 					t.matrixSession.logger.Debug("skipping redundant session request", "sessionID", encContent.SessionID)
 				}
@@ -388,28 +411,31 @@ func (t *MessageTree) SendMessage(body string) error {
 }
 
 func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	m.RoomID = t.roomID
 
 	replacedPending := false
 	replacedNonce := ""
 	isPending := false
 
-	t.mu.Lock()
 	if m.Nonce != "" {
 		if existing, ok := t.nonces.Load(m.Nonce); ok {
 			t.BTreeG.Delete(existing)
+			log.Println("replacing nonce: %s to %s", m.Nonce, m.ID)
 			replacedNonce = existing.ID
 			replacedPending = true
 			t.nonces.Delete(m.Nonce)
 		}
 		m.Nonce = ""
-	} else if strings.HasPrefix(m.ID, "pending-") {
+	} else if strings.HasPrefix(m.ID, "pending-") ||
+		strings.HasPrefix(m.ID, "decrypting-") {
 		isPending = true
+		log.Println("storing nonce: %s", m.ID)
 		t.nonces.Store(m.ID, m)
 	}
 
 	_, replaced := t.BTreeG.Set(m)
-	t.mu.Unlock()
 
 	if t.listening.Load() {
 		var treeEvt MessageTreeEvent
@@ -507,12 +533,10 @@ func (t *MessageTree) defaultMessage(content, nonce string) models.Message {
 	}
 }
 
-func (t *MessageTree) undecryptableMessage(
-	evt *event.Event,
-) models.Message {
+func (t *MessageTree) decryptingMessage(evt *event.Event, nonce string) models.Message {
 	return models.Message{
-		ID:      safeHashClass(evt.ID.String()),
-		Content: "🔒 Unable to decrypt this message.",
+		ID:      nonce,
+		Content: "",
 		Author: models.User{
 			ID:   evt.Sender.String(),
 			Name: evt.Sender.Localpart(),
@@ -524,6 +548,20 @@ func (t *MessageTree) undecryptableMessage(
 		},
 		Timestamp: time.UnixMilli(evt.Timestamp),
 		RoomID:    t.roomID,
+	}
+}
+
+func (t *MessageTree) undecryptableMessage(
+	evt *event.Event,
+) models.Message {
+	profile, _ := t.matrixSession.GetUserProfile(string(evt.Sender))
+
+	return models.Message{
+		ID:            safeHashClass(evt.ID.String()),
+		Author:        profile,
+		Timestamp:     time.UnixMilli(evt.Timestamp),
+		RoomID:        t.roomID,
+		Undecryptable: true,
 	}
 }
 
