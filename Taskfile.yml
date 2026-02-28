@@ -3,6 +3,9 @@ version: "3"
 vars:
   APP_NAME: arko
   BUILD_DIR: build/bin
+  MOBILE_PKG: github.com/arko-chat/arko/cmd/mobile
+  ANDROID_LIBS_DIR: mobile/android/app/libs
+  IOS_BUILD_DIR: build/ios
 
 dotenv: [".env"]
 
@@ -17,6 +20,13 @@ tasks:
     cmds:
       - go mod tidy
       - cd frontend && bun install
+
+  setup:mobile:
+    desc: Install gomobile tooling
+    cmds:
+      - go install golang.org/x/mobile/cmd/gomobile@latest
+      - go install golang.org/x/mobile/cmd/gobind@latest
+      - gomobile init
 
   generate:
     desc: Generate templ files
@@ -71,10 +81,40 @@ tasks:
       VERSION:
         sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
 
+  build:android:
+    desc: Build Android AAR and copy to Android project
+    deps:
+      - generate
+      - build:frontend
+    cmds:
+      - mkdir -p {{.ANDROID_LIBS_DIR}}
+      - >
+        gomobile bind
+        -target=android
+        -androidapi=24
+        -o {{.ANDROID_LIBS_DIR}}/mobile.aar
+        {{.MOBILE_PKG}}
+      - echo "AAR written to {{.ANDROID_LIBS_DIR}}"
+
+  build:ios:
+    desc: Build iOS xcframework and copy to Xcode project
+    deps:
+      - generate
+      - build:frontend
+    cmds:
+      - mkdir -p {{.IOS_BUILD_DIR}}
+      - >
+        gomobile bind
+        -target=ios
+        -o {{.IOS_BUILD_DIR}}/Mobile.xcframework
+        {{.MOBILE_PKG}}
+      - echo "xcframework written to {{.IOS_BUILD_DIR}}"
+
   clean:
     desc: Clean build artifacts
     cmds:
       - rm -rf {{.BUILD_DIR}}
+      - rm -rf {{.IOS_BUILD_DIR}}
       - rm -rf components/assets/dist
       - find . -name "*_templ.go" -delete
 
