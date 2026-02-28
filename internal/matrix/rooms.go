@@ -80,12 +80,23 @@ func (m *Manager) GetCurrentUser(
 			name = localpart
 		}
 
-		return models.User{
+		user := models.User{
 			ID:     userID,
 			Name:   name,
 			Avatar: avatar,
 			Status: models.StatusOnline,
-		}, nil
+		}
+
+		presence, err := client.GetPresence(ctx, id.UserID(userID))
+		if err == nil {
+			if presence.CurrentlyActive {
+				user.Status = models.StatusOnline
+			} else {
+				user.Status = models.StatusOffline
+			}
+		}
+
+		return user, nil
 	})
 }
 
@@ -286,30 +297,21 @@ func (m *Manager) ListDirectMessages(
 			sess, ok := m.matrixSessions.Load(userID)
 			if ok {
 				profile, err := sess.GetUserProfile(uid)
-				if err == nil {
-					friends = append(friends, profile)
+				if err != nil {
 					continue
 				}
+				friends = append(friends, profile)
+
+				// preload messages
+				go func() {
+					mxSession := m.GetCurrentMatrixSession()
+					roomID, err := m.GetDMRoomID(userID, uid)
+					if err == nil {
+						tree := mxSession.GetMessageTree(string(roomID))
+						tree.Initialize(m.ctx)
+					}
+				}()
 			}
-
-			// Fallback if session/profile fetch fails
-			localpart := otherUser.Localpart()
-			friends = append(friends, models.User{
-				ID:     uid,
-				Name:   localpart,
-				Avatar: fmt.Sprintf("https://api.dicebear.com/7.x/avataaars/svg?seed=%s", localpart),
-				Status: models.StatusOffline,
-			})
-
-			// preload messages
-			go func() {
-				mxSession := m.GetCurrentMatrixSession()
-				roomID, err := m.GetDMRoomID(userID, uid)
-				if err == nil {
-					tree := mxSession.GetMessageTree(string(roomID))
-					tree.Initialize(m.ctx)
-				}
-			}()
 		}
 
 		slices.SortFunc(friends, func(a, b models.User) int {

@@ -328,12 +328,22 @@ func (m *MatrixSession) GetUserProfile(
 			avatar = resolveContentURI(profile.AvatarURL, localpart, "avataaars")
 		}
 
-		return models.User{
+		user := models.User{
 			ID:     targetUserID,
 			Name:   name,
 			Avatar: avatar,
 			Status: models.StatusOffline,
-		}, nil
+		}
+		presence, err := m.GetClient().GetPresence(ctx, target)
+		if err == nil {
+			if presence.CurrentlyActive {
+				user.Status = models.StatusOnline
+			} else {
+				user.Status = models.StatusOffline
+			}
+		}
+
+		return user, nil
 	})
 }
 
