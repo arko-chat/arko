@@ -5,6 +5,7 @@ import Mobile
 class ViewController: UIViewController, WKNavigationDelegate {
 
     private var webView: WKWebView!
+    private var nativeBridge: NativeBridgeImpl!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -14,12 +15,15 @@ class ViewController: UIViewController, WKNavigationDelegate {
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(webView)
 
+        nativeBridge = NativeBridgeImpl(viewController: self)
+
         let dataDir = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .path
 
         DispatchQueue.global(qos: .userInitiated).async {
             var error: NSError?
+            MobileRegisterBridge(self.nativeBridge)
             guard let addr = MobileStart(dataDir, &error),
                   let url = URL(string: addr) else { return }
             DispatchQueue.main.async {

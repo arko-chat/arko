@@ -5,10 +5,10 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import mobile.Mobile
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : FragmentActivity() {
 
     private lateinit var webView: WebView
 
@@ -32,10 +32,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val nativeBridge = NativeBridgeImpl(this, applicationContext)
+
         Thread {
+            Mobile.registerBridge(nativeBridge)
             val addr = Mobile.start(filesDir.absolutePath)
             runOnUiThread { webView.loadUrl(addr) }
         }.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Mobile.stop()
     }
 
     override fun onDestroy() {

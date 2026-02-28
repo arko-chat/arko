@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/arko-chat/arko/internal/bridge"
 	"github.com/arko-chat/arko/internal/handlers"
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/router"
@@ -21,12 +22,20 @@ var (
 	stopFunc func()
 )
 
+func RegisterBridge(b bridge.NativeBridge) {
+	bridge.Register(b)
+}
+
 func Start(dataDir string) (string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	if stopFunc != nil {
 		return "", fmt.Errorf("server already running")
+	}
+
+	if _, err := bridge.Safe(); err != nil {
+		return "", fmt.Errorf("call RegisterBridge before Start: %w", err)
 	}
 
 	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -40,9 +49,7 @@ func Start(dataDir string) (string, error) {
 
 	chatHub := chatws.NewHub(slogger)
 	verifyHub := verifyws.NewHub(slogger)
-
 	mgr := matrix.NewManager(slogger, cryptoDBPath)
-
 	svc := service.New(mgr, chatHub, verifyHub)
 	h := handlers.New(svc, slogger)
 	mux := router.New(h, mgr)
