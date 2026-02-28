@@ -57,6 +57,8 @@ func New(
 		r.Get("/spaces/{spaceID}", h.HandleSpaces)
 		r.Get("/spaces/{spaceID}/channels/{channelID}", h.HandleChannels)
 
+		r.Get("/rooms/{roomID}/history", h.HandleRoomHistory)
+
 		r.Get("/ws/room/{roomID}", h.HandleRoom)
 		r.Get("/ws/verify", h.HandleVerifyWS)
 

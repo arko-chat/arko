@@ -9,13 +9,13 @@ import (
 	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
+templ Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, hasMore bool, roomID string) {
 	@components.Base(state, "Arko | "+friend.Name) {
-		@Content(user, spaces, friendsList, friend, messages, roomID)
+		@Content(user, spaces, friendsList, friend, messages, hasMore, roomID)
 	}
 }
 
-templ Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
+templ Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, hasMore bool, roomID string) {
 	<main class="flex w-full h-screen overflow-hidden">
 		@sidebar.SpaceList(spaces)
 		@sidebar.NavigationSidebar("friends", user, friendsList)
@@ -24,6 +24,7 @@ templ Content(user models.User, spaces []models.Space, friendsList []models.User
 			<div class="flex-1 flex overflow-hidden bg-surface-base transition-colors">
 				@chat.Chat(chat.Props{
 					RoomID:            roomID,
+					HasMore:           hasMore,
 					Placeholder:       "Message " + friend.Name,
 					Messages:          messages,
 					CurrentUserID:     user.ID,

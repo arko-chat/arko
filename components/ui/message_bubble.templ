@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"github.com/arko-chat/arko/components/utils"
 	"github.com/arko-chat/arko/internal/models"
 )
@@ -122,4 +123,22 @@ templ MessageList(messages []models.Message, currentUserID string) {
 			}
 		}
 	</div>
+}
+
+templ MoreMessageScrollSensor(roomID string, hasMore bool) {
+	if hasMore {
+		<div
+			id="history-loader"
+			class="flex justify-center py-2"
+			hx-get={ fmt.Sprintf("/rooms/%s/history", roomID) }
+			hx-trigger="intersect once"
+			hx-target="#history-loader"
+			hx-swap="outerHTML"
+			hx-indicator="#history-spinner"
+		>
+			<div id="history-spinner">
+				@Spinner("sm")
+			</div>
+		</div>
+	}
 }

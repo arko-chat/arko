@@ -49,13 +49,13 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 	roomID := ch.ID
 
 	if htmx.IsHTMX(r) {
-		if err := channelspage.Content(user, spaces, detail, ch, messagesArr, roomID).Render(ctx, w); err != nil {
+		if err := channelspage.Content(user, spaces, detail, ch, messagesArr, messages.HasMore(), roomID).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := channelspage.Page(state, user, spaces, detail, ch, messagesArr, roomID).Render(ctx, w); err != nil {
+	if err := channelspage.Page(state, user, spaces, detail, ch, messagesArr, messages.HasMore(), roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

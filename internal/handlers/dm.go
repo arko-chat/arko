@@ -47,13 +47,13 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 	messagesArr := messages.Chronological()
 
 	if htmx.IsHTMX(r) {
-		if err := dmpage.Content(user, spaces, friendsList, friend, messagesArr, roomID).Render(ctx, w); err != nil {
+		if err := dmpage.Content(user, spaces, friendsList, friend, messagesArr, messages.HasMore(), roomID).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := dmpage.Page(state, user, spaces, friendsList, friend, messagesArr, roomID).Render(ctx, w); err != nil {
+	if err := dmpage.Page(state, user, spaces, friendsList, friend, messagesArr, messages.HasMore(), roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

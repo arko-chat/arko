@@ -46,6 +46,10 @@ type MessageTree struct {
 
 	initialized atomic.Bool
 
+	prevBatch     string
+	prevBatchMu   sync.RWMutex
+	noMoreHistory atomic.Bool
+
 	wg sync.WaitGroup
 }
 
@@ -101,7 +105,7 @@ func (t *MessageTree) Initialize(ctx context.Context) {
 	)
 	t.isEncrypted = err == nil && encEvt.Algorithm != ""
 
-	t.PopulateTree(ctx, "", "", 50)
+	t.PopulateTree(ctx, "", "", 30)
 }
 
 func (t *MessageTree) sendEventToListeners(treeEvt MessageTreeEvent) {
@@ -167,15 +171,29 @@ func (t *MessageTree) fetchAndApplyEmbeds(msg models.Message) {
 	})
 }
 
+func (t *MessageTree) HasMore() bool {
+	return !t.noMoreHistory.Load()
+}
+
+func (t *MessageTree) LoadHistory(ctx context.Context, limit int) bool {
+	if t.noMoreHistory.Load() {
+		return false
+	}
+
+	t.prevBatchMu.RLock()
+	token := t.prevBatch
+	t.prevBatchMu.RUnlock()
+
+	t.PopulateTree(ctx, token, "", limit)
+	return !t.noMoreHistory.Load()
+}
+
 func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit int) {
 	userID := id.UserID(t.matrixSession.id)
 	roomID := t.roomID
-
 	rid := id.RoomID(roomID)
-
 	client := t.matrixSession.GetClient()
 	cryptoHelper := t.matrixSession.GetCryptoHelper()
-
 	requestedSessions := xsync.NewMap[id.SessionID, struct{}]()
 
 	_, _ = t.matrixSession.keyBackupMgr.RestoreRoomKeys(ctx, rid)
@@ -184,6 +202,13 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 		t.matrixSession.logger.Error("failed to get messages", "roomID", roomID, "error", err)
 		return
 	}
+
+	t.prevBatchMu.Lock()
+	if resp.End == "" || resp.End == from {
+		t.noMoreHistory.Store(true)
+	}
+	t.prevBatch = resp.End
+	t.prevBatchMu.Unlock()
 
 	var wg sync.WaitGroup
 	for _, evt := range resp.Chunk {

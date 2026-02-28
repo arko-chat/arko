@@ -38,6 +38,15 @@ func (s *ChatService) GetWSHub() *chatws.Hub {
 	return hub
 }
 
+func (s *ChatService) LoadRoomHistory(roomID string, limit int) (bool, error) {
+	tree, err := s.GetRoomMessages(roomID)
+	if err != nil {
+		return false, err
+	}
+	hasMore := tree.LoadHistory(context.Background(), limit)
+	return hasMore, nil
+}
+
 func (s *ChatService) GetRoomMessages(
 	roomID string,
 ) (*matrix.MessageTree, error) {

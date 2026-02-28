@@ -18,7 +18,7 @@ import (
 	"github.com/arko-chat/arko/internal/session"
 )
 
-func Page(state *session.Session, user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, messages []models.Message, roomID string) templ.Component {
+func Page(state *session.Session, user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, messages []models.Message, hasMore bool, roomID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -51,7 +51,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, space
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = Content(user, spaces, spaceDetail, ch, messages, roomID).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Content(user, spaces, spaceDetail, ch, messages, hasMore, roomID).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -65,7 +65,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, space
 	})
 }
 
-func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, messages []models.Message, roomID string) templ.Component {
+func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, messages []models.Message, hasMore bool, roomID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -121,6 +121,7 @@ func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDe
 			RoomID:            roomID,
 			Placeholder:       "Message #" + ch.Name,
 			Messages:          messages,
+			HasMore:           hasMore,
 			CurrentUserID:     user.ID,
 			CurrentUserName:   user.Name,
 			CurrentUserAvatar: user.Avatar,
