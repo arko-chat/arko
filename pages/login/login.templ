@@ -53,16 +53,6 @@ templ loginBody() {
 					"value":        "matrix.org",
 				},
 			))
-			@ui.InputGroup("Username", true, "", ui.TextInputWithIcon(
-				"your_username",
-				"@",
-				"left",
-				templ.Attributes{
-					"name":         "username",
-					"required":     true,
-					"autocomplete": "username",
-				},
-			))
 			<div class="pt-2">
 				@ui.ButtonWithSpinner("Sign In", "fa-solid fa-right-to-bracket text-xs", "primary", "w-full py-2.5", templ.Attributes{
 					"type":            "submit",

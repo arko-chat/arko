@@ -45,18 +45,18 @@ func View(spaceDetail models.SpaceDetail, currentChannel *models.Channel) templ.
 		}
 		if currentChannel != nil {
 			if currentChannel.Type == "text" {
-				templ_7745c5c3_Err = layout.Navbar("channel", currentChannel.Name, "hashtag", "").Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = layout.Navbar("channel", currentChannel.Name, "hashtag", "", false).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = layout.Navbar("channel", currentChannel.Name, "volume", "").Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = layout.Navbar("channel", currentChannel.Name, "volume", "", false).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = layout.Navbar("space", spaceDetail.Name, "space", "").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = layout.Navbar("space", spaceDetail.Name, "space", "", false).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

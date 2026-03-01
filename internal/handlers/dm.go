@@ -44,16 +44,14 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messages := tree.Chronological()
-
 	if htmx.IsHTMX(r) {
-		if err := dmpage.Content(user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
+		if err := dmpage.Content(user, spaces, friendsList, friend, tree, roomID).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := dmpage.Page(state, user, spaces, friendsList, friend, messages, roomID).Render(ctx, w); err != nil {
+	if err := dmpage.Page(state, user, spaces, friendsList, friend, tree, roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

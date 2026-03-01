@@ -11,12 +11,12 @@ templ View(spaceDetail models.SpaceDetail, currentChannel *models.Channel) {
 		@ui.LoadingOverlay()
 		if currentChannel != nil {
 			if currentChannel.Type == "text" {
-				@layout.Navbar("channel", currentChannel.Name, "hashtag", "")
+				@layout.Navbar("channel", currentChannel.Name, "hashtag", "", false)
 			} else {
-				@layout.Navbar("channel", currentChannel.Name, "volume", "")
+				@layout.Navbar("channel", currentChannel.Name, "volume", "", false)
 			}
 		} else {
-			@layout.Navbar("space", spaceDetail.Name, "space", "")
+			@layout.Navbar("space", spaceDetail.Name, "space", "", false)
 		}
 		<div class="flex-1 flex overflow-hidden">
 			<div

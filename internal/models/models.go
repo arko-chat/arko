@@ -31,6 +31,7 @@ type User struct {
 	Avatar     string
 	Status     UserStatus
 	Homeserver string
+	E2EE       bool
 }
 
 type Space struct {
@@ -48,6 +49,7 @@ type Channel struct {
 	Type    ChannelType
 	SpaceID string
 	Topic   string
+	E2EE    bool
 }
 
 type SpaceDetail struct {

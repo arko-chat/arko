@@ -5,27 +5,28 @@ import (
 	"github.com/arko-chat/arko/components/features/chat"
 	"github.com/arko-chat/arko/components/layout"
 	"github.com/arko-chat/arko/components/layout/sidebar"
+	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
+templ Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, tree *matrix.MessageTree, roomID string) {
 	@components.Base(state, "Arko | "+friend.Name) {
-		@Content(user, spaces, friendsList, friend, messages, roomID)
+		@Content(user, spaces, friendsList, friend, tree, roomID)
 	}
 }
 
-templ Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) {
+templ Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, tree *matrix.MessageTree, roomID string) {
 	<main class="flex w-full h-screen overflow-hidden">
 		@sidebar.SpaceList(spaces)
 		@sidebar.NavigationSidebar("friends", user, friendsList)
 		<div id="content-area" class="w-full flex-1 flex flex-col max-[750px]:hidden">
-			@layout.Navbar("dm", friend.Name, "user", "")
+			@layout.Navbar("dm", friend.Name, "user", "", tree.IsE2EE())
 			<div class="flex-1 flex overflow-hidden bg-surface-base transition-colors">
 				@chat.Chat(chat.Props{
 					RoomID:            roomID,
 					Placeholder:       "Message " + friend.Name,
-					Messages:          messages,
+					Messages:          tree.Chronological(),
 					CurrentUserID:     user.ID,
 					CurrentUserName:   user.Name,
 					CurrentUserAvatar: user.Avatar,

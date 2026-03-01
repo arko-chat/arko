@@ -39,7 +39,7 @@ func View(currentFilter string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = layout.Navbar("friends", "Friends", "friends", currentFilter).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Navbar("friends", "Friends", "friends", currentFilter, false).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -89,16 +89,14 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 	}
 }
 
+func (t *MessageTree) IsE2EE() bool {
+	return t.isEncrypted
+}
+
 func (t *MessageTree) Initialize(ctx context.Context) {
 	if t.initialized.Swap(true) {
 		return
 	}
-
-	var encEvt event.EncryptionEventContent
-	err := t.matrixSession.GetClient().StateEvent(
-		ctx, id.RoomID(t.roomID), event.StateEncryption, "", &encEvt,
-	)
-	t.isEncrypted = err == nil && encEvt.Algorithm != ""
 
 	t.LoadNextMessages(ctx, 30)
 }

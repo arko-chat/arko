@@ -343,7 +343,14 @@ func (m *MatrixSession) GetMessageTree(roomID string) *MessageTree {
 		return tree
 	}
 
+	var encEvt event.EncryptionEventContent
+	err := m.GetClient().StateEvent(
+		m.Context(), id.RoomID(roomID), event.StateEncryption, "", &encEvt,
+	)
+
 	tree := newMessageTree(m, roomID)
+	tree.isEncrypted = err == nil && encEvt.Algorithm != ""
+
 	m.messageTrees.Store(roomID, tree)
 
 	return tree

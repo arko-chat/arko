@@ -44,18 +44,16 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messages := tree.Chronological()
-
 	roomID := ch.ID
 
 	if htmx.IsHTMX(r) {
-		if err := channelspage.Content(user, spaces, detail, ch, messages, roomID).Render(ctx, w); err != nil {
+		if err := channelspage.Content(user, spaces, detail, ch, tree, roomID).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := channelspage.Page(state, user, spaces, detail, ch, messages, roomID).Render(ctx, w); err != nil {
+	if err := channelspage.Page(state, user, spaces, detail, ch, tree, roomID).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

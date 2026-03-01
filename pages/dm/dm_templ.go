@@ -13,11 +13,12 @@ import (
 	"github.com/arko-chat/arko/components/features/chat"
 	"github.com/arko-chat/arko/components/layout"
 	"github.com/arko-chat/arko/components/layout/sidebar"
+	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
 
-func Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) templ.Component {
+func Page(state *session.Session, user models.User, spaces []models.Space, friendsList []models.User, friend models.User, tree *matrix.MessageTree, roomID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -50,7 +51,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, frien
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = Content(user, spaces, friendsList, friend, messages, roomID).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Content(user, spaces, friendsList, friend, tree, roomID).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -64,7 +65,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, frien
 	})
 }
 
-func Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, messages []models.Message, roomID string) templ.Component {
+func Content(user models.User, spaces []models.Space, friendsList []models.User, friend models.User, tree *matrix.MessageTree, roomID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -101,7 +102,7 @@ func Content(user models.User, spaces []models.Space, friendsList []models.User,
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = layout.Navbar("dm", friend.Name, "user", "").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Navbar("dm", friend.Name, "user", "", tree.IsE2EE()).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -112,7 +113,7 @@ func Content(user models.User, spaces []models.Space, friendsList []models.User,
 		templ_7745c5c3_Err = chat.Chat(chat.Props{
 			RoomID:            roomID,
 			Placeholder:       "Message " + friend.Name,
-			Messages:          messages,
+			Messages:          tree.Chronological(),
 			CurrentUserID:     user.ID,
 			CurrentUserName:   user.Name,
 			CurrentUserAvatar: user.Avatar,

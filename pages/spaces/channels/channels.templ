@@ -6,32 +6,33 @@ import (
 	"github.com/arko-chat/arko/components/features/chat"
 	"github.com/arko-chat/arko/components/layout"
 	"github.com/arko-chat/arko/components/layout/sidebar"
+	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, messages []models.Message, roomID string) {
+templ Page(state *session.Session, user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, tree *matrix.MessageTree, roomID string) {
 	@components.Base(state, "Arko | #"+ch.Name) {
-		@Content(user, spaces, spaceDetail, ch, messages, roomID)
+		@Content(user, spaces, spaceDetail, ch, tree, roomID)
 	}
 }
 
-templ Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, messages []models.Message, roomID string) {
+templ Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, tree *matrix.MessageTree, roomID string) {
 	<main class="flex w-full h-screen overflow-hidden">
 		@sidebar.SpaceList(spaces)
 		@sidebar.NavigationSidebar("space", user, spaceDetail)
 		<div id="content-area" class="w-full flex-1 flex flex-col max-[750px]:hidden bg-surface-base transition-colors relative">
 			if ch.Type == "text" {
-				@layout.Navbar("channel", ch.Name, "hashtag", "")
+				@layout.Navbar("channel", ch.Name, "hashtag", "", tree.IsE2EE())
 			} else {
-				@layout.Navbar("channel", ch.Name, "volume", "")
+				@layout.Navbar("channel", ch.Name, "volume", "", tree.IsE2EE())
 			}
 			<div class="flex-1 flex overflow-hidden">
 				<div id="main-content" class="bg-surface-base h-full flex-1 transition-colors">
 					@chat.Chat(chat.Props{
 						RoomID:            roomID,
 						Placeholder:       "Message #" + ch.Name,
-						Messages:          messages,
+						Messages:          tree.Chronological(),
 						CurrentUserID:     user.ID,
 						CurrentUserName:   user.Name,
 						CurrentUserAvatar: user.Avatar,
