@@ -13,10 +13,21 @@ import (
 	"github.com/arko-chat/arko/components/features/channel"
 	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-func Page(state *session.Session, user models.User, spaces []models.Space, viewData models.SpaceDetail) templ.Component {
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User        models.User
+	FriendsList []models.User
+	Spaces      []models.Space
+	SpaceDetail models.SpaceDetail
+}
+
+func Page(props PageProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -49,13 +60,13 @@ func Page(state *session.Session, user models.User, spaces []models.Space, viewD
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = Content(user, spaces, viewData).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Content(props.ContentProps).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Base(state, "Arko | "+viewData.Name).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Base(props.PageProps).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -63,7 +74,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, viewD
 	})
 }
 
-func Content(user models.User, spaces []models.Space, viewData models.SpaceDetail) templ.Component {
+func Content(props ContentProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -88,15 +99,15 @@ func Content(user models.User, spaces []models.Space, viewData models.SpaceDetai
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = sidebar.SpaceList(spaces).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = sidebar.SpaceList(props.Spaces).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = sidebar.NavigationSidebar("space", user, viewData).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = sidebar.NavigationSidebar("space", props.User, props.FriendsList, props.SpaceDetail).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = channel.View(viewData, nil).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = channel.View(props.SpaceDetail, nil).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

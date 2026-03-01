@@ -5,16 +5,24 @@ import (
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User) {
-	@components.Base(state, "Arko | QR Code Scanned") {
-		@Content(user)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User models.User
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User) {
+templ Content(props ContentProps) {
 	@authui.Card(
 		authui.IconOpts{
 			Icon:    "fa-solid fa-check",
@@ -23,7 +31,7 @@ templ Content(user models.User) {
 		},
 		"QR Code Scanned",
 		"The other device has scanned your QR code. Did it confirm the verification looks correct?",
-		authui.UserCard(user),
+		authui.UserCard(props.User),
 		qrScannedWarning(),
 		qrScannedButtons(),
 	)

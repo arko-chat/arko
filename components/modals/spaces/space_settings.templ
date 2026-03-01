@@ -1,17 +1,20 @@
 package spaces
 
-import "github.com/arko-chat/arko/components/ui"
+import (
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/models"
+)
 
-templ SpaceSettingsOverview() {
-	@ui.InputGroup("Space Name", false, "", ui.TextInput("", templ.Attributes{"value": "My Awesome Space"}))
+templ SpaceSettingsOverview(details models.SpaceDetail) {
+	@ui.InputGroup("Space Name", true, "", ui.TextInput("", templ.Attributes{"value": details.Name}))
 	<div>
 		@ui.SectionHeader("Space Icon")
-		@ui.ImageUpload("", "fa-solid fa-image")
+		@ui.ImageUpload(details.Avatar, "fa-solid fa-image")
 	</div>
 	@ui.InputGroup("Space Description", false, "", ui.Textarea("Tell people what your space is about", 4, templ.Attributes{}))
 }
 
-templ SpaceSettingsRoles() {
+templ SpaceSettingsRoles(details models.SpaceDetail) {
 	@ui.SectionHeader("Space Roles")
 	<div class="space-y-2">
 		@roleItem("Admin", "#e74c3c", true)
@@ -58,7 +61,7 @@ templ emojiItem(emoji string, name string) {
 	</div>
 }
 
-templ SpaceSettingsModeration() {
+templ SpaceSettingsModeration(details models.SpaceDetail) {
 	@ui.SectionHeader("Moderation Settings")
 	<div class="space-y-3">
 		@ui.CheckboxWithDescription("Enable Auto-Moderation", "Automatically moderate messages based on rules", templ.Attributes{"checked": true})
@@ -67,23 +70,23 @@ templ SpaceSettingsModeration() {
 	</div>
 }
 
-templ SpaceSettingsMembers() {
+templ SpaceSettingsMembers(details models.SpaceDetail) {
 	@ui.SectionHeader("Space Members")
 	@ui.TextInput("Search members", templ.Attributes{})
 	<div class="mt-4 space-y-2 max-h-96 overflow-y-auto">
-		@settingsMemberItem("John Doe", "/static/assets/avatar1.png", "Admin", true)
-		@settingsMemberItem("Jane Smith", "/static/assets/avatar2.png", "Moderator", true)
-		@settingsMemberItem("Bob Wilson", "/static/assets/avatar3.png", "Member", false)
+		for _, member := range details.Users {
+			@settingsMemberItem(member)
+		}
 	</div>
 }
 
-templ settingsMemberItem(name string, avatar string, role string, online bool) {
+templ settingsMemberItem(user models.User) {
 	<div class="flex items-center justify-between p-3 bg-surface-alt rounded hover:bg-hover-muted transition-colors">
 		<div class="flex items-center gap-3">
-			@ui.Avatar(avatar, "sm", online, true)
+			@ui.Avatar(user.Avatar, "sm", true, true)
 			<div>
-				<div class="text-sm font-medium text-content-primary">{ name }</div>
-				<div class="text-xs text-content-secondary">{ role }</div>
+				<div class="text-sm font-medium text-content-primary">{ user.Name }</div>
+				<div class="text-xs text-content-secondary">{ user.ID }</div>
 			</div>
 		</div>
 		<div class="flex items-center gap-2">
@@ -93,7 +96,7 @@ templ settingsMemberItem(name string, avatar string, role string, online bool) {
 	</div>
 }
 
-templ SpaceSettingsBans() {
+templ SpaceSettingsBans(details models.SpaceDetail) {
 	@ui.SectionHeader("Banned Users")
 	@ui.TextInput("Search banned users", templ.Attributes{})
 	<div class="mt-4 space-y-2 max-h-96 overflow-y-auto">

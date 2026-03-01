@@ -82,6 +82,25 @@ tasks:
       VERSION:
         sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
 
+  build:wasm:
+    desc: Build WASM
+    deps:
+      - generate
+      - build:frontend
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}/wasm
+      - >
+        GOOS=js
+        GOARCH=wasm
+        GOTOOLCHAIN=go1.25.7
+        go build
+        -tags=goolm
+        -ldflags="-X main.version={{.VERSION}}"
+        -o {{.BUILD_DIR}}/wasm/{{.APP_NAME}}.wasm
+        ./cmd/mobile
+      - cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" "{{.BUILD_DIR}}/wasm/"
+      - echo "WASM written to {{.BUILD_DIR}}/wasm/{{.APP_NAME}}.wasm"
+
   build:android:
     desc: Build Android AAR and copy to Android project
     deps:
@@ -107,6 +126,7 @@ tasks:
       - mkdir -p {{.IOS_BUILD_DIR}}
       - >
         gomobile bind
+        -tags=goolm
         -target=ios
         -o {{.IOS_BUILD_DIR}}/Mobile.xcframework
         {{.MOBILE_PKG}}

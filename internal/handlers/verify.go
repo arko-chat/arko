@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	verifywaitingpage "github.com/arko-chat/arko/pages/verify/waiting"
 )
@@ -95,13 +96,26 @@ func (h *Handler) HandleVerifyWaitingPage(
 		return
 	}
 
+	props := verifywaitingpage.ContentProps{
+		User: user,
+	}
+
+	h.svc.WebView.SetTitle("Waiting for verification")
+
 	if isHtmx {
-		if err := verifywaitingpage.Content(user).Render(ctx, w); err != nil {
+		if err := verifywaitingpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-	if err := verifywaitingpage.Page(state, user).Render(ctx, w); err != nil {
+
+	if err := verifywaitingpage.Page(verifywaitingpage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

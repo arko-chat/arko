@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/models"
@@ -20,7 +21,16 @@ func (h *Handler) HandleLoginPage(
 		return
 	}
 
-	if err := loginpage.Page(sess).Render(r.Context(), w); err != nil {
+	h.svc.WebView.SetTitle("Login")
+
+	props := loginpage.PageProps{
+		PageProps: components.PageProps{
+			State: sess,
+			Title: h.svc.WebView.GetTitle(),
+		},
+	}
+
+	if err := loginpage.Page(props).Render(r.Context(), w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -37,12 +47,11 @@ func (h *Handler) HandleLoginSubmit(
 
 	creds := models.LoginCredentials{
 		Homeserver: r.FormValue("homeserver"),
-		Username:   r.FormValue("username"),
 	}
 
-	if creds.Homeserver == "" || creds.Username == "" {
+	if creds.Homeserver == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = ui.Alert("All fields are required.").Render(r.Context(), w)
+		_ = ui.Alert("Homeserver field is required.").Render(r.Context(), w)
 		return
 	}
 
@@ -50,7 +59,6 @@ func (h *Handler) HandleLoginSubmit(
 	if err != nil {
 		h.logger.Error("login failed",
 			"homeserver", creds.Homeserver,
-			"username", creds.Username,
 			"err", err,
 		)
 		w.WriteHeader(http.StatusUnauthorized)

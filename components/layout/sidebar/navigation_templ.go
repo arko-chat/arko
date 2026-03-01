@@ -14,7 +14,7 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 )
 
-func NavigationSidebar(viewType string, user models.User, data interface{}) templ.Component {
+func NavigationSidebar(viewType string, user models.User, friends []models.User, data interface{}) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -73,7 +73,7 @@ func NavigationSidebar(viewType string, user models.User, data interface{}) temp
 			}
 			if viewType == "space" {
 				if spaceDetail, ok := data.(models.SpaceDetail); ok {
-					templ_7745c5c3_Err = spaceModals(spaceDetail).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = spaceModals(spaceDetail, friends).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -98,7 +98,7 @@ func NavigationSidebar(viewType string, user models.User, data interface{}) temp
 	})
 }
 
-func spaceModals(spaceDetail models.SpaceDetail) templ.Component {
+func spaceModals(spaceDetail models.SpaceDetail, friends []models.User) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -119,7 +119,7 @@ func spaceModals(spaceDetail models.SpaceDetail) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = ui.Modal("invite-modal", "Invite People", ui.ModalSizeMedium, spaces.InvitePeople()).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ui.Modal("invite-modal", "Invite People", ui.ModalSizeMedium, spaces.InvitePeople(spaceDetail, friends)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -131,18 +131,18 @@ func spaceModals(spaceDetail models.SpaceDetail) templ.Component {
 					Label:   "Overview",
 					Value:   "overview",
 					Active:  true,
-					Content: spaces.SpaceSettingsOverview(),
+					Content: spaces.SpaceSettingsOverview(spaceDetail),
 				},
 				{
 					Label:   "Roles",
 					Value:   "roles",
-					Content: spaces.SpaceSettingsRoles(),
+					Content: spaces.SpaceSettingsRoles(spaceDetail),
 				},
 				{Separator: true},
 				{
 					Label:   "Members",
 					Value:   "members",
-					Content: spaces.SpaceSettingsMembers(),
+					Content: spaces.SpaceSettingsMembers(spaceDetail),
 				},
 			},
 			ui.ModalFooter(

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/arko-chat/arko/internal/matrix"
@@ -24,20 +25,29 @@ func NewFriendsService(
 func (s *FriendsService) GetFriendRoomID(
 	otherUserID string,
 ) (string, error) {
-	userID := s.GetCurrentUserID()
-	return s.matrix.GetDMRoomID(userID, otherUserID)
+	currentSession := s.matrix.GetCurrentMatrixSession()
+	if currentSession == nil {
+		return "", fmt.Errorf("missing matrix session")
+	}
+	return currentSession.GetDMRoomID(otherUserID)
 }
 
 func (s *FriendsService) ListFriends() ([]models.User, error) {
-	userID := s.GetCurrentUserID()
-	return s.matrix.ListDirectMessages(userID)
+	currentSession := s.matrix.GetCurrentMatrixSession()
+	if currentSession == nil {
+		return nil, fmt.Errorf("missing matrix session")
+	}
+	return currentSession.ListDirectMessages()
 }
 
 func (s *FriendsService) FilterFriends(
 	filter string,
 ) ([]models.User, error) {
-	userID := s.GetCurrentUserID()
-	all, err := s.matrix.ListDirectMessages(userID)
+	currentSession := s.matrix.GetCurrentMatrixSession()
+	if currentSession == nil {
+		return nil, fmt.Errorf("missing matrix session")
+	}
+	all, err := currentSession.ListDirectMessages()
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +74,11 @@ func (s *FriendsService) FilterFriends(
 func (s *FriendsService) SearchFriends(
 	query string,
 ) ([]models.User, error) {
-	userID := s.GetCurrentUserID()
-	all, err := s.matrix.ListDirectMessages(userID)
+	currentSession := s.matrix.GetCurrentMatrixSession()
+	if currentSession == nil {
+		return nil, fmt.Errorf("missing matrix session")
+	}
+	all, err := currentSession.ListDirectMessages()
 	if err != nil {
 		return nil, err
 	}

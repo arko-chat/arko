@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/components/features/friends"
 	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/htmx"
@@ -27,14 +28,28 @@ func (h *Handler) HandleFriends(w http.ResponseWriter, r *http.Request) {
 
 	fl, _ := h.svc.Friends.ListFriends()
 
+	props := friendspage.ContentProps{
+		User:    user,
+		Spaces:  spaces,
+		Friends: fl,
+	}
+
+	h.svc.WebView.SetTitle("Friends/Direct Messages")
+
 	if htmx.IsHTMX(r) {
-		if err := friendspage.Content(user, spaces, fl).Render(ctx, w); err != nil {
+		if err := friendspage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := friendspage.Page(state, user, spaces, fl).Render(ctx, w); err != nil {
+	if err := friendspage.Page(friendspage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

@@ -50,6 +50,17 @@ func (c *Client) Close() {
 	})
 }
 
+func (c *Client) Send(msg []byte) (ok bool) {
+	select {
+	case c.send <- msg:
+		return true
+	case <-c.ctx.Done():
+		return false
+	default:
+		return false
+	}
+}
+
 func (c *Client) SetActiveRoom(roomID string) {
 	c.activeRoomMu.Lock()
 	defer c.activeRoomMu.Unlock()
@@ -73,14 +84,12 @@ func (c *Client) WritePump() {
 		select {
 		case <-c.ctx.Done():
 			c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
-			c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			c.conn.WriteMessage(
+				websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+			)
 			return
-		case msg, ok := <-c.send:
-			if !ok {
-				c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
-				c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-				return
-			}
+		case msg := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(WriteWait))
 			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 				return

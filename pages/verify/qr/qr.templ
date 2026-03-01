@@ -4,16 +4,25 @@ import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, qrCodeSVG string) {
-	@components.Base(state, "Arko | Scan QR Code") {
-		@Content(user, qrCodeSVG)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User      models.User
+	QRCodeSVG string
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User, qrCodeSVG string) {
+templ Content(props ContentProps) {
 	@authui.Card(
 		authui.IconOpts{
 			Icon:    "fa-solid fa-qrcode",
@@ -22,7 +31,7 @@ templ Content(user models.User, qrCodeSVG string) {
 		},
 		"Scan QR Code",
 		"Open another Matrix session and scan this code to verify your identity.",
-		qrBody(qrCodeSVG),
+		qrBody(props.QRCodeSVG),
 		qrHowTo(),
 		qrFooter(),
 	)

@@ -5,16 +5,25 @@ import (
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, errMsg string) {
-	@components.Base(state, "Arko | Enter Recovery Key") {
-		@Content(user, errMsg)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User   models.User
+	ErrMsg string
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User, errMsg string) {
+templ Content(props ContentProps) {
 	@authui.Card(
 		authui.IconOpts{
 			Icon:    "fa-solid fa-key",
@@ -23,7 +32,7 @@ templ Content(user models.User, errMsg string) {
 		},
 		"Enter Recovery Key",
 		"Enter your Matrix security key to restore access to encrypted messages.",
-		recoveryBody(user, errMsg),
+		recoveryBody(props.User, props.ErrMsg),
 		recoveryFooter(),
 	)
 }

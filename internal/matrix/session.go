@@ -51,6 +51,13 @@ type MatrixSession struct {
 
 	profileCache  *cache.Cache[models.User]
 	verifiedCache *cache.Cache[bool]
+	userCache     *cache.Cache[models.User]
+	aliasesCache  *cache.Cache[[]string]
+	roomCache     *cache.Cache[string]
+	channelsCache *cache.Cache[[]models.Channel]
+	spacesCache   *cache.Cache[[]models.Space]
+	dmCache       *cache.Cache[[]models.User]
+	membersCache  *cache.Cache[[]models.User]
 
 	messageTrees *xsync.Map[string, *MessageTree]
 }
@@ -203,6 +210,13 @@ func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, 
 		messageTrees:          xsync.NewMap[string, *MessageTree](),
 		profileCache:          cache.NewDefault[models.User](),
 		verifiedCache:         cache.New[bool](time.Minute * 30),
+		userCache:             cache.NewDefault[models.User](),
+		aliasesCache:          cache.NewDefault[[]string](),
+		roomCache:             cache.NewDefault[string](),
+		channelsCache:         cache.NewDefault[[]models.Channel](),
+		spacesCache:           cache.NewDefault[[]models.Space](),
+		dmCache:               cache.NewDefault[[]models.User](),
+		membersCache:          cache.NewDefault[[]models.User](),
 		crossSigningEvent:     make(chan struct{}, 2),
 	}
 
@@ -284,23 +298,23 @@ func (m *MatrixSession) initSyncHandlers() {
 	)
 
 	syncer.OnEventType(event.StateMember, func(ctx context.Context, evt *event.Event) {
-		m.manager.membersCache.Invalidate("grm:" + string(evt.RoomID))
+		m.membersCache.Invalidate("grm:" + string(evt.RoomID))
 		m.profileCache.Invalidate("gup:" + evt.GetStateKey())
-		m.manager.dmCache.Invalidate("ldm:" + m.id)
+		m.dmCache.Invalidate("ldm:" + m.id)
 	})
 
 	syncer.OnEventType(event.StateSpaceChild, func(ctx context.Context, evt *event.Event) {
-		m.manager.channelsCache.Invalidate("gsc:" + evt.RoomID.String())
+		m.channelsCache.Invalidate("gsc:" + evt.RoomID.String())
 	})
 
 	syncer.OnEventType(event.AccountDataDirectChats, func(ctx context.Context, evt *event.Event) {
-		m.manager.dmCache.Invalidate("ldm:" + m.id)
+		m.dmCache.Invalidate("ldm:" + m.id)
 	})
 
 	syncer.OnEventType(event.EphemeralEventPresence, func(ctx context.Context, evt *event.Event) {
 		m.profileCache.Invalidate("gup:" + evt.Sender.String())
 		if evt.Sender.String() == m.id {
-			m.manager.userCache.Invalidate("gcu:" + m.id)
+			m.userCache.Invalidate("gcu:" + m.id)
 		}
 	})
 

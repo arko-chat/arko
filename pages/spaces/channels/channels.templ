@@ -8,39 +8,53 @@ import (
 	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, tree *matrix.MessageTree, roomID string) {
-	@components.Base(state, "Arko | #"+ch.Name) {
-		@Content(user, spaces, spaceDetail, ch, tree, roomID)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User        models.User
+	FriendsList []models.User
+	Spaces      []models.Space
+	SpaceDetail models.SpaceDetail
+	Channel     models.Channel
+	Tree        *matrix.MessageTree
+	RoomID      string
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, tree *matrix.MessageTree, roomID string) {
+templ Content(props ContentProps) {
 	<main class="flex w-full h-screen overflow-hidden">
-		@sidebar.SpaceList(spaces)
-		@sidebar.NavigationSidebar("space", user, spaceDetail)
+		@sidebar.SpaceList(props.Spaces)
+		@sidebar.NavigationSidebar("space", props.User, props.FriendsList, props.SpaceDetail)
 		<div id="content-area" class="w-full flex-1 flex flex-col max-[750px]:hidden bg-surface-base transition-colors relative">
-			if ch.Type == "text" {
-				@layout.Navbar("channel", ch.Name, "hashtag", "", tree.IsE2EE())
+			if props.Channel.Type == "text" {
+				@layout.Navbar("channel", props.Channel.Name, "hashtag", "", props.Tree.IsE2EE())
 			} else {
-				@layout.Navbar("channel", ch.Name, "volume", "", tree.IsE2EE())
+				@layout.Navbar("channel", props.Channel.Name, "volume", "", props.Tree.IsE2EE())
 			}
 			<div class="flex-1 flex overflow-hidden">
 				<div id="main-content" class="bg-surface-base h-full flex-1 transition-colors">
 					@chat.Chat(chat.Props{
-						RoomID:            roomID,
-						Placeholder:       "Message #" + ch.Name,
-						Messages:          tree.Chronological(),
-						CurrentUserID:     user.ID,
-						CurrentUserName:   user.Name,
-						CurrentUserAvatar: user.Avatar,
-						ChannelName:       ch.Name,
-						Topic:             ch.Topic,
+						RoomID:            props.RoomID,
+						Placeholder:       "Message #" + props.Channel.Name,
+						Messages:          props.Tree.Chronological(),
+						CurrentUserID:     props.User.ID,
+						CurrentUserName:   props.User.Name,
+						CurrentUserAvatar: props.User.Avatar,
+						ChannelName:       props.Channel.Name,
+						Topic:             props.Channel.Topic,
 					})
 				</div>
-				@channel.MembersList(spaceDetail.Users)
+				@channel.MembersList(props.SpaceDetail.Users)
 			</div>
 		</div>
 	</main>

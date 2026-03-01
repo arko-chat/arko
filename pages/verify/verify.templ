@@ -5,16 +5,24 @@ import (
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User) {
-	@components.Base(state, "Arko | Verify Device") {
-		@Content(user)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User models.User
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User) {
+templ Content(props ContentProps) {
 	@authui.Card(
 		authui.IconOpts{
 			Icon:    "fa-solid fa-shield-halved",
@@ -23,7 +31,7 @@ templ Content(user models.User) {
 		},
 		"Verify Your Device",
 		"Your device needs to set up cross-signing keys to participate in encrypted conversations. Enter your password to complete verification.",
-		verifyUserAndForm(user),
+		verifyUserAndForm(props.User),
 		verifyFooter(),
 	)
 }

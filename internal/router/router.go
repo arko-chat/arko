@@ -1,6 +1,7 @@
 package router
 
 import (
+	"io/fs"
 	"net/http"
 
 	"github.com/arko-chat/arko/components/assets"
@@ -24,8 +25,13 @@ func New(
 	r.Use(middleware.SessionMiddleware())
 
 	if dist := assets.DistFS(); dist != nil {
-		r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(dist))))
+		sub, err := fs.Sub(dist, "assets")
+		if err == nil {
+			r.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.FS(sub))))
+		}
 	}
+
+	registerDevRoutes(r)
 
 	r.Get("/login", h.HandleLoginPage)
 	r.Post("/login/submit", h.HandleLoginSubmit)

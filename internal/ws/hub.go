@@ -41,7 +41,6 @@ func (h *Hub) Unregister(c *Client) {
 		return
 	}
 	delete(bucket, c)
-	close(c.send)
 	if len(bucket) == 0 {
 		delete(h.clients, c.UserID)
 	}
@@ -53,11 +52,7 @@ func (h *Hub) Push(userID string, data []byte) {
 	defer h.mu.RUnlock()
 
 	for c := range h.clients[userID] {
-		select {
-		case c.send <- data:
-		default:
-			h.logger.Warn("ws push dropped", "user", userID)
-		}
+		c.Send(data)
 	}
 }
 
@@ -70,11 +65,7 @@ func (h *Hub) BroadcastToRoom(roomID string, data []byte) {
 			if c.GetActiveRoom() != roomID {
 				continue
 			}
-			select {
-			case c.send <- data:
-			default:
-				h.logger.Warn("ws broadcast dropped", "room", roomID)
-			}
+			c.Send(data)
 		}
 	}
 }

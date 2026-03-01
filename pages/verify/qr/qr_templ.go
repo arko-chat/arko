@@ -12,10 +12,19 @@ import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-func Page(state *session.Session, user models.User, qrCodeSVG string) templ.Component {
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User      models.User
+	QRCodeSVG string
+}
+
+func Page(props PageProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -48,13 +57,13 @@ func Page(state *session.Session, user models.User, qrCodeSVG string) templ.Comp
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = Content(user, qrCodeSVG).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Content(props.ContentProps).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Base(state, "Arko | Scan QR Code").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Base(props.PageProps).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -62,7 +71,7 @@ func Page(state *session.Session, user models.User, qrCodeSVG string) templ.Comp
 	})
 }
 
-func Content(user models.User, qrCodeSVG string) templ.Component {
+func Content(props ContentProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -91,7 +100,7 @@ func Content(user models.User, qrCodeSVG string) templ.Component {
 			},
 			"Scan QR Code",
 			"Open another Matrix session and scan this code to verify your identity.",
-			qrBody(qrCodeSVG),
+			qrBody(props.QRCodeSVG),
 			qrHowTo(),
 			qrFooter(),
 		).Render(ctx, templ_7745c5c3_Buffer)

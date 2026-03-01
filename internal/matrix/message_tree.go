@@ -28,6 +28,8 @@ type MessageTree struct {
 
 	pendingRedactions *xsync.Map[string, *event.Event]
 
+	rawEncryptedEvents *xsync.Map[string, *event.Event]
+
 	matrixSession *MatrixSession
 
 	evtListenerId atomic.Uint64
@@ -85,12 +87,13 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 		BTreeG: btree.NewBTreeGOptions(byTimestamp, btree.Options{
 			NoLocks: true,
 		}),
-		matrixSession:     mxSession,
-		messagesMap:       xsync.NewMap[string, *models.Message](),
-		pendingRedactions: xsync.NewMap[string, *event.Event](),
-		nonces:            xsync.NewMap[string, *models.Message](),
-		roomID:            roomID,
-		embedCache:        cache.New[[]models.Embed](24 * time.Hour),
+		matrixSession:      mxSession,
+		messagesMap:        xsync.NewMap[string, *models.Message](),
+		pendingRedactions:  xsync.NewMap[string, *event.Event](),
+		nonces:             xsync.NewMap[string, *models.Message](),
+		rawEncryptedEvents: xsync.NewMap[string, *event.Event](),
+		roomID:             roomID,
+		embedCache:         cache.New[[]models.Embed](24 * time.Hour),
 	}
 }
 
@@ -287,6 +290,10 @@ func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit i
 				if err != nil {
 					msg := t.undecryptableMessage(evt)
 					msg.Nonce = nonce
+					t.rawEncryptedEvents.Store(msg.ID, evt)
+
+					// can be replaced as well when retried
+					t.nonces.Store(msg.ID, &msg)
 					t.Set(msg)
 					return
 				}
@@ -312,6 +319,68 @@ func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit i
 		})
 	}
 
+	wg.Wait()
+}
+
+func (t *MessageTree) RetryDecryptMessage(ctx context.Context, msg models.Message) bool {
+	if !msg.Undecryptable {
+		return false
+	}
+
+	enc, ok := t.rawEncryptedEvents.Load(msg.ID)
+	if !ok {
+		return false
+	}
+
+	requestedSessions := xsync.NewMap[id.SessionID, struct{}]()
+	unencrypted, err := t.handleEncrypted(ctx, requestedSessions, enc)
+	if err != nil {
+		return false
+	}
+
+	if unencrypted.Type != event.EventMessage {
+		return false
+	}
+
+	if unencrypted.Unsigned.RedactedBecause != nil {
+		redacted := t.redactedMessage(enc)
+		t.rawEncryptedEvents.Delete(msg.ID)
+		t.Set(redacted)
+		return true
+	}
+
+	decrypted := t.eventToMessage(unencrypted)
+	if decrypted == nil {
+		return false
+	}
+
+	decrypted.Nonce = msg.ID
+	t.rawEncryptedEvents.Delete(msg.ID)
+	t.Set(*decrypted)
+	return true
+}
+
+func (t *MessageTree) retryDecryptAll(ctx context.Context) {
+	t.mu.RLock()
+	var undecryptable []models.Message
+	t.BTreeG.Scan(func(msg models.Message) bool {
+		if msg.Undecryptable {
+			undecryptable = append(undecryptable, msg)
+		}
+		return true
+	})
+	t.mu.RUnlock()
+
+	if len(undecryptable) == 0 {
+		return
+	}
+
+	var wg sync.WaitGroup
+	for _, msg := range undecryptable {
+		wg.Go(func() {
+			t.RetryDecryptMessage(ctx, msg)
+		})
+	}
 	wg.Wait()
 }
 
@@ -547,6 +616,8 @@ func (t *MessageTree) getNeighbors(m models.Message) Neighbors {
 }
 
 func (t *MessageTree) Chronological() []models.Message {
+	go t.retryDecryptAll(t.matrixSession.manager.ctx)
+
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 

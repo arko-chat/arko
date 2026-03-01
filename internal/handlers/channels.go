@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	channelspage "github.com/arko-chat/arko/pages/spaces/channels"
 	"github.com/go-chi/chi/v5"
@@ -44,16 +46,34 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roomID := ch.ID
+	fl, _ := h.svc.Friends.ListFriends()
+
+	props := channelspage.ContentProps{
+		User:        user,
+		FriendsList: fl,
+		Spaces:      spaces,
+		SpaceDetail: detail,
+		Channel:     ch,
+		Tree:        tree,
+		RoomID:      ch.ID,
+	}
+
+	h.svc.WebView.SetTitle(fmt.Sprintf("#%s", ch.Name))
 
 	if htmx.IsHTMX(r) {
-		if err := channelspage.Content(user, spaces, detail, ch, tree, roomID).Render(ctx, w); err != nil {
+		if err := channelspage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := channelspage.Page(state, user, spaces, detail, ch, tree, roomID).Render(ctx, w); err != nil {
+	if err := channelspage.Page(channelspage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

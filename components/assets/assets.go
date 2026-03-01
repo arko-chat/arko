@@ -37,7 +37,10 @@ func (r *Resolver) IsDev() bool {
 }
 
 func (r *Resolver) ViteClientURL() string {
-	return r.devURL + "/@vite/client"
+	if r.dev {
+		return "/@vite/client"
+	}
+	return ""
 }
 
 func (r *Resolver) load() {
@@ -54,7 +57,7 @@ func (r *Resolver) load() {
 
 func (r *Resolver) JS(name string) string {
 	if r.dev {
-		return r.devURL + "/" + name
+		return "/" + name
 	}
 	r.load()
 	if entry, ok := r.manifest[name]; ok {
@@ -65,7 +68,7 @@ func (r *Resolver) JS(name string) string {
 
 func (r *Resolver) CSS(name string) []string {
 	if r.dev {
-		return []string{r.devURL + "/" + name}
+		return []string{"/" + name}
 	}
 	r.load()
 	if entry, ok := r.manifest[name]; ok {

@@ -53,12 +53,13 @@ type Channel struct {
 }
 
 type SpaceDetail struct {
-	ID       string
-	Name     string
-	Avatar   string
-	Address  string
-	Channels []Channel
-	Users    []User
+	ID        string
+	Name      string
+	Avatar    string
+	Address   string
+	InviteURL string
+	Channels  []Channel
+	Users     []User
 }
 
 type Reaction struct {

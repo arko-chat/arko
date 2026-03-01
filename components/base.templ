@@ -5,13 +5,18 @@ import (
 	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Base(state *session.Session, title string) {
+type PageProps struct {
+	State *session.Session
+	Title string
+}
+
+templ Base(props PageProps) {
 	<!DOCTYPE html>
 	<html lang="en" class="h-full">
 		<head>
-			if state != nil && state.Theme != "" {
+			if props.State != nil && props.State.Theme != "" {
 				<script>
-					document.documentElement.classList.add({{ state.Theme }});
+					document.documentElement.classList.add({{ props.State.Theme }});
 				</script>
 			} else {
 				<script>
@@ -27,7 +32,7 @@ templ Base(state *session.Session, title string) {
 			}
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>{ title }</title>
+			<title>{ props.Title }</title>
 			for _, css := range assets.CSS("src/assets/css/app.css") {
 				<link rel="stylesheet" href={ css }/>
 			}

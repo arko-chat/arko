@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	dmpage "github.com/arko-chat/arko/pages/dm"
 	"github.com/go-chi/chi/v5"
@@ -44,14 +45,31 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	props := dmpage.ContentProps{
+		User:        user,
+		Spaces:      spaces,
+		FriendsList: friendsList,
+		Friend:      friend,
+		Tree:        tree,
+		RoomID:      roomID,
+	}
+
+	h.svc.WebView.SetTitle(friend.Name)
+
 	if htmx.IsHTMX(r) {
-		if err := dmpage.Content(user, spaces, friendsList, friend, tree, roomID).Render(ctx, w); err != nil {
+		if err := dmpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := dmpage.Page(state, user, spaces, friendsList, friend, tree, roomID).Render(ctx, w); err != nil {
+	if err := dmpage.Page(dmpage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

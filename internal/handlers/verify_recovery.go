@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	verifyrecoverypage "github.com/arko-chat/arko/pages/verify/recovery"
 )
@@ -31,13 +32,27 @@ func (h *Handler) HandleVerifyRecoveryPage(
 		return
 	}
 
+	props := verifyrecoverypage.ContentProps{
+		User:   user,
+		ErrMsg: "",
+	}
+
+	h.svc.WebView.SetTitle("Recovery Key Verification")
+
 	if isHtmx {
-		if err := verifyrecoverypage.Content(user, "").Render(ctx, w); err != nil {
+		if err := verifyrecoverypage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-	if err := verifyrecoverypage.Page(state, user, "").Render(ctx, w); err != nil {
+
+	if err := verifyrecoverypage.Page(verifyrecoverypage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -61,9 +76,14 @@ func (h *Handler) HandleVerifyRecovery(
 		return
 	}
 
+	props := verifyrecoverypage.ContentProps{
+		User:   user,
+		ErrMsg: "Invalid recovery key. Please check and try again.",
+	}
+
 	if err := h.svc.Verification.RecoverWithKey(ctx, key); err != nil {
 		h.logger.Error("recovery key verification failed", "err", err)
-		if err := verifyrecoverypage.Content(user, "Invalid recovery key. Please check and try again.").Render(ctx, w); err != nil {
+		if err := verifyrecoverypage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return

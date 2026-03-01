@@ -16,10 +16,24 @@ import (
 	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-func Page(state *session.Session, user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, tree *matrix.MessageTree, roomID string) templ.Component {
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User        models.User
+	FriendsList []models.User
+	Spaces      []models.Space
+	SpaceDetail models.SpaceDetail
+	Channel     models.Channel
+	Tree        *matrix.MessageTree
+	RoomID      string
+}
+
+func Page(props PageProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -52,13 +66,13 @@ func Page(state *session.Session, user models.User, spaces []models.Space, space
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = Content(user, spaces, spaceDetail, ch, tree, roomID).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = Content(props.ContentProps).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Base(state, "Arko | #"+ch.Name).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Base(props.PageProps).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -66,7 +80,7 @@ func Page(state *session.Session, user models.User, spaces []models.Space, space
 	})
 }
 
-func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDetail, ch models.Channel, tree *matrix.MessageTree, roomID string) templ.Component {
+func Content(props ContentProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -91,11 +105,11 @@ func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDe
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = sidebar.SpaceList(spaces).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = sidebar.SpaceList(props.Spaces).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = sidebar.NavigationSidebar("space", user, spaceDetail).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = sidebar.NavigationSidebar("space", props.User, props.FriendsList, props.SpaceDetail).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -103,13 +117,13 @@ func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDe
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if ch.Type == "text" {
-			templ_7745c5c3_Err = layout.Navbar("channel", ch.Name, "hashtag", "", tree.IsE2EE()).Render(ctx, templ_7745c5c3_Buffer)
+		if props.Channel.Type == "text" {
+			templ_7745c5c3_Err = layout.Navbar("channel", props.Channel.Name, "hashtag", "", props.Tree.IsE2EE()).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = layout.Navbar("channel", ch.Name, "volume", "", tree.IsE2EE()).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = layout.Navbar("channel", props.Channel.Name, "volume", "", props.Tree.IsE2EE()).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -119,14 +133,14 @@ func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDe
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = chat.Chat(chat.Props{
-			RoomID:            roomID,
-			Placeholder:       "Message #" + ch.Name,
-			Messages:          tree.Chronological(),
-			CurrentUserID:     user.ID,
-			CurrentUserName:   user.Name,
-			CurrentUserAvatar: user.Avatar,
-			ChannelName:       ch.Name,
-			Topic:             ch.Topic,
+			RoomID:            props.RoomID,
+			Placeholder:       "Message #" + props.Channel.Name,
+			Messages:          props.Tree.Chronological(),
+			CurrentUserID:     props.User.ID,
+			CurrentUserName:   props.User.Name,
+			CurrentUserAvatar: props.User.Avatar,
+			ChannelName:       props.Channel.Name,
+			Topic:             props.Channel.Topic,
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -135,7 +149,7 @@ func Content(user models.User, spaces []models.Space, spaceDetail models.SpaceDe
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = channel.MembersList(spaceDetail.Users).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = channel.MembersList(props.SpaceDetail.Users).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -3,16 +3,24 @@ package verifychoosepage
 import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User) {
-	@components.Base(state, "Arko | Verify Your Identity") {
-		@Content(user)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User models.User
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User) {
+templ Content(props ContentProps) {
 	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
 		<div class="w-full max-w-md mx-4">
 			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">
@@ -28,13 +36,13 @@ templ Content(user models.User) {
 				<div class="px-8 pt-4 pb-2">
 					<div class="flex items-center gap-3 p-3 rounded-md bg-surface-sunken border border-border-subtle mb-4">
 						<img
-							src={ user.Avatar }
+							src={ props.User.Avatar }
 							class="w-9 h-9 rounded-full"
-							alt={ user.Name }
+							alt={ props.User.Name }
 						/>
 						<div class="flex flex-col min-w-0">
-							<span class="text-sm font-semibold text-content-primary truncate">{ user.Name }</span>
-							<span class="text-xs text-content-faint truncate">{ user.ID }</span>
+							<span class="text-sm font-semibold text-content-primary truncate">{ props.User.Name }</span>
+							<span class="text-xs text-content-faint truncate">{ props.User.ID }</span>
 						</div>
 					</div>
 					<div id="choose-buttons" class="space-y-2">

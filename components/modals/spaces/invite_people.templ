@@ -1,35 +1,36 @@
 package spaces
 
 import "github.com/arko-chat/arko/components/ui"
+import "github.com/arko-chat/arko/internal/models"
 
-templ InvitePeople() {
+templ InvitePeople(details models.SpaceDetail, friends []models.User) {
 	<div class="p-4 space-y-4">
 		<div>
 			@ui.Label("Send a server invite link to a friend", false)
 			<div class="flex gap-2">
-				@ui.TextInput("", templ.Attributes{"readonly": true, "value": "https://discord.gg/abc123xyz"})
+				@ui.TextInput("", templ.Attributes{"readonly": true, "value": details.InviteURL})
 				@ui.Button("Copy", "primary", templ.Attributes{})
 			</div>
-			@ui.HelpText("Your invite link expires in 7 days.", templ.Attributes{})
+			@ui.HelpText("Make sure to let your friends know to use Arko for full compatibility :)", templ.Attributes{})
 		</div>
 		@ui.Divider()
 		<div>
 			@ui.Label("Or send a server invite to friends", false)
 			@ui.TextInput("Search for friends", templ.Attributes{})
 			<div class="mt-3 space-y-2 max-h-48 overflow-y-auto">
-				@inviteFriendItem("John Doe", "/static/assets/avatar1.png", true)
-				@inviteFriendItem("Jane Smith", "/static/assets/avatar2.png", false)
-				@inviteFriendItem("Bob Wilson", "/static/assets/avatar3.png", true)
+				for _, friend := range friends {
+					@inviteFriendItem(friend)
+				}
 			</div>
 		</div>
 	</div>
 }
 
-templ inviteFriendItem(name string, avatar string, online bool) {
+templ inviteFriendItem(friend models.User) {
 	<div class="flex items-center justify-between p-2 rounded hover:bg-hover-primary transition-colors">
 		<div class="flex items-center gap-3">
-			@ui.Avatar(avatar, "sm", online, true)
-			<span class="text-sm font-medium text-content-primary">{ name }</span>
+			@ui.Avatar(friend.Avatar, "sm", true, true)
+			<span class="text-sm font-medium text-content-primary">{ friend.Name }</span>
 		</div>
 		@ui.Button("Invite", "success", templ.Attributes{})
 	</div>

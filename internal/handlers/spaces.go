@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	spacespage "github.com/arko-chat/arko/pages/spaces"
 	"github.com/go-chi/chi/v5"
@@ -31,14 +32,31 @@ func (h *Handler) HandleSpaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fl, _ := h.svc.Friends.ListFriends()
+
+	props := spacespage.ContentProps{
+		User:        user,
+		FriendsList: fl,
+		Spaces:      spaces,
+		SpaceDetail: detail,
+	}
+
+	h.svc.WebView.SetTitle(detail.Name)
+
 	if htmx.IsHTMX(r) {
-		if err := spacespage.Content(user, spaces, detail).Render(ctx, w); err != nil {
+		if err := spacespage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
 
-	if err := spacespage.Page(state, user, spaces, detail).Render(ctx, w); err != nil {
+	if err := spacespage.Page(spacespage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

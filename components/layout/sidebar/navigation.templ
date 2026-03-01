@@ -6,7 +6,7 @@ import (
 	"github.com/arko-chat/arko/internal/models"
 )
 
-templ NavigationSidebar(viewType string, user models.User, data interface{}) {
+templ NavigationSidebar(viewType string, user models.User, friends []models.User, data interface{}) {
 	@ui.ResizablePanel(
 		"navigation-sidebar",
 		"nav-sidebar-width",
@@ -20,15 +20,15 @@ templ NavigationSidebar(viewType string, user models.User, data interface{}) {
 		@ProfileBar(user)
 		if viewType == "space" {
 			if spaceDetail, ok := data.(models.SpaceDetail); ok {
-				@spaceModals(spaceDetail)
+				@spaceModals(spaceDetail, friends)
 			}
 		}
 	}
 	@ui.ResizableHandle("#navigation-sidebar", "nav-sidebar-width", 180, 400, true)
 }
 
-templ spaceModals(spaceDetail models.SpaceDetail) {
-	@ui.Modal("invite-modal", "Invite People", ui.ModalSizeMedium, spaces.InvitePeople())
+templ spaceModals(spaceDetail models.SpaceDetail, friends []models.User) {
+	@ui.Modal("invite-modal", "Invite People", ui.ModalSizeMedium, spaces.InvitePeople(spaceDetail, friends))
 	@ui.ModalWithTabs(
 		"space-settings-modal",
 		"Space Settings",
@@ -37,18 +37,18 @@ templ spaceModals(spaceDetail models.SpaceDetail) {
 				Label:   "Overview",
 				Value:   "overview",
 				Active:  true,
-				Content: spaces.SpaceSettingsOverview(),
+				Content: spaces.SpaceSettingsOverview(spaceDetail),
 			},
 			{
 				Label:   "Roles",
 				Value:   "roles",
-				Content: spaces.SpaceSettingsRoles(),
+				Content: spaces.SpaceSettingsRoles(spaceDetail),
 			},
 			{Separator: true},
 			{
 				Label:   "Members",
 				Value:   "members",
-				Content: spaces.SpaceSettingsMembers(),
+				Content: spaces.SpaceSettingsMembers(spaceDetail),
 			},
 		},
 		ui.ModalFooter(

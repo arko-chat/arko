@@ -7,8 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 
 	"github.com/arko-chat/arko/internal/config"
 	"github.com/arko-chat/arko/internal/handlers"
@@ -16,7 +14,6 @@ import (
 	"github.com/arko-chat/arko/internal/router"
 	"github.com/arko-chat/arko/internal/service"
 	"github.com/arko-chat/arko/internal/ws"
-	webview "github.com/webview/webview_go"
 )
 
 func main() {
@@ -62,35 +59,8 @@ func main() {
 		}
 	}()
 
-	w := webview.New(true)
-	defer w.Destroy()
-	w.SetTitle("Arko")
-	w.SetSize(1040, 768, webview.HintMin)
-	w.Navigate(addr)
-	w.Init(`
-    document.addEventListener("click", function(e) {
-        const a = e.target.closest("a");
-        if (!a || !a.href) return;
-        const url = a.href;
-        if (url.startsWith("http://127.0.0.1") || url.startsWith("/")) return;
-        e.preventDefault();
-        openExternal(url);
-    });
-`)
-
-	w.Bind("openExternal", func(url string) error {
-		var cmd *exec.Cmd
-		switch runtime.GOOS {
-		case "windows":
-			cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-		case "darwin":
-			cmd = exec.Command("open", url)
-		default:
-			cmd = exec.Command("xdg-open", url)
-		}
-		return cmd.Start()
-	})
-	w.Run()
+	svc.WebView.InitializeWebView(addr)
+	defer svc.WebView.CloseMainWindow()
 
 	slogger.Info("window closed, shutting down")
 	mgr.Shutdown()

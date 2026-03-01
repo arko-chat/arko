@@ -5,19 +5,30 @@ import (
 	"github.com/arko-chat/arko/components/features/channel"
 	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, spaces []models.Space, viewData models.SpaceDetail) {
-	@components.Base(state, "Arko | "+viewData.Name) {
-		@Content(user, spaces, viewData)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User        models.User
+	FriendsList []models.User
+	Spaces      []models.Space
+	SpaceDetail models.SpaceDetail
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User, spaces []models.Space, viewData models.SpaceDetail) {
+templ Content(props ContentProps) {
 	<main class="flex w-full h-screen overflow-hidden">
-		@sidebar.SpaceList(spaces)
-		@sidebar.NavigationSidebar("space", user, viewData)
-		@channel.View(viewData, nil)
+		@sidebar.SpaceList(props.Spaces)
+		@sidebar.NavigationSidebar("space", props.User, props.FriendsList, props.SpaceDetail)
+		@channel.View(props.SpaceDetail, nil)
 	</main>
 }

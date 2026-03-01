@@ -4,16 +4,24 @@ import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User) {
-	@components.Base(state, "Arko | Waiting for Verification") {
-		@Content(user)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User models.User
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User) {
+templ Content(props ContentProps) {
 	@authui.Card(
 		authui.IconOpts{
 			Icon:    "fa-solid fa-spinner spinner",
@@ -22,7 +30,7 @@ templ Content(user models.User) {
 		},
 		"Waiting for Other Device",
 		"Accept the verification request on your other Matrix session to compare emojis.",
-		authui.UserCard(user),
+		authui.UserCard(props.User),
 		sasWaitingBody(),
 		sasWaitingFooter(),
 	)

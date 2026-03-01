@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	verifyqrpage "github.com/arko-chat/arko/pages/verify/qr"
 	verifyqrscannedpage "github.com/arko-chat/arko/pages/verify/qr/scanned"
@@ -75,13 +76,27 @@ func (h *Handler) HandleVerifyQRPage(
 		return
 	}
 
+	props := verifyqrpage.ContentProps{
+		User:      user,
+		QRCodeSVG: qrSVG,
+	}
+
 	if isHtmx {
-		if err := verifyqrpage.Content(user, qrSVG).Render(ctx, w); err != nil {
+		if err := verifyqrpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-	if err := verifyqrpage.Page(state, user, qrSVG).Render(ctx, w); err != nil {
+
+	h.svc.WebView.SetTitle("QR Verification")
+
+	if err := verifyqrpage.Page(verifyqrpage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -126,13 +141,26 @@ func (h *Handler) HandleVerifyQRScannedPage(
 		return
 	}
 
+	props := verifyqrscannedpage.ContentProps{
+		User: user,
+	}
+
 	if isHtmx {
-		if err := verifyqrscannedpage.Content(user).Render(ctx, w); err != nil {
+		if err := verifyqrscannedpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-	if err := verifyqrscannedpage.Page(state, user).Render(ctx, w); err != nil {
+
+	h.svc.WebView.SetTitle("QR Verification")
+
+	if err := verifyqrscannedpage.Page(verifyqrscannedpage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -166,8 +194,14 @@ func (h *Handler) HandleVerifyQRStatus(
 		return
 	}
 
+	propsScanned := verifyqrscannedpage.ContentProps{
+		User: user,
+	}
+
+	h.svc.WebView.SetTitle("QR Verification")
+
 	if vs.QRScanned {
-		if err := verifyqrscannedpage.Content(user).Render(ctx, w); err != nil {
+		if err := verifyqrscannedpage.Content(propsScanned).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
@@ -179,7 +213,12 @@ func (h *Handler) HandleVerifyQRStatus(
 		return
 	}
 
-	if err := verifyqrpage.Content(user, qrSVG).Render(ctx, w); err != nil {
+	props := verifyqrpage.ContentProps{
+		User:      user,
+		QRCodeSVG: qrSVG,
+	}
+
+	if err := verifyqrpage.Content(props).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

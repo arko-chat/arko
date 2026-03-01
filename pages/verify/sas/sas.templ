@@ -5,7 +5,6 @@ import (
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
 type EmojiItem struct {
@@ -13,13 +12,23 @@ type EmojiItem struct {
 	Description string
 }
 
-templ Page(state *session.Session, user models.User, emojis []EmojiItem) {
-	@components.Base(state, "Arko | Confirm Verification") {
-		@Content(user, emojis)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User   models.User
+	Emojis []EmojiItem
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User, emojis []EmojiItem) {
+templ Content(props ContentProps) {
 	@authui.WideCard(
 		authui.IconOpts{
 			Icon:    "fa-solid fa-shield-check",
@@ -28,7 +37,7 @@ templ Content(user models.User, emojis []EmojiItem) {
 		},
 		"Confirm Emojis",
 		"Verify that the following emojis match what is shown on your other device.",
-		emojiGrid(emojis),
+		emojiGrid(props.Emojis),
 		sasButtons(),
 	)
 }

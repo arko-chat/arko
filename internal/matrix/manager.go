@@ -11,7 +11,6 @@ import (
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/id"
 
-	"github.com/arko-chat/arko/internal/cache"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -24,21 +23,15 @@ var ErrNotVerified = errors.New(
 )
 
 type Manager struct {
-	ctx            context.Context
-	cancel         context.CancelFunc
-	logger         *slog.Logger
-	cryptoDBPath   string
-	sentMsgIds     *lru.Cache[string, struct{}]
+	ctx          context.Context
+	cancel       context.CancelFunc
+	logger       *slog.Logger
+	cryptoDBPath string
+	sentMsgIds   *lru.Cache[string, struct{}]
+
 	matrixSessions *xsync.Map[string, *MatrixSession]
 	currSession    atomic.Pointer[MatrixSession]
 	verifiedCache  bool
-
-	userCache     *cache.Cache[models.User]
-	roomCache     *cache.Cache[string]
-	channelsCache *cache.Cache[[]models.Channel]
-	spacesCache   *cache.Cache[[]models.Space]
-	dmCache       *cache.Cache[[]models.User]
-	membersCache  *cache.Cache[[]models.User]
 }
 
 func NewManager(
@@ -54,12 +47,6 @@ func NewManager(
 		cryptoDBPath:   cryptoDBPath,
 		sentMsgIds:     newLru,
 		matrixSessions: xsync.NewMap[string, *MatrixSession](),
-		userCache:      cache.NewDefault[models.User](),
-		roomCache:      cache.NewDefault[string](),
-		channelsCache:  cache.NewDefault[[]models.Channel](),
-		spacesCache:    cache.NewDefault[[]models.Space](),
-		dmCache:        cache.NewDefault[[]models.User](),
-		membersCache:   cache.NewDefault[[]models.User](),
 	}
 
 	m.restoreAllSessions()
@@ -309,6 +296,9 @@ func (m *Manager) Shutdown() {
 
 func (m *Manager) GetCurrentUserID() string {
 	currSess := m.currSession.Load()
+	if currSess == nil {
+		return ""
+	}
 	return currSess.id
 }
 

@@ -41,9 +41,11 @@ func (s *ChatService) LoadNextMessages(roomID string, limit int) (bool, error) {
 func (s *ChatService) GetRoomMessageTree(
 	roomID string,
 ) (*matrix.MessageTree, error) {
-	userID := s.GetCurrentUserID()
-	matrixSession := s.matrix.GetMatrixSession(userID)
-	messageTree := matrixSession.GetMessageTree(roomID)
+	currentSession := s.matrix.GetCurrentMatrixSession()
+	if currentSession == nil {
+		return nil, fmt.Errorf("missing matrix session")
+	}
+	messageTree := currentSession.GetMessageTree(roomID)
 
 	s.initializedTree.Compute(roomID, func(str struct{}, loaded bool) (struct{}, xsync.ComputeOp) {
 		if loaded {

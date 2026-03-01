@@ -3,68 +3,24 @@ package matrix
 import (
 	"cmp"
 	"fmt"
-	"net/url"
+	"math/rand/v2"
 	"slices"
 
-	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
 	"github.com/arko-chat/arko/internal/models"
 )
 
-func resolveContentURI(
-	uri id.ContentURI,
-	fallbackSeed string,
-	fallbackStyle string,
-) string {
-	if uri.IsEmpty() {
-		return fmt.Sprintf(
-			"https://api.dicebear.com/7.x/%s/svg?seed=%s",
-			fallbackStyle, fallbackSeed,
-		)
-	}
-	path := mxcToHTTP(uri)
-	return "/api/media?path=" + url.QueryEscape(path)
-}
+func (m *MatrixSession) GetCurrentUser() (models.User, error) {
+	return m.userCache.Get("gcu:"+m.id, func() (models.User, error) {
+		ctx := m.context
+		localpart := id.UserID(m.id).Localpart()
 
-func resolveContentURIString(
-	uriStr id.ContentURIString,
-	fallbackSeed string,
-	fallbackStyle string,
-) string {
-	if uriStr == "" {
-		return fmt.Sprintf(
-			"https://api.dicebear.com/7.x/%s/svg?seed=%s",
-			fallbackStyle, fallbackSeed,
-		)
-	}
-	parsed, err := id.ParseContentURI(string(uriStr))
-	if err != nil {
-		return fmt.Sprintf(
-			"https://api.dicebear.com/7.x/%s/svg?seed=%s",
-			fallbackStyle, fallbackSeed,
-		)
-	}
-	path := mxcToHTTP(parsed)
-	return "/api/media?path=" + url.QueryEscape(path)
-}
-
-func (m *Manager) GetCurrentUser(
-	userID string,
-) (models.User, error) {
-	return m.userCache.Get("gcu:"+userID, func() (models.User, error) {
-		ctx := m.GetContext()
-		client, err := m.GetClient(userID)
-		if err != nil {
-			return models.User{}, err
-		}
-
-		localpart := id.UserID(userID).Localpart()
-		profile, err := client.GetProfile(ctx, id.UserID(userID))
+		profile, err := m.client.GetProfile(ctx, id.UserID(m.id))
 		if err != nil {
 			return models.User{
-				ID:   userID,
+				ID:   m.id,
 				Name: localpart,
 				Avatar: fmt.Sprintf(
 					"https://api.dicebear.com/7.x/avataaars/svg?seed=%s",
@@ -81,13 +37,13 @@ func (m *Manager) GetCurrentUser(
 		}
 
 		user := models.User{
-			ID:     userID,
+			ID:     m.id,
 			Name:   name,
 			Avatar: avatar,
 			Status: models.StatusOnline,
 		}
 
-		presence, err := client.GetPresence(ctx, id.UserID(userID))
+		presence, err := m.client.GetPresence(ctx, id.UserID(m.id))
 		if err == nil {
 			if presence.CurrentlyActive {
 				user.Status = models.StatusOnline
@@ -100,15 +56,13 @@ func (m *Manager) GetCurrentUser(
 	})
 }
 
-func (m *Manager) getRoomName(
-	client *mautrix.Client,
-	roomID id.RoomID,
-) string {
+func (m *MatrixSession) getRoomName(roomID id.RoomID) string {
 	key := "grn:" + roomID.String()
 	val, _ := m.roomCache.Get(key, func() (string, error) {
-		ctx := m.GetContext()
 		var nameEvt event.RoomNameEventContent
-		err := client.StateEvent(ctx, roomID, event.StateRoomName, "", &nameEvt)
+		err := m.client.StateEvent(
+			m.context, roomID, event.StateRoomName, "", &nameEvt,
+		)
 		if err != nil || nameEvt.Name == "" {
 			return roomID.String(), nil
 		}
@@ -117,38 +71,29 @@ func (m *Manager) getRoomName(
 	return val
 }
 
-func (m *Manager) getRoomAvatar(
-	client *mautrix.Client,
-	roomID id.RoomID,
-) string {
+func (m *MatrixSession) getRoomAvatar(roomID id.RoomID) string {
 	key := "gra:" + roomID.String()
 	val, _ := m.roomCache.Get(key, func() (string, error) {
-		ctx := m.GetContext()
 		var avatarEvt event.RoomAvatarEventContent
-		err := client.StateEvent(ctx, roomID, event.StateRoomAvatar, "", &avatarEvt)
+		err := m.client.StateEvent(
+			m.context, roomID, event.StateRoomAvatar, "", &avatarEvt,
+		)
 		if err != nil {
 			return fmt.Sprintf(
 				"https://api.dicebear.com/7.x/shapes/svg?seed=%s",
 				roomID.String(),
 			), nil
 		}
-		return resolveContentURIString(avatarEvt.URL, roomID.String(), "shapes"), nil
+		return resolveContentURIString(
+			avatarEvt.URL, roomID.String(), "shapes",
+		), nil
 	})
 	return val
 }
 
-func (m *Manager) ListSpaces(
-	userID string,
-) ([]models.Space, error) {
-	return m.spacesCache.Get("ls:"+userID, func() ([]models.Space, error) {
-		ctx := m.GetContext()
-
-		client, err := m.GetClient(userID)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err := client.JoinedRooms(ctx)
+func (m *MatrixSession) ListSpaces() ([]models.Space, error) {
+	return m.spacesCache.Get("ls:"+m.id, func() ([]models.Space, error) {
+		resp, err := m.client.JoinedRooms(m.context)
 		if err != nil {
 			return nil, fmt.Errorf("joined rooms: %w", err)
 		}
@@ -156,13 +101,15 @@ func (m *Manager) ListSpaces(
 		var spaces []models.Space
 		for _, roomID := range resp.JoinedRooms {
 			var createEvt event.CreateEventContent
-			err := client.StateEvent(ctx, roomID, event.StateCreate, "", &createEvt)
+			err := m.client.StateEvent(
+				m.context, roomID, event.StateCreate, "", &createEvt,
+			)
 			if err != nil || createEvt.Type != event.RoomTypeSpace {
 				continue
 			}
 
-			name := m.getRoomName(client, roomID)
-			avatar := m.getRoomAvatar(client, roomID)
+			name := m.getRoomName(roomID)
+			avatar := m.getRoomAvatar(roomID)
 
 			spaces = append(spaces, models.Space{
 				ID:      roomID.String(),
@@ -172,11 +119,8 @@ func (m *Manager) ListSpaces(
 				Address: encodeRoomID(roomID.String()),
 			})
 
-			// preload rooms
-			go m.getSpaceChildren(client, roomID)
-
-			// preload members
-			go m.getRoomMembers(client, roomID)
+			go m.getSpaceChildren(roomID)
+			go m.getRoomMembers(roomID)
 		}
 
 		slices.SortFunc(spaces, func(a, b models.Space) int {
@@ -187,45 +131,87 @@ func (m *Manager) ListSpaces(
 	})
 }
 
-func (m *Manager) GetSpaceDetail(
-	userID string,
-	spaceID string,
-) (models.SpaceDetail, error) {
-	client, err := m.GetClient(userID)
-	if err != nil {
-		return models.SpaceDetail{}, err
-	}
-
+func (m *MatrixSession) GetSpaceDetail(spaceID string) (models.SpaceDetail, error) {
 	roomID := id.RoomID(spaceID)
-	name := m.getRoomName(client, roomID)
-	avatar := m.getRoomAvatar(client, roomID)
+	name := m.getRoomName(roomID)
+	avatar := m.getRoomAvatar(roomID)
 
-	children, err := m.getSpaceChildren(client, roomID)
+	children, err := m.getSpaceChildren(roomID)
 	if err != nil {
 		children = nil
 	}
 
-	members, err := m.getRoomMembers(client, roomID)
+	members, err := m.getRoomMembers(roomID)
 	if err != nil {
 		members = nil
 	}
 
+	shareUrl := ""
+	urls, err := m.getUrls(roomID)
+	if err == nil && len(urls) > 0 {
+		shareUrl = urls[0]
+	}
+
 	return models.SpaceDetail{
-		ID:       spaceID,
-		Name:     name,
-		Avatar:   avatar,
-		Channels: children,
-		Users:    members,
+		ID:        spaceID,
+		Name:      name,
+		Avatar:    avatar,
+		Channels:  children,
+		Users:     members,
+		InviteURL: shareUrl,
 	}, nil
 }
 
-func (m *Manager) getSpaceChildren(
-	client *mautrix.Client,
+func randString(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.IntN(len(letters))]
+	}
+	return string(b)
+}
+
+func (m *MatrixSession) getUrls(roomID id.RoomID) ([]string, error) {
+	return m.aliasesCache.Get("gu:"+roomID.String(), func() ([]string, error) {
+		m.logger.Debug("fetching aliases", "roomID", roomID)
+
+		resp, err := m.client.GetAliases(m.context, roomID)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(resp.Aliases) == 0 {
+			m.logger.Debug("no aliases found, creating one", "roomID", roomID)
+
+			home := m.client.UserID.Homeserver()
+			m.logger.Debug("creating alias", "roomID", roomID, "host", home)
+			alias := id.NewRoomAlias(randString(8), home)
+
+			if _, err := m.client.CreateAlias(m.context, alias, roomID); err != nil {
+				m.logger.Debug("failed to create alias", "roomID", roomID, "error", err)
+				return nil, fmt.Errorf("failed to create alias: %w", err)
+			}
+
+			m.logger.Debug("alias created", "roomID", roomID, "alias", alias)
+			return []string{alias.URI().MatrixToURL()}, nil
+		}
+
+		m.logger.Debug("aliases found", "roomID", roomID, "count", len(resp.Aliases))
+
+		urls := make([]string, 0, len(resp.Aliases))
+		for _, r := range resp.Aliases {
+			urls = append(urls, r.URI().MatrixToURL())
+		}
+
+		return urls, nil
+	})
+}
+
+func (m *MatrixSession) getSpaceChildren(
 	spaceID id.RoomID,
 ) ([]models.Channel, error) {
 	return m.channelsCache.Get("gsc:"+spaceID.String(), func() ([]models.Channel, error) {
-		ctx := m.GetContext()
-		stateMap, err := client.State(ctx, spaceID)
+		stateMap, err := m.client.State(m.context, spaceID)
 		if err != nil {
 			return nil, err
 		}
@@ -243,7 +229,7 @@ func (m *Manager) getSpaceChildren(
 			}
 
 			childRoomID := id.RoomID(stateKey)
-			childName := m.getRoomName(client, childRoomID)
+			childName := m.getRoomName(childRoomID)
 
 			channels = append(channels, models.Channel{
 				ID:      childRoomID.String(),
@@ -252,11 +238,9 @@ func (m *Manager) getSpaceChildren(
 				SpaceID: spaceID.String(),
 			})
 
-			// preload messages
 			go func() {
-				mxSession := m.GetCurrentMatrixSession()
-				tree := mxSession.GetMessageTree(string(childRoomID))
-				tree.Initialize(m.ctx)
+				tree := m.GetMessageTree(string(childRoomID))
+				tree.Initialize(m.context)
 			}()
 		}
 
@@ -268,18 +252,12 @@ func (m *Manager) getSpaceChildren(
 	})
 }
 
-func (m *Manager) ListDirectMessages(
-	userID string,
-) ([]models.User, error) {
-	return m.dmCache.Get("ldm:"+userID, func() ([]models.User, error) {
-		ctx := m.GetContext()
-		client, err := m.GetClient(userID)
-		if err != nil {
-			return nil, err
-		}
-
+func (m *MatrixSession) ListDirectMessages() ([]models.User, error) {
+	return m.dmCache.Get("ldm:"+m.id, func() ([]models.User, error) {
 		var dmMap map[id.UserID][]id.RoomID
-		err = client.GetAccountData(ctx, event.AccountDataDirectChats.Type, &dmMap)
+		err := m.client.GetAccountData(
+			m.context, event.AccountDataDirectChats.Type, &dmMap,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("get dm list: %w", err)
 		}
@@ -293,25 +271,19 @@ func (m *Manager) ListDirectMessages(
 			}
 			seen[uid] = true
 
-			// Use the session's profile cache to resolve the friend's details
-			sess, ok := m.matrixSessions.Load(userID)
-			if ok {
-				profile, err := sess.GetUserProfile(uid)
-				if err != nil {
-					continue
-				}
-				friends = append(friends, profile)
-
-				// preload messages
-				go func() {
-					mxSession := m.GetCurrentMatrixSession()
-					roomID, err := m.GetDMRoomID(userID, uid)
-					if err == nil {
-						tree := mxSession.GetMessageTree(string(roomID))
-						tree.Initialize(m.ctx)
-					}
-				}()
+			profile, err := m.GetUserProfile(uid)
+			if err != nil {
+				continue
 			}
+			friends = append(friends, profile)
+
+			go func() {
+				roomID, err := m.GetDMRoomID(uid)
+				if err == nil {
+					tree := m.GetMessageTree(string(roomID))
+					tree.Initialize(m.context)
+				}
+			}()
 		}
 
 		slices.SortFunc(friends, func(a, b models.User) int {
@@ -322,20 +294,10 @@ func (m *Manager) ListDirectMessages(
 	})
 }
 
-func (m *Manager) GetDMRoomID(
-	userID string,
-	otherUserID string,
-) (string, error) {
-	client, err := m.GetClient(userID)
-	if err != nil {
-		return "", err
-	}
-
+func (m *MatrixSession) GetDMRoomID(otherUserID string) (string, error) {
 	var dmMap map[id.UserID][]id.RoomID
-	err = client.GetAccountData(
-		m.ctx,
-		event.AccountDataDirectChats.Type,
-		&dmMap,
+	err := m.client.GetAccountData(
+		m.context, event.AccountDataDirectChats.Type, &dmMap,
 	)
 	if err != nil {
 		return "", err
@@ -349,21 +311,17 @@ func (m *Manager) GetDMRoomID(
 	return rooms[0].String(), nil
 }
 
-func (m *Manager) GetChannel(
-	userID string,
+func (m *MatrixSession) GetChannel(
 	spaceID string,
 	channelID string,
 ) (models.Channel, error) {
-	client, err := m.GetClient(userID)
-	if err != nil {
-		return models.Channel{}, err
-	}
-
 	roomID := id.RoomID(channelID)
-	name := m.getRoomName(client, roomID)
+	name := m.getRoomName(roomID)
 
 	var topicEvt event.TopicEventContent
-	_ = client.StateEvent(m.ctx, roomID, event.StateTopic, "", &topicEvt)
+	_ = m.client.StateEvent(
+		m.context, roomID, event.StateTopic, "", &topicEvt,
+	)
 
 	return models.Channel{
 		ID:      channelID,
@@ -374,13 +332,11 @@ func (m *Manager) GetChannel(
 	}, nil
 }
 
-func (m *Manager) getRoomMembers(
-	client *mautrix.Client,
+func (m *MatrixSession) getRoomMembers(
 	roomID id.RoomID,
 ) ([]models.User, error) {
 	return m.membersCache.Get("grm:"+roomID.String(), func() ([]models.User, error) {
-		ctx := m.GetContext()
-		members, err := client.Members(ctx, roomID)
+		members, err := m.client.Members(m.context, roomID)
 		if err != nil {
 			return nil, err
 		}
@@ -400,7 +356,9 @@ func (m *Manager) getRoomMembers(
 				name = content.Displayname
 			}
 
-			avatar := resolveContentURIString(content.AvatarURL, localpart, "avataaars")
+			avatar := resolveContentURIString(
+				content.AvatarURL, localpart, "avataaars",
+			)
 
 			users = append(users, models.User{
 				ID:     stateKey,

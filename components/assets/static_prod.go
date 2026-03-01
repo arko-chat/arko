@@ -16,5 +16,5 @@ func DistFS() fs.FS {
 }
 
 func init() {
-	Global = NewResolver(DistFS(), "/assets/")
+	Global = NewResolver(DistFS(), "")
 }

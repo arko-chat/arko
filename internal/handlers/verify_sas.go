@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	verifysaspage "github.com/arko-chat/arko/pages/verify/sas"
 	verifysaswaitingpage "github.com/arko-chat/arko/pages/verify/sas/waiting"
@@ -89,13 +90,27 @@ func (h *Handler) HandleVerifySASPage(
 		}
 	}
 
+	props := verifysaspage.ContentProps{
+		User:   user,
+		Emojis: emojis,
+	}
+
+	h.svc.WebView.SetTitle("SAS Verification")
+
 	if isHtmx {
-		if err := verifysaspage.Content(user, emojis).Render(ctx, w); err != nil {
+		if err := verifysaspage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-	if err := verifysaspage.Page(state, user, emojis).Render(ctx, w); err != nil {
+
+	if err := verifysaspage.Page(verifysaspage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }
@@ -145,13 +160,26 @@ func (h *Handler) HandleVerifySASWaitingPage(
 		return
 	}
 
+	props := verifysaswaitingpage.ContentProps{
+		User: user,
+	}
+
+	h.svc.WebView.SetTitle("SAS Verification")
+
 	if isHtmx {
-		if err := verifysaswaitingpage.Content(user).Render(ctx, w); err != nil {
+		if err := verifysaswaitingpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-	if err := verifysaswaitingpage.Page(state, user).Render(ctx, w); err != nil {
+
+	if err := verifysaswaitingpage.Page(verifysaswaitingpage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

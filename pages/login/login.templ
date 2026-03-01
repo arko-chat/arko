@@ -4,16 +4,23 @@ import (
 	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/components/authui"
 	"github.com/arko-chat/arko/components/ui"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session) {
-	@components.Base(state, "Arko | Login") {
-		@Content()
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content() {
+templ Content(_ ContentProps) {
 	<main class="flex items-center justify-center w-full h-screen bg-surface-overlay">
 		<div class="w-full max-w-md mx-4">
 			<div class="bg-surface-base rounded-lg shadow-lg border border-border-subtle overflow-hidden">

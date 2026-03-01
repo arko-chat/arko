@@ -50,3 +50,40 @@ func mxcToHTTP(uri id.ContentURI) string {
 func encodeRoomID(roomID string) string {
 	return url.PathEscape(roomID)
 }
+
+func resolveContentURI(
+	uri id.ContentURI,
+	fallbackSeed string,
+	fallbackStyle string,
+) string {
+	if uri.IsEmpty() {
+		return fmt.Sprintf(
+			"https://api.dicebear.com/7.x/%s/svg?seed=%s",
+			fallbackStyle, fallbackSeed,
+		)
+	}
+	path := mxcToHTTP(uri)
+	return "/api/media?path=" + url.QueryEscape(path)
+}
+
+func resolveContentURIString(
+	uriStr id.ContentURIString,
+	fallbackSeed string,
+	fallbackStyle string,
+) string {
+	if uriStr == "" {
+		return fmt.Sprintf(
+			"https://api.dicebear.com/7.x/%s/svg?seed=%s",
+			fallbackStyle, fallbackSeed,
+		)
+	}
+	parsed, err := id.ParseContentURI(string(uriStr))
+	if err != nil {
+		return fmt.Sprintf(
+			"https://api.dicebear.com/7.x/%s/svg?seed=%s",
+			fallbackStyle, fallbackSeed,
+		)
+	}
+	path := mxcToHTTP(parsed)
+	return "/api/media?path=" + url.QueryEscape(path)
+}

@@ -75,7 +75,7 @@ func PrivacySettings() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = ui.CheckboxWithDescription("Use data to improve Discord", "Help us improve Discord with usage data", templ.Attributes{}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ui.CheckboxWithDescription("Use data to improve Arko", "Help us improve Arko with usage data", templ.Attributes{}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

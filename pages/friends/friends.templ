@@ -5,19 +5,29 @@ import (
 	"github.com/arko-chat/arko/components/features/friends"
 	"github.com/arko-chat/arko/components/layout/sidebar"
 	"github.com/arko-chat/arko/internal/models"
-	"github.com/arko-chat/arko/internal/session"
 )
 
-templ Page(state *session.Session, user models.User, spaces []models.Space, viewData []models.User) {
-	@components.Base(state, "Arko | Friends") {
-		@Content(user, spaces, viewData)
+type PageProps struct {
+	components.PageProps
+	ContentProps
+}
+
+type ContentProps struct {
+	User    models.User
+	Spaces  []models.Space
+	Friends []models.User
+}
+
+templ Page(props PageProps) {
+	@components.Base(props.PageProps) {
+		@Content(props.ContentProps)
 	}
 }
 
-templ Content(user models.User, spaces []models.Space, viewData []models.User) {
+templ Content(props ContentProps) {
 	<main class="flex w-full h-screen overflow-hidden">
-		@sidebar.SpaceList(spaces)
-		@sidebar.NavigationSidebar("friends", user, viewData)
+		@sidebar.SpaceList(props.Spaces)
+		@sidebar.NavigationSidebar("friends", props.User, props.Friends, props.Friends)
 		@friends.View("online")
 	</main>
 }

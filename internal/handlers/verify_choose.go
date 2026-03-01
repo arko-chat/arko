@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/arko-chat/arko/components"
 	"github.com/arko-chat/arko/internal/htmx"
 	verifychoosepage "github.com/arko-chat/arko/pages/verify/choose"
 )
@@ -40,13 +41,26 @@ func (h *Handler) HandleVerifyChoosePage(
 		return
 	}
 
+	props := verifychoosepage.ContentProps{
+		User: user,
+	}
+
+	h.svc.WebView.SetTitle("Verification Options")
+
 	if isHtmx {
-		if err := verifychoosepage.Content(user).Render(ctx, w); err != nil {
+		if err := verifychoosepage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-	if err := verifychoosepage.Page(state, user).Render(ctx, w); err != nil {
+
+	if err := verifychoosepage.Page(verifychoosepage.PageProps{
+		PageProps: components.PageProps{
+			State: state,
+			Title: h.svc.WebView.GetTitle(),
+		},
+		ContentProps: props,
+	}).Render(ctx, w); err != nil {
 		h.serverError(w, r, err)
 	}
 }

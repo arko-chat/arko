@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
@@ -22,7 +24,11 @@ func NewBaseService(
 }
 
 func (s *BaseService) GetCurrentUser() (models.User, error) {
-	return s.matrix.GetCurrentUser(s.matrix.GetCurrentUserID())
+	currentSession := s.matrix.GetCurrentMatrixSession()
+	if currentSession == nil {
+		return models.User{}, fmt.Errorf("missing matrix session")
+	}
+	return currentSession.GetCurrentUser()
 }
 
 func (s *BaseService) GetCurrentUserID() string {

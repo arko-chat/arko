@@ -11,6 +11,7 @@ type Services struct {
 	Spaces       *SpaceService
 	User         *UserService
 	Verification *VerificationService
+	WebView      *WebViewService
 }
 
 func New(
@@ -23,5 +24,6 @@ func New(
 		Spaces:       NewSpaceService(mgr, wsHub),
 		User:         NewUserService(mgr, wsHub),
 		Verification: NewVerificationService(mgr, wsHub),
+		WebView:      NewWebViewService(mgr, wsHub),
 	}
 }
