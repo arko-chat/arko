@@ -6,7 +6,7 @@ package webview
 
 #cgo linux openbsd freebsd netbsd CXXFLAGS: -DWEBVIEW_GTK -std=c++14
 #cgo linux openbsd freebsd netbsd LDFLAGS: -ldl
-#cgo linux openbsd freebsd netbsd pkg-config: gtk+-3.0 webkit2gtk-4.1
+#cgo linux openbsd freebsd netbsd pkg-config: gtk4 webkitgtk-6.0
 
 #cgo darwin CXXFLAGS: -DWEBVIEW_COCOA -std=c++14
 #cgo darwin LDFLAGS: -framework WebKit -ldl
