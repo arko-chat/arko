@@ -23,3 +23,8 @@ bun*
 
 # Go workspace file
 go.work
+
+.task/
+
+mobile/android/app/libs/
+components/assets/dist/

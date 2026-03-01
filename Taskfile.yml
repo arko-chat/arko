@@ -51,7 +51,7 @@ tasks:
     internal: true
     cmds:
       - sleep 2
-      - "go tool wgo -file .go -file .templ -xfile _templ.go go tool templ generate :: go run -tags dev ./cmd/arko {{.CLI_ARGS}}"
+      - "go tool wgo -file .go -file .templ -xfile _templ.go go tool templ generate :: go run -tags dev,goolm ./cmd/arko {{.CLI_ARGS}}"
 
   build:frontend:
     desc: Build frontend assets
@@ -74,6 +74,7 @@ tasks:
       - mkdir -p {{.BUILD_DIR}}
       - >
         go build
+        -tags=goolm
         -ldflags="-s -w -X main.version={{.VERSION}}"
         -o {{.BUILD_DIR}}/{{.APP_NAME}}
         ./cmd/arko
@@ -90,6 +91,7 @@ tasks:
       - mkdir -p {{.ANDROID_LIBS_DIR}}
       - >
         gomobile bind
+        -tags=goolm
         -target=android
         -androidapi=24
         -o {{.ANDROID_LIBS_DIR}}/mobile.aar
