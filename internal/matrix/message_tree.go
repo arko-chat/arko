@@ -23,7 +23,10 @@ import (
 type MessageTree struct {
 	mu sync.RWMutex
 	*btree.BTreeG[models.Message]
-	nonces *xsync.Map[string, models.Message]
+	messagesMap *xsync.Map[string, *models.Message]
+	nonces      *xsync.Map[string, *models.Message]
+
+	pendingRedactions *xsync.Map[string, *event.Event]
 
 	matrixSession *MatrixSession
 
@@ -82,10 +85,12 @@ func newMessageTree(mxSession *MatrixSession, roomID string) *MessageTree {
 		BTreeG: btree.NewBTreeGOptions(byTimestamp, btree.Options{
 			NoLocks: true,
 		}),
-		matrixSession: mxSession,
-		nonces:        xsync.NewMap[string, models.Message](),
-		roomID:        roomID,
-		embedCache:    cache.New[[]models.Embed](24 * time.Hour),
+		matrixSession:     mxSession,
+		messagesMap:       xsync.NewMap[string, *models.Message](),
+		pendingRedactions: xsync.NewMap[string, *event.Event](),
+		nonces:            xsync.NewMap[string, *models.Message](),
+		roomID:            roomID,
+		embedCache:        cache.New[[]models.Embed](24 * time.Hour),
 	}
 }
 
@@ -155,6 +160,7 @@ func (t *MessageTree) fetchAndApplyEmbeds(msg models.Message) {
 
 	t.mu.Lock()
 	t.BTreeG.Set(msg)
+	t.messagesMap.Store(msg.ID, &msg)
 	t.mu.Unlock()
 
 	t.sendEventToListeners(MessageTreeEvent{
@@ -190,12 +196,62 @@ func (t *MessageTree) DeleteMessage(msg models.Message) {
 	})
 }
 
-func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit int) {
+func (t *MessageTree) redactedMessageFrom(
+	original models.Message,
+	evt *event.Event,
+) models.Message {
+	original.Content = evt.Content.AsRedaction().Reason
+	original.Redacted = true
+	return original
+}
+
+func (t *MessageTree) handleEncrypted(ctx context.Context, requestedSessions *xsync.Map[id.SessionID, struct{}], enc *event.Event) (*event.Event, error) {
 	userID := id.UserID(t.matrixSession.id)
 	roomID := t.roomID
 	rid := id.RoomID(roomID)
-	client := t.matrixSession.GetClient()
+
 	cryptoHelper := t.matrixSession.GetCryptoHelper()
+
+	_ = enc.Content.ParseRaw(enc.Type)
+	encContent, ok := enc.Content.Parsed.(*event.EncryptedEventContent)
+	if !ok {
+		return nil, fmt.Errorf("not encrypted")
+	}
+
+	evt, decErr := cryptoHelper.Decrypt(ctx, enc)
+	if decErr != nil {
+		if errors.Is(decErr, crypto.ErrNoSessionFound) {
+			if _, ok := requestedSessions.Load(encContent.SessionID); !ok {
+				requestedSessions.Store(encContent.SessionID, struct{}{})
+
+				t.matrixSession.logger.Debug("requesting session (first time)", "sessionID", encContent.SessionID)
+
+				cryptoHelper.RequestSession(
+					ctx, rid, encContent.SenderKey,
+					encContent.SessionID, enc.Sender, encContent.DeviceID,
+				)
+
+				if cryptoHelper.WaitForSession(ctx, rid, encContent.SenderKey, encContent.SessionID, 10*time.Second) {
+					dec, retryErr := cryptoHelper.Decrypt(ctx, enc)
+					if retryErr == nil {
+						_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, encContent.SessionID)
+						return dec, nil
+					}
+				}
+			} else {
+				t.matrixSession.logger.Debug("skipping redundant session request", "sessionID", encContent.SessionID)
+			}
+		}
+		return nil, fmt.Errorf("undecryptable")
+	}
+
+	return evt, nil
+}
+
+func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit int) {
+	roomID := t.roomID
+	rid := id.RoomID(roomID)
+	client := t.matrixSession.GetClient()
 	requestedSessions := xsync.NewMap[id.SessionID, struct{}]()
 
 	_, _ = t.matrixSession.keyBackupMgr.RestoreRoomKeys(ctx, rid)
@@ -215,66 +271,46 @@ func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit i
 	var wg sync.WaitGroup
 	for _, evt := range resp.Chunk {
 		wg.Go(func() {
-			if evt.Type != event.EventEncrypted {
-				if msg := t.eventToMessage(evt); msg != nil {
-					t.Set(*msg)
+			if evt.Unsigned.RedactedBecause != nil {
+				msg := t.redactedMessage(evt)
+				t.Set(msg)
+				return
+			}
+
+			nonce := ""
+			if evt.Type == event.EventEncrypted {
+				nonce, _ = generateDecryptingNonce()
+				placeholder := t.decryptingMessage(evt, nonce)
+				t.Set(placeholder)
+
+				unencrypted, err := t.handleEncrypted(ctx, requestedSessions, evt)
+				if err != nil {
+					msg := t.undecryptableMessage(evt)
+					msg.Nonce = nonce
+					t.Set(msg)
+					return
 				}
-				return
+				evt = unencrypted
 			}
 
-			_ = evt.Content.ParseRaw(evt.Type)
-			encContent, ok := evt.Content.Parsed.(*event.EncryptedEventContent)
-			if !ok {
-				return
-			}
-
-			nonce, _ := generateDecryptingNonce()
-			placeholder := t.decryptingMessage(evt, nonce)
-			t.Set(placeholder)
-
-			decrypted, decErr := cryptoHelper.Decrypt(ctx, evt)
-			if decErr == nil {
-				if msg := t.eventToMessage(decrypted); msg != nil {
+			switch evt.Type {
+			case event.EventMessage:
+				if msg := t.eventToMessage(evt); msg != nil {
 					msg.Nonce = nonce
 					t.Set(*msg)
 				}
 				return
-			}
-
-			if errors.Is(decErr, crypto.ErrNoSessionFound) {
-				if _, ok := requestedSessions.Load(encContent.SessionID); !ok {
-					requestedSessions.Store(encContent.SessionID, struct{}{})
-
-					t.matrixSession.logger.Debug("requesting session (first time)", "sessionID", encContent.SessionID)
-
-					cryptoHelper.RequestSession(
-						ctx, rid, encContent.SenderKey,
-						encContent.SessionID, evt.Sender, encContent.DeviceID,
-					)
-
-					go func() {
-						if cryptoHelper.WaitForSession(ctx, rid, encContent.SenderKey, encContent.SessionID, 10*time.Second) {
-							dec, retryErr := cryptoHelper.Decrypt(ctx, evt)
-							if retryErr == nil {
-								if msg := t.eventToMessage(dec); msg != nil {
-									msg.Nonce = nonce
-									t.Set(*msg)
-								}
-								_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, encContent.SessionID)
-							} else {
-								msg := t.undecryptableMessage(evt)
-								msg.Nonce = nonce
-								t.Set(msg)
-							}
-						} else {
-							msg := t.undecryptableMessage(evt)
-							msg.Nonce = nonce
-							t.Set(msg)
-						}
-					}()
-				} else {
-					t.matrixSession.logger.Debug("skipping redundant session request", "sessionID", encContent.SessionID)
+			case event.EventRedaction:
+				redactedID := safeHashClass(evt.Redacts.String())
+				msg, ok := t.messagesMap.LoadAndDelete(redactedID)
+				if !ok {
+					t.pendingRedactions.Store(redactedID, evt)
+					return
 				}
+				t.DeleteMessage(*msg)
+				t.Set(t.redactedMessageFrom(*msg, evt))
+			case event.EventReaction:
+			case event.EventSticker:
 			}
 		})
 	}
@@ -323,9 +359,22 @@ func (t *MessageTree) Listen(ctx context.Context, cb func(MessageTreeEvent)) {
 					continue
 				}
 
-				msg := t.eventToMessage(evt)
-				if msg != nil {
-					t.Set(*msg)
+				switch evt.Type {
+				case event.EventMessage:
+					msg := t.eventToMessage(evt)
+					if msg != nil {
+						t.Set(*msg)
+					}
+				case event.EventRedaction:
+					redactedID := safeHashClass(evt.Redacts.String())
+					msg, ok := t.messagesMap.LoadAndDelete(redactedID)
+					if !ok {
+						continue
+					}
+					t.DeleteMessage(*msg)
+					t.Set(t.redactedMessageFrom(*msg, evt))
+				case event.EventReaction:
+				case event.EventSticker:
 				}
 			}
 		}
@@ -425,7 +474,8 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 
 	if m.Nonce != "" {
 		if existing, ok := t.nonces.Load(m.Nonce); ok {
-			t.BTreeG.Delete(existing)
+			t.BTreeG.Delete(*existing)
+			t.messagesMap.Delete(existing.ID)
 			replacedNonce = existing.ID
 			replacedPending = true
 			t.nonces.Delete(m.Nonce)
@@ -434,10 +484,18 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	} else if strings.HasPrefix(m.ID, "pending-") ||
 		strings.HasPrefix(m.ID, "decrypting-") {
 		isPending = true
-		t.nonces.Store(m.ID, m)
+		t.nonces.Store(m.ID, &m)
 	}
 
 	_, replaced := t.BTreeG.Set(m)
+	t.messagesMap.Store(m.ID, &m)
+
+	if redactEvt, ok := t.pendingRedactions.LoadAndDelete(m.ID); ok {
+		redacted := t.redactedMessageFrom(m, redactEvt)
+		t.BTreeG.Set(redacted)
+		t.messagesMap.Store(redacted.ID, &redacted)
+		m = redacted
+	}
 
 	if t.listening.Load() {
 		neighbors := t.getNeighbors(m)
@@ -565,6 +623,21 @@ func (t *MessageTree) undecryptableMessage(
 		Timestamp:     time.UnixMilli(evt.Timestamp),
 		RoomID:        t.roomID,
 		Undecryptable: true,
+	}
+}
+
+func (t *MessageTree) redactedMessage(
+	evt *event.Event,
+) models.Message {
+	profile, _ := t.matrixSession.GetUserProfile(string(evt.Sender))
+
+	return models.Message{
+		ID:        safeHashClass(evt.ID.String()),
+		Author:    profile,
+		Timestamp: time.UnixMilli(evt.Timestamp),
+		RoomID:    t.roomID,
+		Content:   evt.Content.AsRedaction().Reason,
+		Redacted:  true,
 	}
 }
 

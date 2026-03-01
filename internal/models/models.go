@@ -81,6 +81,7 @@ type Message struct {
 	Attachments        []Attachment
 	Embeds             []Embed
 	Undecryptable      bool
+	Redacted           bool
 	IsPinned           bool
 	IsSystem           bool
 	SystemIcon         string

@@ -50,6 +50,15 @@ templ messageBody(message models.Message) {
 			<i class="fa-solid fa-lock-open text-xs"></i>
 			<span>Message could not be decrypted</span>
 		</div>
+	} else if message.Redacted {
+		<div class="flex items-center gap-2 text-sm text-content-faint italic select-none opacity-60">
+			<i class="fa-solid fa-trash text-xs"></i>
+			if message.Content != "" {
+				<span>Message deleted: { message.Content }</span>
+			} else {
+				<span>Message deleted</span>
+			}
+		</div>
 	} else {
 		<div class="markdown-body text-sm text-content-secondary leading-relaxed break-words">
 			@templ.Raw(message.HTMLContent())
