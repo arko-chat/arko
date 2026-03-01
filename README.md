@@ -25,7 +25,7 @@ Go, Templ, HTMX, WebView (i am allergic to javascript)
 ### Dependencies
 ```
 # for Arch dev:
-paru -S libolm webkit2gtk gtk3
+paru -S webkitgtk-6.0 gtk4
 ```
 
 ### Getting Started
