@@ -231,7 +231,7 @@ func (t *MessageTree) handleEncrypted(ctx context.Context, requestedSessions *xs
 					encContent.SessionID, enc.Sender, encContent.DeviceID,
 				)
 
-				if cryptoHelper.WaitForSession(ctx, rid, encContent.SenderKey, encContent.SessionID, 10*time.Second) {
+				if cryptoHelper.WaitForSession(ctx, rid, encContent.SenderKey, encContent.SessionID, 5*time.Second) {
 					dec, retryErr := cryptoHelper.Decrypt(ctx, enc)
 					if retryErr == nil {
 						_ = t.matrixSession.keyBackupMgr.BackupRoomKeys(ctx, rid, userID, encContent.SessionID)
@@ -271,14 +271,14 @@ func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit i
 	var wg sync.WaitGroup
 	for _, evt := range resp.Chunk {
 		wg.Go(func() {
-			if evt.Unsigned.RedactedBecause != nil {
-				msg := t.redactedMessage(evt)
-				t.Set(msg)
-				return
-			}
-
 			nonce := ""
 			if evt.Type == event.EventEncrypted {
+				if evt.Unsigned.RedactedBecause != nil {
+					msg := t.redactedMessage(evt)
+					t.Set(msg)
+					return
+				}
+
 				nonce, _ = generateDecryptingNonce()
 				placeholder := t.decryptingMessage(evt, nonce)
 				t.Set(placeholder)
@@ -295,20 +295,17 @@ func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit i
 
 			switch evt.Type {
 			case event.EventMessage:
+				if evt.Unsigned.RedactedBecause != nil {
+					msg := t.redactedMessage(evt)
+					t.Set(msg)
+					return
+				}
+
 				if msg := t.eventToMessage(evt); msg != nil {
 					msg.Nonce = nonce
 					t.Set(*msg)
 				}
 				return
-			case event.EventRedaction:
-				redactedID := safeHashClass(evt.Redacts.String())
-				msg, ok := t.messagesMap.LoadAndDelete(redactedID)
-				if !ok {
-					t.pendingRedactions.Store(redactedID, evt)
-					return
-				}
-				t.DeleteMessage(*msg)
-				t.Set(t.redactedMessageFrom(*msg, evt))
 			case event.EventReaction:
 			case event.EventSticker:
 			}
@@ -636,7 +633,7 @@ func (t *MessageTree) redactedMessage(
 		Author:    profile,
 		Timestamp: time.UnixMilli(evt.Timestamp),
 		RoomID:    t.roomID,
-		Content:   evt.Content.AsRedaction().Reason,
+		Content:   evt.Unsigned.RedactedBecause.Content.AsRedaction().Reason,
 		Redacted:  true,
 	}
 }

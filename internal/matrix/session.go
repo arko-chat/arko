@@ -239,6 +239,36 @@ func (m *MatrixSession) initSyncHandlers() {
 	)
 
 	syncer.OnEventType(
+		event.EventRedaction,
+		func(ctx context.Context, evt *event.Event) {
+			m.listeners.Range(func(id uint64, ch chan *event.Event) bool {
+				ch <- evt
+				return true
+			})
+		},
+	)
+
+	syncer.OnEventType(
+		event.EventReaction,
+		func(ctx context.Context, evt *event.Event) {
+			m.listeners.Range(func(id uint64, ch chan *event.Event) bool {
+				ch <- evt
+				return true
+			})
+		},
+	)
+
+	syncer.OnEventType(
+		event.EventSticker,
+		func(ctx context.Context, evt *event.Event) {
+			m.listeners.Range(func(id uint64, ch chan *event.Event) bool {
+				ch <- evt
+				return true
+			})
+		},
+	)
+
+	syncer.OnEventType(
 		event.EventEncrypted,
 		func(ctx context.Context, evt *event.Event) {
 			decrypted, err := m.GetCryptoHelper().Decrypt(ctx, evt)
