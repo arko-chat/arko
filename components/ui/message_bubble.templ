@@ -145,7 +145,7 @@ templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
 			id={ "msg-" + message.ID }
 			hx-swap-oob={ swap }
 			class={
-				"flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
+				"message-enter flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 		>
@@ -156,7 +156,7 @@ templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
 			id={ "msg-" + message.ID }
 			hx-swap-oob={ swap }
 			class={
-				"flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
+				"message-enter flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 		>

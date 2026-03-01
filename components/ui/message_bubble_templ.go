@@ -548,7 +548,7 @@ func MessageBubbleOOB(message models.Message, continued bool, swap string) templ
 		}
 		ctx = templ.ClearChildren(ctx)
 		if continued {
-			var templ_7745c5c3_Var19 = []any{"flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
+			var templ_7745c5c3_Var19 = []any{"message-enter flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
@@ -607,7 +607,7 @@ func MessageBubbleOOB(message models.Message, continued bool, swap string) templ
 				return templ_7745c5c3_Err
 			}
 		} else {
-			var templ_7745c5c3_Var23 = []any{"flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
+			var templ_7745c5c3_Var23 = []any{"message-enter flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var23...)
