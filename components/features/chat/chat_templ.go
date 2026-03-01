@@ -47,7 +47,7 @@ func Chat(props Props) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"w-full h-full flex flex-col\" id=\"chat-container\" data-user-name=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"w-full h-full flex flex-col relative\" id=\"chat-container\" data-user-name=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -73,20 +73,20 @@ func Chat(props Props) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><div ws-send hx-trigger=\"load\" hx-vals=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" x-data=\"chatDrop()\" @dragover.prevent=\"onDragOver\" @dragleave=\"onDragLeave\" @drop.prevent=\"onDrop\"><div ws-send hx-trigger=\"load\" hx-vals=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"action": "SUBSCRIBE_ROOM", "roomID": "%s"}`, props.RoomID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 31, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 35, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"></div><template x-if=\"dragOver\"><div class=\"absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface-base/80 backdrop-blur-sm border-2 border-dashed border-brand/50 rounded-lg pointer-events-none\"><i class=\"fa-solid fa-cloud-arrow-up text-4xl text-brand mb-3\"></i><p class=\"text-sm font-semibold text-brand\">Drop files to upload</p><p class=\"text-xs text-content-muted mt-1\">Images and files supported</p></div></template>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

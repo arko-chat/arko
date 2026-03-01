@@ -193,24 +193,26 @@ func sasButtons() templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"px-8 pt-2 pb-8\"><div id=\"sas-buttons\" class=\"flex gap-3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"px-8 pt-2 pb-8\"><div id=\"sas-buttons\" class=\"flex gap-3\" x-data=\"{ loading: false }\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
-			"ws-send":         "",
-			"hx-vals":         `{"action": "SAS_CANCEL"}`,
-			"hx-indicator":    "#sas-buttons",
-			"hx-disabled-elt": "#sas-buttons button",
+			"ws-send":   "",
+			"hx-vals":   `{"action": "SAS_CANCEL"}`,
+			":class":    "{ 'htmx-request': loading }",
+			":disabled": "loading",
+			"@click":    "loading = true",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
-			"ws-send":         "",
-			"hx-vals":         `{"action": "SAS_CONFIRM"}`,
-			"hx-indicator":    "#sas-buttons",
-			"hx-disabled-elt": "#sas-buttons button",
+			"ws-send":   "",
+			"hx-vals":   `{"action": "SAS_CONFIRM"}`,
+			":class":    "{ 'htmx-request': loading }",
+			":disabled": "loading",
+			"@click":    "loading = true",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

@@ -64,41 +64,22 @@ templ Textarea(placeholder string, rows int, attributes templ.Attributes) {
 }
 
 templ MessageTextarea(placeholder string, extraClass string, attributes templ.Attributes) {
-	<div x-data class="flex-1 min-h-0 overflow-hidden h-full" @click="$el.querySelector('textarea').focus()">
-		<textarea
-			rows="1"
-			placeholder={ placeholder }
-			{ attributes... }
-			class={ "w-full h-full px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed block " + extraClass }
-			@keydown="
-				if ($event.key === 'Enter' && !$event.shiftKey) {
-					$event.preventDefault();
-					$event.target.form.requestSubmit();
-					$event.target.form.reset();
-					$el.style.height = 'auto';
-					const container = document.querySelector('#message-input-body');
-					if (container) {
-						const saved = localStorage.getItem('message-input-height') || '120';
-						container.style.height = saved + 'px';
-					}
-				}
-			"
-			x-on:input="
-				$el.style.height = 'auto';
-				$el.style.height = $el.scrollHeight + 'px';
-				const container = document.querySelector('#message-input-body');
-				if (container) {
-					const minHeight = parseInt(localStorage.getItem('message-input-height') || '120');
-					const toolbar = container.querySelector('.border-b');
-					const toolbarHeight = toolbar ? toolbar.offsetHeight : 0;
-					const handle = container.firstElementChild;
-					const handleHeight = handle ? handle.offsetHeight : 4;
-					const needed = $el.scrollHeight + toolbarHeight + handleHeight + 20;
-					const newHeight = Math.max(minHeight, Math.min(480, needed));
-					container.style.height = newHeight + 'px';
-					document.documentElement.style.setProperty('--message-input-height', newHeight + 'px');
-				}
-			"
-		></textarea>
-	</div>
+	<textarea
+		autofocus
+		rows="1"
+		placeholder={ placeholder }
+		{ attributes... }
+		class={ "w-full h-full field-sizing-content px-3 py-2.5 bg-transparent text-sm text-content-primary outline-none resize-none overflow-hidden placeholder-content-placeholder leading-relaxed block " + extraClass }
+		x-data="{ rows: 1 }"
+		:rows="rows"
+		@input="rows = $el.value.split('\n').length"
+		@keydown.enter="
+        if (!shiftPressed) {
+            $event.preventDefault();
+            $event.target.form.requestSubmit();
+            $event.target.form.reset();
+            rows = 1;
+        }
+    "
+	></textarea>
 }

@@ -48,18 +48,20 @@ templ emojiGrid(emojis []EmojiItem) {
 
 templ sasButtons() {
 	<div class="px-8 pt-2 pb-8">
-		<div id="sas-buttons" class="flex gap-3">
+		<div id="sas-buttons" class="flex gap-3" x-data="{ loading: false }">
 			@ui.ButtonWithSpinner("They Don't Match", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
-				"ws-send":         "",
-				"hx-vals":         `{"action": "SAS_CANCEL"}`,
-				"hx-indicator":    "#sas-buttons",
-				"hx-disabled-elt": "#sas-buttons button",
+				"ws-send":   "",
+				"hx-vals":   `{"action": "SAS_CANCEL"}`,
+				":class":    "{ 'htmx-request': loading }",
+				":disabled": "loading",
+				"@click":    "loading = true",
 			})
 			@ui.ButtonWithSpinner("They Match", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
-				"ws-send":         "",
-				"hx-vals":         `{"action": "SAS_CONFIRM"}`,
-				"hx-indicator":    "#sas-buttons",
-				"hx-disabled-elt": "#sas-buttons button",
+				"ws-send":   "",
+				"hx-vals":   `{"action": "SAS_CONFIRM"}`,
+				":class":    "{ 'htmx-request': loading }",
+				":disabled": "loading",
+				"@click":    "loading = true",
 			})
 		</div>
 	</div>

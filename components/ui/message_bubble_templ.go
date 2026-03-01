@@ -515,7 +515,7 @@ func MessageBubbleOOB(message models.Message, continued bool, swap string) templ
 		}
 		ctx = templ.ClearChildren(ctx)
 		if continued {
-			var templ_7745c5c3_Var18 = []any{"message-enter flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
+			var templ_7745c5c3_Var18 = []any{"flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var18...)
@@ -574,7 +574,7 @@ func MessageBubbleOOB(message models.Message, continued bool, swap string) templ
 				return templ_7745c5c3_Err
 			}
 		} else {
-			var templ_7745c5c3_Var22 = []any{"message-enter flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
+			var templ_7745c5c3_Var22 = []any{"flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var22...)
@@ -716,20 +716,20 @@ func MoreMessageScrollSensor(roomID string) templ.Component {
 			templ_7745c5c3_Var27 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<div id=\"history-loader\" class=\"flex justify-center py-2\" hx-get=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<div id=\"next-msg-loader\" class=\"flex justify-center py-2\" hx-get=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var28 string
-		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/rooms/%s/history", roomID))
+		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/rooms/%s/next", roomID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_bubble.templ`, Line: 180, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_bubble.templ`, Line: 180, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\" hx-trigger=\"intersect once\" hx-target=\"#history-loader\" hx-swap=\"outerHTML\" hx-indicator=\"#history-spinner\"><div id=\"history-spinner\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\" hx-trigger=\"intersect once\" hx-target=\"#next-msg-loader\" hx-swap=\"outerHTML\" hx-indicator=\"#next-msg-spinner\"><div id=\"next-msg-spinner\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

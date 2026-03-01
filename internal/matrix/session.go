@@ -2,11 +2,12 @@ package matrix
 
 import (
 	"context"
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"net/url"
 	"os"
 	"sync"
@@ -45,6 +46,8 @@ type MatrixSession struct {
 	keyBackupMgr          *KeyBackupManager
 	listeners             *xsync.Map[uint64, chan *event.Event]
 	idCounter             atomic.Uint64
+
+	crossSigningEvent chan struct{}
 
 	profileCache  *cache.Cache[models.User]
 	verifiedCache *cache.Cache[bool]
@@ -154,6 +157,7 @@ func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, 
 	m.startTokenRefresh(ctx, s, client)
 
 	go func() {
+		backoff := 5 * time.Second
 		for {
 			select {
 			case <-ctx.Done():
@@ -169,7 +173,14 @@ func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, 
 						_ = m.Logout(ctx, s.UserID)
 						return
 					}
-					time.Sleep(5 * time.Second)
+					jitter := time.Duration(rand.N(2 * time.Second))
+					select {
+					case <-time.After(backoff + jitter):
+					case <-ctx.Done():
+						return
+					}
+				} else {
+					backoff = 5 * time.Second
 				}
 			}
 		}
@@ -192,6 +203,7 @@ func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, 
 		messageTrees:          xsync.NewMap[string, *MessageTree](),
 		profileCache:          cache.NewDefault[models.User](),
 		verifiedCache:         cache.New[bool](time.Minute * 30),
+		crossSigningEvent:     make(chan struct{}, 2),
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
@@ -261,6 +273,37 @@ func (m *MatrixSession) initSyncHandlers() {
 			m.manager.userCache.Invalidate("gcu:" + m.id)
 		}
 	})
+
+	syncer.OnEventType(
+		event.AccountDataCrossSigningSelf,
+		func(ctx context.Context, evt *event.Event) {
+			machine := m.GetCryptoHelper().Machine()
+			if machine == nil {
+				return
+			}
+
+			device, err := machine.CryptoStore.GetDevice(
+				ctx, id.UserID(m.id), machine.Client.DeviceID,
+			)
+			if err != nil || device == nil {
+				return
+			}
+
+			if err := machine.SignOwnDevice(ctx, device); err != nil {
+				m.logger.Error("failed to self-sign device after key arrival",
+					"user", m.id,
+					"error", err,
+				)
+				return
+			}
+
+			m.logger.Info("self-signed device after cross-signing key arrival", "user", m.id)
+			m.verifiedCache.Invalidate("iv:" + m.id)
+			if m.crossSigningEvent != nil {
+				m.crossSigningEvent <- struct{}{}
+			}
+		},
+	)
 }
 
 func (m *MatrixSession) listenEvents() (chan *event.Event, uint64) {
@@ -397,9 +440,37 @@ func (m *MatrixSession) IsVerified() bool {
 	return verified
 }
 
+func (m *MatrixSession) WaitUntilVerified(ctx context.Context) error {
+	if m.IsVerified() {
+		return nil
+	}
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-m.crossSigningEvent:
+			if m.IsVerified() {
+				return nil
+			}
+		case <-ticker.C:
+			if m.IsVerified() {
+				return nil
+			}
+		}
+	}
+}
+
 func (m *MatrixSession) Close() {
 	if m.cancel != nil {
 		m.cancel()
+	}
+	if m.crossSigningEvent != nil {
+		close(m.crossSigningEvent)
+		m.crossSigningEvent = nil
 	}
 	if m.cryptoHelper != nil {
 		m.cryptoHelper.Close()
@@ -423,7 +494,7 @@ func (m *MatrixSession) Close() {
 
 func generatePickleKey() ([]byte, error) {
 	key := make([]byte, 32)
-	if _, err := io.ReadFull(rand.Reader, key); err != nil {
+	if _, err := io.ReadFull(cryptorand.Reader, key); err != nil {
 		return nil, fmt.Errorf("generate pickle key: %w", err)
 	}
 	return key, nil

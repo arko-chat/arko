@@ -43,14 +43,20 @@ templ qrScannedWarningText() {
 
 templ qrScannedButtons() {
 	<div class="px-8 pt-4 pb-8">
-		<div id="qr-scanned-buttons" class="flex gap-3">
+		<div id="qr-scanned-buttons" class="flex gap-3" x-data="{ loading: false }">
 			@ui.ButtonWithSpinner("Cancel", "fa-solid fa-xmark text-xs", "default", "flex-1", templ.Attributes{
-				"ws-send": "",
-				"hx-vals": `{"action": "SAS_CANCEL"}`,
+				"ws-send":   "",
+				"hx-vals":   `{"action": "SAS_CANCEL"}`,
+				":class":    "{ 'htmx-request': loading }",
+				":disabled": "loading",
+				"@click":    "loading = true",
 			})
 			@ui.ButtonWithSpinner("Confirm Verified", "fa-solid fa-check text-xs", "success", "flex-1", templ.Attributes{
-				"ws-send": "",
-				"hx-vals": `{"action": "CONFIRM_QR"}`,
+				"ws-send":   "",
+				"hx-vals":   `{"action": "CONFIRM_QR"}`,
+				":class":    "{ 'htmx-request': loading }",
+				":disabled": "loading",
+				"@click":    "loading = true",
 			})
 		</div>
 	</div>

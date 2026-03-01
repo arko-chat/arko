@@ -29,12 +29,12 @@ func NewChatService(
 	}
 }
 
-func (s *ChatService) LoadRoomHistory(roomID string, limit int) (bool, error) {
+func (s *ChatService) LoadNextMessages(roomID string, limit int) (bool, error) {
 	tree, err := s.GetRoomMessageTree(roomID)
 	if err != nil {
 		return false, err
 	}
-	hasMore := tree.LoadHistory(context.Background(), limit)
+	hasMore := tree.LoadNextMessages(s.matrix.GetContext(), limit)
 	return hasMore, nil
 }
 
@@ -54,7 +54,7 @@ func (s *ChatService) GetRoomMessageTree(
 		messageTree.Listen(s.matrix.GetContext(), func(mte matrix.MessageTreeEvent) {
 			log.Printf("mte: %v", mte)
 
-			neighbors := messageTree.GetNeighbors(mte.Message)
+			neighbors := mte.Neighbors
 			msg := mte.Message
 
 			var buf bytes.Buffer
@@ -103,6 +103,7 @@ func (s *ChatService) GetRoomMessageTree(
 						return
 					}
 				}
+
 			case matrix.RemoveEvent:
 				_, err := fmt.Fprintf(
 					&buf,

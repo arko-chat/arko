@@ -34,6 +34,8 @@ func (h *Handler) HandleWS(w http.ResponseWriter, r *http.Request) {
 	h.hub.Register(client)
 	go client.WritePump()
 
+	h.svc.Verification.ListenVerifyEvents(r.Context())
+
 	client.ReadPump(func(ctx context.Context, raw []byte) {
 		var msg ws.ClientRequest
 		if err := json.Unmarshal(raw, &msg); err != nil {

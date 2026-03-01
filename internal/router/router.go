@@ -59,7 +59,7 @@ func New(
 		r.Get("/spaces/{spaceID}", h.HandleSpaces)
 		r.Get("/spaces/{spaceID}/channels/{channelID}", h.HandleChannels)
 
-		r.Get("/rooms/{roomID}/history", h.HandleRoomHistory)
+		r.Get("/rooms/{roomID}/next", h.HandleNextMessages)
 
 		r.Get("/api/media", h.HandleProxyMedia)
 		r.Post("/api/theme", h.HandleToggleTheme)

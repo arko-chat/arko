@@ -136,7 +136,7 @@ templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
 			id={ "msg-" + message.ID }
 			hx-swap-oob={ swap }
 			class={
-				"message-enter flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
+				"flex gap-3 px-4 py-0.5 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 		>
@@ -147,7 +147,7 @@ templ MessageBubbleOOB(message models.Message, continued bool, swap string) {
 			id={ "msg-" + message.ID }
 			hx-swap-oob={ swap }
 			class={
-				"message-enter flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
+				"flex gap-3 px-4 py-1 hover:bg-hover-muted group transition-colors duration-100 relative",
 				templ.KV("opacity-50 grayscale", message.Undecryptable),
 			}
 		>
@@ -175,15 +175,15 @@ templ MessageList(messages []models.Message, currentUserID string) {
 
 templ MoreMessageScrollSensor(roomID string) {
 	<div
-		id="history-loader"
+		id="next-msg-loader"
 		class="flex justify-center py-2"
-		hx-get={ fmt.Sprintf("/rooms/%s/history", roomID) }
+		hx-get={ fmt.Sprintf("/rooms/%s/next", roomID) }
 		hx-trigger="intersect once"
-		hx-target="#history-loader"
+		hx-target="#next-msg-loader"
 		hx-swap="outerHTML"
-		hx-indicator="#history-spinner"
+		hx-indicator="#next-msg-spinner"
 	>
-		<div id="history-spinner">
+		<div id="next-msg-spinner">
 			@Spinner("sm")
 		</div>
 	</div>

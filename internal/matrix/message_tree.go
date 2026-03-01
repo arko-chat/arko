@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -46,6 +45,8 @@ type MessageTree struct {
 	prevBatchMu   sync.RWMutex
 	noMoreHistory atomic.Bool
 
+	populating sync.Mutex
+
 	wg sync.WaitGroup
 }
 
@@ -61,6 +62,7 @@ type MessageTreeEvent struct {
 	EventType   MessageTreeEventType
 	UpdateNonce string
 	Message     models.Message
+	Neighbors   Neighbors
 }
 
 type Neighbors struct {
@@ -98,7 +100,7 @@ func (t *MessageTree) Initialize(ctx context.Context) {
 	)
 	t.isEncrypted = err == nil && encEvt.Algorithm != ""
 
-	t.PopulateTree(ctx, "", "", 30)
+	t.LoadNextMessages(ctx, 30)
 }
 
 func (t *MessageTree) sendEventToListeners(treeEvt MessageTreeEvent) {
@@ -163,7 +165,10 @@ func (t *MessageTree) fetchAndApplyEmbeds(msg models.Message) {
 	})
 }
 
-func (t *MessageTree) LoadHistory(ctx context.Context, limit int) bool {
+func (t *MessageTree) LoadNextMessages(ctx context.Context, limit int) bool {
+	t.populating.Lock()
+	defer t.populating.Unlock()
+
 	if t.noMoreHistory.Load() {
 		return false
 	}
@@ -172,7 +177,7 @@ func (t *MessageTree) LoadHistory(ctx context.Context, limit int) bool {
 	token := t.prevBatch
 	t.prevBatchMu.RUnlock()
 
-	t.PopulateTree(ctx, token, "", limit)
+	t.populateTree(ctx, token, "", limit)
 	return !t.noMoreHistory.Load()
 }
 
@@ -187,7 +192,7 @@ func (t *MessageTree) DeleteMessage(msg models.Message) {
 	})
 }
 
-func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit int) {
+func (t *MessageTree) populateTree(ctx context.Context, from, to string, limit int) {
 	userID := id.UserID(t.matrixSession.id)
 	roomID := t.roomID
 	rid := id.RoomID(roomID)
@@ -225,9 +230,14 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 				return
 			}
 
+			nonce, _ := generateDecryptingNonce()
+			placeholder := t.decryptingMessage(evt, nonce)
+			t.Set(placeholder)
+
 			decrypted, decErr := cryptoHelper.Decrypt(ctx, evt)
 			if decErr == nil {
 				if msg := t.eventToMessage(decrypted); msg != nil {
+					msg.Nonce = nonce
 					t.Set(*msg)
 				}
 				return
@@ -243,10 +253,6 @@ func (t *MessageTree) PopulateTree(ctx context.Context, from, to string, limit i
 						ctx, rid, encContent.SenderKey,
 						encContent.SessionID, evt.Sender, encContent.DeviceID,
 					)
-
-					nonce, _ := generateDecryptingNonce()
-					placeholder := t.decryptingMessage(evt, nonce)
-					t.Set(placeholder)
 
 					go func() {
 						if cryptoHelper.WaitForSession(ctx, rid, encContent.SenderKey, encContent.SessionID, 10*time.Second) {
@@ -422,7 +428,6 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	if m.Nonce != "" {
 		if existing, ok := t.nonces.Load(m.Nonce); ok {
 			t.BTreeG.Delete(existing)
-			log.Println("replacing nonce: %s to %s", m.Nonce, m.ID)
 			replacedNonce = existing.ID
 			replacedPending = true
 			t.nonces.Delete(m.Nonce)
@@ -431,24 +436,27 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	} else if strings.HasPrefix(m.ID, "pending-") ||
 		strings.HasPrefix(m.ID, "decrypting-") {
 		isPending = true
-		log.Println("storing nonce: %s", m.ID)
 		t.nonces.Store(m.ID, m)
 	}
 
 	_, replaced := t.BTreeG.Set(m)
 
 	if t.listening.Load() {
+		neighbors := t.getNeighbors(m)
+
 		var treeEvt MessageTreeEvent
 		if !replaced && !replacedPending {
 			treeEvt = MessageTreeEvent{
 				Message:   m,
 				EventType: AddEvent,
+				Neighbors: neighbors,
 			}
 		} else {
 			treeEvt = MessageTreeEvent{
 				Message:     m,
 				UpdateNonce: replacedNonce,
 				EventType:   UpdateEvent,
+				Neighbors:   neighbors,
 			}
 		}
 
@@ -462,10 +470,7 @@ func (t *MessageTree) Set(m models.Message) (models.Message, bool) {
 	return m, replaced
 }
 
-func (t *MessageTree) GetNeighbors(m models.Message) Neighbors {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
+func (t *MessageTree) getNeighbors(m models.Message) Neighbors {
 	var n Neighbors
 	iter := t.Iter()
 

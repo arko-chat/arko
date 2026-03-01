@@ -44,6 +44,9 @@ func (s *VerificationService) ListenVerifyEvents(ctx context.Context) {
 				if !ok {
 					return
 				}
+				if ev.Type == matrix.VerificationEventDone {
+					s.matrix.GetCurrentMatrixSession().WaitUntilVerified(ctx)
+				}
 				msg := verificationEventToWS(ev)
 				if msg == nil {
 					continue

@@ -401,21 +401,6 @@ func (c *verificationCallbacks) VerificationDone(
 		return
 	}
 
-	device, err := machine.CryptoStore.GetDevice(
-		ctx, id.UserID(c.userID), machine.Client.DeviceID,
-	)
-	if err != nil || device == nil {
-		c.manager.logger.Error("failed to get device for self-signing",
-			"user", c.userID,
-			"error", err,
-		)
-	} else if err := machine.SignOwnDevice(ctx, device); err != nil {
-		c.manager.logger.Error("failed to self-sign device after verification",
-			"user", c.userID,
-			"error", err,
-		)
-	}
-
 	if err := machine.ShareKeys(ctx, -1); err != nil {
 		c.manager.logger.Error("failed to share keys after verification",
 			"user", c.userID,
@@ -431,7 +416,6 @@ func (c *verificationCallbacks) VerificationDone(
 
 	mSess.verifiedCache.Invalidate("iv:" + c.userID)
 	mSess.seenAsVerified.Store(false)
-
 	mSess.broadcastVerificationEvent(VerificationEvent{Type: VerificationEventDone})
 }
 

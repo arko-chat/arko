@@ -8,8 +8,6 @@ package ui
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "fmt"
-
 func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -31,7 +29,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"px-4 pb-4 pt-2 shrink-0\"><form")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div x-data=\"{shiftPressed: false}\" class=\"px-4 pb-4 pt-2 shrink-0\"><form")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -39,171 +37,59 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " class=\"w-full\"><div id=\"message-input-body\" class=\"rounded-lg border border-border-divider bg-surface-input transition-colors focus-within:border-brand/40 focus-within:ring-1 focus-within:ring-brand/20 flex flex-col overflow-hidden\" style=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " class=\"w-full\" x-data=\"messageInput\" enctype=\"multipart/form-data\" @submit=\"onSubmit\" @keydown.shift=\"shiftPressed = true\" @keyup.shift=\"shiftPressed = false\"><input type=\"file\" name=\"attachments\" id=\"file-upload-input\" multiple class=\"hidden\" @change=\"onFilesSelected($event.target.files)\"><div id=\"message-input-body\" class=\"rounded-lg border border-border-divider bg-surface-input transition-colors focus-within:border-brand/40 focus-within:ring-1 focus-within:ring-brand/20 flex flex-col\" :class=\"dragOver ? 'border-brand/60 ring-1 ring-brand/30 bg-brand/5' : ''\"><div class=\"h-[--toolbar-h] flex items-center gap-0.5 px-2 border-b border-border-subtle shrink-0\" x-data=\"{\n\t\t\t\t\t\twrap(open, close = null) {\n\t\t\t\t\t\t\tconst ta = document.querySelector('#textarea-messageinput');\n\t\t\t\t\t\t\tif (!ta) return;\n\t\t\t\t\t\t\tconst s = ta.selectionStart, e = ta.selectionEnd;\n\t\t\t\t\t\t\tconst sel = ta.value.slice(s, e);\n\t\t\t\t\t\t\tconst cl = close ?? open;\n\t\t\t\t\t\t\tconst replacement = open + sel + cl;\n\t\t\t\t\t\t\tta.setRangeText(replacement, s, e, 'end');\n\t\t\t\t\t\t\tta.setSelectionRange(s + open.length, s + open.length + sel.length);\n\t\t\t\t\t\t\tta.focus();\n\t\t\t\t\t\t},\n\t\t\t\t\t\tcodeBlock() {\n\t\t\t\t\t\t\tconst ta = document.querySelector('#textarea-messageinput');\n\t\t\t\t\t\t\tif (!ta) return;\n\t\t\t\t\t\t\tconst s = ta.selectionStart, e = ta.selectionEnd;\n\t\t\t\t\t\t\tconst sel = ta.value.slice(s, e);\n\t\t\t\t\t\t\tconst open = '```\\n', close = '\\n```';\n\t\t\t\t\t\t\tconst replacement = open + sel + close;\n\t\t\t\t\t\t\tta.setRangeText(replacement, s, e, 'end');\n\t\t\t\t\t\t\tta.setSelectionRange(s + open.length, s + open.length + sel.length);\n\t\t\t\t\t\t\tta.focus();\n\t\t\t\t\t\t},\n\t\t\t\t\t\tline(prefix) {\n\t\t\t\t\t\t\tconst ta = document.querySelector('#textarea-messageinput');\n\t\t\t\t\t\t\tif (!ta) return;\n\t\t\t\t\t\t\tconst s = ta.selectionStart;\n\t\t\t\t\t\t\tconst lineStart = ta.value.lastIndexOf('\\n', s - 1) + 1;\n\t\t\t\t\t\t\tconst lineEnd = ta.value.indexOf('\\n', s);\n\t\t\t\t\t\t\tconst end = lineEnd === -1 ? ta.value.length : lineEnd;\n\t\t\t\t\t\t\tconst sel = ta.value.slice(lineStart, end);\n\t\t\t\t\t\t\tconst replacement = prefix + sel;\n\t\t\t\t\t\t\tta.setRangeText(replacement, lineStart, end, 'end');\n\t\t\t\t\t\t\tta.focus();\n\t\t\t\t\t\t}\n\t\t\t\t\t}\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("height: var(--message-input-height, %s)", "120px"))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 14, Col: 75}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		templ_7745c5c3_Err = IconButton("fa-solid fa-bold", "default", templ.Attributes{"type": "button", "title": "Bold", "@click": "wrap('**')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" x-data=\"")
+		templ_7745c5c3_Err = IconButton("fa-solid fa-italic", "default", templ.Attributes{"type": "button", "title": "Italic", "@click": "wrap('_')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{
-					init() {
-						const saved = localStorage.getItem('%s');
-						if (saved) {
-							this.$el.style.height = saved + 'px';
-							document.documentElement.style.setProperty('--%s', saved + 'px');
-						}
-					}
-				}`, "message-input-height", "message-input-height"))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 23, Col: 55}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		templ_7745c5c3_Err = IconButton("fa-solid fa-strikethrough", "default", templ.Attributes{"type": "button", "title": "Strikethrough", "@click": "wrap('~~')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" x-init=\"init()\"><div class=\"h-1 cursor-row-resize shrink-0 hover:bg-brand/40 transition-colors duration-150 relative\" x-data=\"{ dragging: false, startY: 0, startHeight: 0 }\" x-init=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"w-px h-3.5 bg-border-divider mx-1\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
-						window.addEventListener('mousemove', (e) => {
-							if (!dragging) return;
-							const target = document.querySelector('#message-input-body');
-							if (!target) return;
-							const diff = startY - e.clientY;
-							const newHeight = Math.max(%d, Math.min(%d, startHeight + diff));
-							target.style.height = newHeight + 'px';
-							localStorage.setItem('%s', newHeight);
-							document.documentElement.style.setProperty('--%s', newHeight + 'px');
-						});
-						window.addEventListener('mouseup', () => {
-							if (dragging) {
-								dragging = false;
-								document.body.style.cursor = '';
-								document.body.style.userSelect = '';
-							}
-						});
-					`, 80, 480, "message-input-height", "message-input-height"))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 47, Col: 64}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+		templ_7745c5c3_Err = IconButton("fa-solid fa-link", "default", templ.Attributes{"type": "button", "title": "Link", "@click": "wrap('[', '](url)')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" @mousedown=\"")
+		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ul", "default", templ.Attributes{"type": "button", "title": "Bullet list", "@click": "line('- ')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
-						dragging = true;
-						startY = $event.clientY;
-						const target = document.querySelector('#message-input-body');
-						startHeight = target ? target.offsetHeight : 0;
-						document.body.style.cursor = 'row-resize';
-						document.body.style.userSelect = 'none';
-					`))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 55, Col: 7}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ol", "default", templ.Attributes{"type": "button", "title": "Numbered list", "@click": "line('1. ')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"absolute inset-x-0 -top-1 -bottom-1\"></div></div><div class=\"flex items-center gap-0.5 px-2 pt-1 pb-1.5 border-b border-border-subtle shrink-0\" x-data=\"{\n            wrap(open, close = null) {\n              const ta = document.querySelector('#textarea-messageinput');\n              if (!ta) return;\n              const s = ta.selectionStart, e = ta.selectionEnd;\n              const sel = ta.value.slice(s, e);\n              const cl = close ?? open;\n              const replacement = open + sel + cl;\n              ta.setRangeText(replacement, s, e, 'end');\n              ta.setSelectionRange(s + open.length, s + open.length + sel.length);\n              ta.focus();\n            },\n            codeBlock() {\n              const ta = document.querySelector('#textarea-messageinput');\n              if (!ta) return;\n              const s = ta.selectionStart, e = ta.selectionEnd;\n              const sel = ta.value.slice(s, e);\n              const open = '```\\n', close = '\\n```';\n              const replacement = open + sel + close;\n              ta.setRangeText(replacement, s, e, 'end');\n              ta.setSelectionRange(s + open.length, s + open.length + sel.length);\n              ta.focus();\n            },\n            line(prefix) {\n              const ta = document.querySelector('#textarea-messageinput');\n              if (!ta) return;\n              const s = ta.selectionStart;\n              const lineStart = ta.value.lastIndexOf('\\n', s - 1) + 1;\n              const lineEnd = ta.value.indexOf('\\n', s);\n              const end = lineEnd === -1 ? ta.value.length : lineEnd;\n              const sel = ta.value.slice(lineStart, end);\n              const replacement = prefix + sel;\n              ta.setRangeText(replacement, lineStart, end, 'end');\n              ta.focus();\n            }\n          }\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"w-px h-3.5 bg-border-divider mx-1\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-bold", "default", templ.Attributes{
-			"type": "button", "title": "Bold",
-			"@click": "wrap('**')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-code", "default", templ.Attributes{"type": "button", "title": "Inline code", "@click": "wrap('`')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-italic", "default", templ.Attributes{
-			"type": "button", "title": "Italic",
-			"@click": "wrap('_')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-terminal", "default", templ.Attributes{"type": "button", "title": "Code block", "@click": "codeBlock()"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-strikethrough", "default", templ.Attributes{
-			"type": "button", "title": "Strikethrough",
-			"@click": "wrap('~~')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-quote-right", "default", templ.Attributes{"type": "button", "title": "Blockquote", "@click": "line('> ')"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"w-px h-3.5 bg-border-divider mx-1\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"flex-1\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-link", "default", templ.Attributes{
-			"type": "button", "title": "Link",
-			"@click": "wrap('[', '](url)')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ul", "default", templ.Attributes{
-			"type": "button", "title": "Bullet list",
-			"@click": "line('- ')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-list-ol", "default", templ.Attributes{
-			"type": "button", "title": "Numbered list",
-			"@click": "line('1. ')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"w-px h-3.5 bg-border-divider mx-1\"></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-code", "default", templ.Attributes{
-			"type": "button", "title": "Inline code",
-			"@click": "wrap('`')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-terminal", "default", templ.Attributes{
-			"type": "button", "title": "Code block",
-			"@click": "codeBlock()",
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-quote-right", "default", templ.Attributes{
-			"type": "button", "title": "Blockquote",
-			"@click": "line('> ')",
-		}).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"flex-1\"></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = IconButton("fa-solid fa-plus", "default", templ.Attributes{"type": "button", "title": "Attach file"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = IconButton("fa-solid fa-plus", "default", templ.Attributes{"type": "button", "title": "Attach file", "@click": "document.getElementById('file-upload-input').click()"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -215,33 +101,32 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><template x-if=\"pendingFiles.length > 0\"><div data-preview-bar class=\"flex flex-wrap gap-2 px-3 py-2 border-b border-border-subtle shrink-0\"><template x-for=\"(file, index) in pendingFiles\" :key=\"index\"><div class=\"relative group/preview\"><template x-if=\"file.isImage\"><div class=\"relative w-16 h-16 rounded-md overflow-hidden border border-border-divider bg-surface-sunken shrink-0\"><img :src=\"file.previewURL\" class=\"w-full h-full object-cover\"><div class=\"absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center\"><span class=\"text-white text-[10px] font-medium text-center leading-tight truncate w-full px-1\" x-text=\"file.name\"></span></div></div></template><template x-if=\"!file.isImage\"><div class=\"flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-border-divider bg-surface-sunken max-w-[160px]\"><i class=\"fa-solid fa-file text-[11px] text-content-muted shrink-0\"></i><div class=\"min-w-0\"><p class=\"text-[11px] font-medium text-content-primary truncate\" x-text=\"file.name\"></p><p class=\"text-[10px] text-content-muted\" x-text=\"file.sizeLabel\"></p></div></div></template><button type=\"button\" class=\"absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-surface-raised border border-border-divider text-content-muted hover:text-danger hover:border-danger/50 flex items-center justify-center transition-colors z-10\" @click=\"removeFile(index)\"><i class=\"fa-solid fa-xmark text-[8px]\"></i></button></div></template></div></template>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = MessageTextarea(placeholder, "flex-1 max-h-none", templ.Attributes{
+		templ_7745c5c3_Err = MessageTextarea(placeholder, "", templ.Attributes{
 			"id":           "textarea-messageinput",
 			"name":         name,
 			"autocomplete": "off",
-			"required":     true,
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><div class=\"flex items-center justify-between mt-1.5 px-0.5\"><span class=\"text-[10px] text-content-faint\"><kbd class=\"font-mono\">Enter</kbd> to send · <kbd class=\"font-mono\">Shift+Enter</kbd> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div><div class=\"flex items-center justify-between mt-1.5 px-0.5\"><span class=\"text-[10px] text-content-faint\"><kbd class=\"font-mono\">Enter</kbd> to send · <kbd class=\"font-mono\">Shift+Enter</kbd> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs("for")
+		var templ_7745c5c3_Var2 string
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs("for")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 150, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 128, Col: 99}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " new line</span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " new line</span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -252,7 +137,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

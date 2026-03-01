@@ -7,11 +7,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) HandleRoomHistory(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleNextMessages(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	roomID := chi.URLParam(r, "roomID")
 
-	hasMore, err := h.svc.Chat.LoadRoomHistory(roomID, 30)
+	hasMore, err := h.svc.Chat.LoadNextMessages(roomID, 30)
 	if err != nil {
 		h.serverError(w, r, err)
 		return

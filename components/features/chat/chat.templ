@@ -20,16 +20,27 @@ type Props struct {
 
 templ Chat(props Props) {
 	<div
-		class="w-full h-full flex flex-col"
+		class="w-full h-full flex flex-col relative"
 		id="chat-container"
 		data-user-name={ props.CurrentUserName }
 		data-user-avatar={ props.CurrentUserAvatar }
+		x-data="chatDrop()"
+		@dragover.prevent="onDragOver"
+		@dragleave="onDragLeave"
+		@drop.prevent="onDrop"
 	>
 		<div
 			ws-send
 			hx-trigger="load"
 			hx-vals={ fmt.Sprintf(`{"action": "SUBSCRIBE_ROOM", "roomID": "%s"}`, props.RoomID) }
 		></div>
+		<template x-if="dragOver">
+			<div class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface-base/80 backdrop-blur-sm border-2 border-dashed border-brand/50 rounded-lg pointer-events-none">
+				<i class="fa-solid fa-cloud-arrow-up text-4xl text-brand mb-3"></i>
+				<p class="text-sm font-semibold text-brand">Drop files to upload</p>
+				<p class="text-xs text-content-muted mt-1">Images and files supported</p>
+			</div>
+		</template>
 		if props.Topic != "" {
 			@ui.TopicBanner(props.Topic)
 		}

@@ -318,3 +318,11 @@
   animation: message-enter 120ms ease-out;
   transform-origin: left center;
 }
+
+#textarea-messageinput {
+  field-sizing: content;
+  min-height: 36px;
+  max-height: 360px;
+  overflow-y: auto;
+  resize: none;
+}
