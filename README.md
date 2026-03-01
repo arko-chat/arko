@@ -10,7 +10,7 @@ This is a work in progress. Things will break. Features are missing. If you are 
 ### Why another Matrix client?
 I am for the idea of federated chat servers. I believe it's the only way to go if we want privacy. Matrix is pretty much the leading protocol with all the necessary pieces to develop a ~Discord~ like experience. 
 
-Also, it's mostly a learning project of mine.
+This started as a learning project of mine for HTMX, WebView, and using Go in other platforms such as Android, iOS, and WASM. I wanted to see if it is convenient to develop a fully cross-platform app with Go.
 
 ### Goals
 - Matrix protocol under the hood
