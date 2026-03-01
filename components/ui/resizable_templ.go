@@ -31,33 +31,49 @@ func ResizableHandle(targetSelector string, storageKey string, minWidth int, max
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"w-0 hover:w-0.5 bg-transparent hover:bg-brand cursor-col-resize transition-all duration-150 relative group shrink-0\" x-data=\"{ dragging: false, startX: 0, startWidth: 0 }\" x-init=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"w-0 hover:w-0.5 bg-transparent hover:bg-brand cursor-col-resize transition-colors duration-150 relative group shrink-0\" x-data=\"{ dragging: false, startX: 0, startWidth: 0 }\" x-init=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
+			let rafId = null;
+			let pendingSave = null;
+			let lastE = null;
+
 			window.addEventListener('mousemove', (e) => {
 				if (!dragging) return;
 				e.preventDefault();
-				const target = document.querySelector('%s');
-				if (!target) return;
-				const diff = %s ? (e.clientX - startX) : (startX - e.clientX);
-				const newWidth = Math.max(%d, Math.min(%d, startWidth + diff));
-				target.style.width = newWidth + 'px';
-				localStorage.setItem('%s', newWidth);
-				document.documentElement.style.setProperty('--%s', newWidth + 'px');
+				lastE = e;
+				if (rafId) return;
+				rafId = requestAnimationFrame(() => {
+					rafId = null;
+					const target = document.querySelector('%s');
+					if (!target) return;
+					const diff = %s ? (lastE.clientX - startX) : (startX - lastE.clientX);
+					const newWidth = Math.max(%d, Math.min(%d, startWidth + diff));
+					target.style.width = newWidth + 'px';
+					document.documentElement.style.setProperty('--%s', newWidth + 'px');
+					clearTimeout(pendingSave);
+					pendingSave = setTimeout(() => {
+						localStorage.setItem('%s', newWidth);
+					}, 200);
+				});
 			});
+
 			window.addEventListener('mouseup', () => {
 				if (dragging) {
 					dragging = false;
 					document.body.style.cursor = '';
 					document.body.style.userSelect = '';
+					clearTimeout(pendingSave);
+					const target = document.querySelector('%s');
+					if (target) localStorage.setItem('%s', target.offsetWidth);
 				}
 			});
-		`, targetSelector, boolToJS(leftSide), minWidth, maxWidth, storageKey, storageKey))
+		`, targetSelector, boolToJS(leftSide), minWidth, maxWidth, storageKey, storageKey, targetSelector, storageKey))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 28, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 44, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -78,7 +94,7 @@ func ResizableHandle(targetSelector string, storageKey string, minWidth int, max
 			document.body.style.userSelect = 'none';
 		`, targetSelector))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 37, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 53, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -125,7 +141,7 @@ func ResizablePanel(id string, storageKey string, defaultWidth string, class str
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 45, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 61, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -151,7 +167,7 @@ func ResizablePanel(id string, storageKey string, defaultWidth string, class str
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: var(--%s, %s)", storageKey, defaultWidth))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 47, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 63, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -194,33 +210,49 @@ func ResizableRowHandle(targetSelector string, storageKey string, minHeight int,
 			templ_7745c5c3_Var9 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"h-0 hover:h-0.5 bg-transparent hover:bg-brand cursor-row-resize transition-all duration-150 relative group shrink-0\" x-data=\"{ dragging: false, startY: 0, startHeight: 0 }\" x-init=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"h-0 hover:h-0.5 bg-transparent hover:bg-brand cursor-row-resize transition-colors duration-150 relative group shrink-0\" x-data=\"{ dragging: false, startY: 0, startHeight: 0 }\" x-init=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`
+			let rafId = null;
+			let pendingSave = null;
+			let lastE = null;
+
 			window.addEventListener('mousemove', (e) => {
 				if (!dragging) return;
 				e.preventDefault();
-				const target = document.querySelector('%s');
-				if (!target) return;
-				const diff = startY - e.clientY;
-				const newHeight = Math.max(%d, Math.min(%d, startHeight + diff));
-				target.style.height = newHeight + 'px';
-				localStorage.setItem('%s', newHeight);
-				document.documentElement.style.setProperty('--%s', newHeight + 'px');
+				lastE = e;
+				if (rafId) return;
+				rafId = requestAnimationFrame(() => {
+					rafId = null;
+					const target = document.querySelector('%s');
+					if (!target) return;
+					const diff = startY - lastE.clientY;
+					const newHeight = Math.max(%d, Math.min(%d, startHeight + diff));
+					target.style.height = newHeight + 'px';
+					document.documentElement.style.setProperty('--%s', newHeight + 'px');
+					clearTimeout(pendingSave);
+					pendingSave = setTimeout(() => {
+						localStorage.setItem('%s', newHeight);
+					}, 200);
+				});
 			});
+
 			window.addEventListener('mouseup', () => {
 				if (dragging) {
 					dragging = false;
 					document.body.style.cursor = '';
 					document.body.style.userSelect = '';
+					clearTimeout(pendingSave);
+					const target = document.querySelector('%s');
+					if (target) localStorage.setItem('%s', target.offsetHeight);
 				}
 			});
-		`, targetSelector, minHeight, maxHeight, storageKey, storageKey))
+		`, targetSelector, minHeight, maxHeight, storageKey, storageKey, targetSelector, storageKey))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 76, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 108, Col: 94}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -241,7 +273,7 @@ func ResizableRowHandle(targetSelector string, storageKey string, minHeight int,
 			document.body.style.userSelect = 'none';
 		`, targetSelector))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 85, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/resizable.templ`, Line: 117, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
