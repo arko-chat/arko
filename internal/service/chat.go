@@ -54,8 +54,6 @@ func (s *ChatService) GetRoomMessageTree(
 
 		messageTree.Initialize(s.matrix.GetContext())
 		messageTree.Listen(s.matrix.GetContext(), func(mte matrix.MessageTreeEvent) {
-			log.Printf("mte: %v", mte)
-
 			neighbors := mte.Neighbors
 			msg := mte.Message
 

@@ -1,3 +1,5 @@
+// TODO: implement a "view-only" data structure to ensure only a specific number of messages are in the DOM at a time
+
 package matrix
 
 import (
@@ -113,12 +115,7 @@ func (t *MessageTree) sendEventToListeners(treeEvt MessageTreeEvent) {
 	if t.listening.Load() {
 		select {
 		case t.listenerCh <- treeEvt:
-			t.matrixSession.logger.Debug(
-				"sent event to listener channel",
-				"id", treeEvt.Message.ID,
-			)
 		case <-t.listenerCtx.Done():
-			t.matrixSession.logger.Debug("listener context done, skipping send")
 		default:
 			go func(evt MessageTreeEvent) {
 				select {
