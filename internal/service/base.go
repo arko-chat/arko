@@ -9,12 +9,12 @@ import (
 )
 
 type BaseService struct {
-	matrix *matrix.Manager
+	matrix matrix.ManagerClient
 	hub    *ws.Hub
 }
 
 func NewBaseService(
-	mgr *matrix.Manager,
+	mgr matrix.ManagerClient,
 	hub *ws.Hub,
 ) *BaseService {
 	return &BaseService{
@@ -23,12 +23,20 @@ func NewBaseService(
 	}
 }
 
-func (s *BaseService) GetCurrentUser() (models.User, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return models.User{}, fmt.Errorf("missing matrix session")
+func (s *BaseService) GetCurrentSession() (matrix.SessionClient, error) {
+	session := s.matrix.GetCurrentMatrixSession()
+	if session == nil {
+		return nil, fmt.Errorf("missing matrix session")
 	}
-	return currentSession.GetCurrentUser()
+	return session, nil
+}
+
+func (s *BaseService) GetCurrentUser() (models.User, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return models.User{}, err
+	}
+	return session.GetCurrentUser()
 }
 
 func (s *BaseService) GetCurrentUserID() string {

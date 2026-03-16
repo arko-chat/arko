@@ -302,13 +302,19 @@ func (m *Manager) GetCurrentUserID() string {
 	return currSess.id
 }
 
-func (m *Manager) GetCurrentMatrixSession() *MatrixSession {
+func (m *Manager) GetCurrentMatrixSession() SessionClient {
 	currSess := m.currSession.Load()
+	if currSess == nil {
+		return nil
+	}
 	return currSess
 }
 
-func (m *Manager) GetMatrixSession(userId string) *MatrixSession {
-	sess, _ := m.matrixSessions.Load(userId)
+func (m *Manager) GetMatrixSession(userId string) SessionClient {
+	sess, ok := m.matrixSessions.Load(userId)
+	if !ok {
+		return nil
+	}
 	return sess
 }
 

@@ -14,7 +14,7 @@ type FriendsService struct {
 }
 
 func NewFriendsService(
-	mgr *matrix.Manager,
+	mgr matrix.ManagerClient,
 	hub *ws.Hub,
 ) *FriendsService {
 	return &FriendsService{
@@ -22,32 +22,28 @@ func NewFriendsService(
 	}
 }
 
-func (s *FriendsService) GetFriendRoomID(
-	otherUserID string,
-) (string, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return "", fmt.Errorf("missing matrix session")
+func (s *FriendsService) GetFriendRoomID(otherUserID string) (string, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return "", err
 	}
-	return currentSession.GetDMRoomID(otherUserID)
+	return session.GetDMRoomID(otherUserID)
 }
 
 func (s *FriendsService) ListFriends() ([]models.User, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return nil, fmt.Errorf("missing matrix session")
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return nil, err
 	}
-	return currentSession.ListDirectMessages()
+	return session.ListDirectMessages()
 }
 
-func (s *FriendsService) FilterFriends(
-	filter string,
-) ([]models.User, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return nil, fmt.Errorf("missing matrix session")
+func (s *FriendsService) FilterFriends(filter string) ([]models.User, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return nil, err
 	}
-	all, err := currentSession.ListDirectMessages()
+	all, err := session.ListDirectMessages()
 	if err != nil {
 		return nil, err
 	}
@@ -71,14 +67,12 @@ func (s *FriendsService) FilterFriends(
 	return out, nil
 }
 
-func (s *FriendsService) SearchFriends(
-	query string,
-) ([]models.User, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return nil, fmt.Errorf("missing matrix session")
+func (s *FriendsService) SearchFriends(query string) ([]models.User, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return nil, err
 	}
-	all, err := currentSession.ListDirectMessages()
+	all, err := session.ListDirectMessages()
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +87,10 @@ func (s *FriendsService) SearchFriends(
 	return out, nil
 }
 
-func (s *FriendsService) GetFriend(
-	otherUserID string,
-) (models.User, error) {
-	userID := s.GetCurrentUserID()
-	return s.matrix.GetMatrixSession(userID).GetUserProfile(otherUserID)
+func (s *FriendsService) GetFriend(otherUserID string) (models.User, error) {
+	session := s.matrix.GetMatrixSession(otherUserID)
+	if session == nil {
+		return models.User{}, fmt.Errorf("missing matrix session")
+	}
+	return session.GetUserProfile(otherUserID)
 }

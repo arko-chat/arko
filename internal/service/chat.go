@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/components/utils"
@@ -17,15 +17,18 @@ import (
 type ChatService struct {
 	*BaseService
 	initializedTree *xsync.Map[string, struct{}]
+	logger          *slog.Logger
 }
 
 func NewChatService(
-	mgr *matrix.Manager,
+	mgr matrix.ManagerClient,
 	hub *ws.Hub,
+	logger *slog.Logger,
 ) *ChatService {
 	return &ChatService{
 		BaseService:     NewBaseService(mgr, hub),
 		initializedTree: xsync.NewMap[string, struct{}](),
+		logger:          logger,
 	}
 }
 
@@ -38,14 +41,12 @@ func (s *ChatService) LoadNextMessages(roomID string, limit int) (bool, error) {
 	return hasMore, nil
 }
 
-func (s *ChatService) GetRoomMessageTree(
-	roomID string,
-) (*matrix.MessageTree, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return nil, fmt.Errorf("missing matrix session")
+func (s *ChatService) GetRoomMessageTree(roomID string) (*matrix.MessageTree, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return nil, err
 	}
-	messageTree := currentSession.GetMessageTree(roomID)
+	messageTree := session.GetMessageTree(roomID)
 
 	s.initializedTree.Compute(roomID, func(str struct{}, loaded bool) (struct{}, xsync.ComputeOp) {
 		if loaded {
@@ -66,42 +67,32 @@ func (s *ChatService) GetRoomMessageTree(
 			case matrix.AddEvent:
 				if neighbors.Next != nil {
 					oobTarget := "beforebegin:#msg-" + neighbors.Next.ID
-					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
-					if err != nil {
-						log.Printf("err: %v", err)
+					if err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget); err != nil {
+						s.logger.Error("render insert oob", "err", err)
 						return
 					}
 				} else if neighbors.Prev != nil {
 					oobTarget := "afterend:#msg-" + neighbors.Prev.ID
-					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
-					if err != nil {
-						log.Printf("err: %v", err)
+					if err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget); err != nil {
+						s.logger.Error("render insert oob", "err", err)
 						return
 					}
 				} else {
 					oobTarget := "beforeend:#message-list"
-					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
-					if err != nil {
-						log.Printf("err: %v", err)
+					if err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget); err != nil {
+						s.logger.Error("render insert oob", "err", err)
 						return
 					}
 				}
 
 			case matrix.UpdateEvent:
-				if mte.UpdateNonce == "" {
-					oobTarget := "outerHTML:#msg-" + mte.Message.ID
-					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
-					if err != nil {
-						log.Printf("err: %v", err)
-						return
-					}
-				} else {
-					oobTarget := "outerHTML:#msg-" + mte.UpdateNonce
-					err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget)
-					if err != nil {
-						log.Printf("err: %v", err)
-						return
-					}
+				oobTarget := "outerHTML:#msg-" + msg.ID
+				if mte.UpdateNonce != "" {
+					oobTarget = "outerHTML:#msg-" + mte.UpdateNonce
+				}
+				if err := renderInsertOOB(s.matrix.GetContext(), &buf, msg, continued, oobTarget); err != nil {
+					s.logger.Error("render update oob", "err", err)
+					return
 				}
 
 			case matrix.RemoveEvent:
@@ -111,15 +102,14 @@ func (s *ChatService) GetRoomMessageTree(
 					mte.Message.ID,
 				)
 				if err != nil {
-					log.Printf("err: %v", err)
+					s.logger.Error("render remove oob", "err", err)
 					return
 				}
 			}
 
 			if prev, isContinued := s.checkRegrouping(msg, neighbors); prev != nil {
-				err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(s.matrix.GetContext(), &buf)
-				if err != nil {
-					log.Printf("err: %v", err)
+				if err := ui.MessageBubbleOOB(*prev, isContinued, "outerHTML").Render(s.matrix.GetContext(), &buf); err != nil {
+					s.logger.Error("render regroup oob", "err", err)
 					return
 				}
 			}
@@ -135,14 +125,12 @@ func (s *ChatService) GetRoomMessageTree(
 	return messageTree, nil
 }
 
-func (s *ChatService) SendRoomMessage(
-	roomID string,
-	author models.User,
-	content string,
-) error {
-	matrixSession := s.matrix.GetMatrixSession(author.ID)
-	messageTree := matrixSession.GetMessageTree(roomID)
-
+func (s *ChatService) SendRoomMessage(roomID string, author models.User, content string) error {
+	session := s.matrix.GetMatrixSession(author.ID)
+	if session == nil {
+		return fmt.Errorf("missing matrix session")
+	}
+	messageTree := session.GetMessageTree(roomID)
 	return messageTree.SendMessage(content)
 }
 

@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/ws"
@@ -13,7 +11,7 @@ type SpaceService struct {
 }
 
 func NewSpaceService(
-	mgr *matrix.Manager,
+	mgr matrix.ManagerClient,
 	hub *ws.Hub,
 ) *SpaceService {
 	return &SpaceService{
@@ -22,30 +20,25 @@ func NewSpaceService(
 }
 
 func (s *SpaceService) ListSpaces() ([]models.Space, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return nil, fmt.Errorf("missing matrix session")
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return nil, err
 	}
-	return currentSession.ListSpaces()
+	return session.ListSpaces()
 }
 
-func (s *SpaceService) GetSpace(
-	spaceID string,
-) (models.SpaceDetail, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return models.SpaceDetail{}, fmt.Errorf("missing matrix session")
+func (s *SpaceService) GetSpace(spaceID string) (models.SpaceDetail, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return models.SpaceDetail{}, err
 	}
-	return currentSession.GetSpaceDetail(spaceID)
+	return session.GetSpaceDetail(spaceID)
 }
 
-func (s *SpaceService) GetChannel(
-	spaceID string,
-	channelID string,
-) (models.Channel, error) {
-	currentSession := s.matrix.GetCurrentMatrixSession()
-	if currentSession == nil {
-		return models.Channel{}, fmt.Errorf("missing matrix session")
+func (s *SpaceService) GetChannel(spaceID string, channelID string) (models.Channel, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return models.Channel{}, err
 	}
-	return currentSession.GetChannel(spaceID, channelID)
+	return session.GetChannel(spaceID, channelID)
 }

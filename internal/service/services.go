@@ -1,6 +1,8 @@
 package service
 
 import (
+	"log/slog"
+
 	"github.com/arko-chat/arko/internal/matrix"
 	"github.com/arko-chat/arko/internal/ws"
 )
@@ -14,12 +16,9 @@ type Services struct {
 	WebView      *WebViewService
 }
 
-func New(
-	mgr *matrix.Manager,
-	wsHub *ws.Hub,
-) *Services {
+func New(mgr *matrix.Manager, wsHub *ws.Hub, logger *slog.Logger) *Services {
 	return &Services{
-		Chat:         NewChatService(mgr, wsHub),
+		Chat:         NewChatService(mgr, wsHub, logger),
 		Friends:      NewFriendsService(mgr, wsHub),
 		Spaces:       NewSpaceService(mgr, wsHub),
 		User:         NewUserService(mgr, wsHub),

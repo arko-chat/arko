@@ -12,7 +12,7 @@ type VerificationService struct {
 }
 
 func NewVerificationService(
-	mgr *matrix.Manager,
+	mgr matrix.ManagerClient,
 	hub *ws.Hub,
 ) *VerificationService {
 	return &VerificationService{
@@ -21,18 +21,26 @@ func NewVerificationService(
 }
 
 func (s *VerificationService) IsVerified() bool {
-	userID := s.GetCurrentUserID()
-	return s.matrix.GetMatrixSession(userID).IsVerified()
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return false
+	}
+	return session.IsVerified()
 }
 
 func (s *VerificationService) ListenVerifyEvents(ctx context.Context) {
 	userID := s.GetCurrentUserID()
-	sess := s.matrix.GetMatrixSession(userID)
-	if sess == nil {
+	session := s.matrix.GetMatrixSession(userID)
+	if session == nil {
 		return
 	}
 
-	events, cleanup := sess.VerificationEvents(ctx)
+	verificationSession, ok := session.(matrix.VerificationClient)
+	if !ok {
+		return
+	}
+
+	events, cleanup := verificationSession.VerificationEvents(ctx)
 
 	go func() {
 		defer cleanup()
@@ -45,7 +53,7 @@ func (s *VerificationService) ListenVerifyEvents(ctx context.Context) {
 					return
 				}
 				if ev.Type == matrix.VerificationEventDone {
-					s.matrix.GetCurrentMatrixSession().WaitUntilVerified(ctx)
+					verificationSession.WaitUntilVerified(ctx)
 				}
 				msg := verificationEventToWS(ev)
 				if msg == nil {

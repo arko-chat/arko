@@ -25,7 +25,7 @@ type WebViewService struct {
 }
 
 func NewWebViewService(
-	mgr *matrix.Manager,
+	mgr matrix.ManagerClient,
 	hub *ws.Hub,
 ) *WebViewService {
 	return &WebViewService{

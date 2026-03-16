@@ -15,7 +15,7 @@ type UserService struct {
 }
 
 func NewUserService(
-	mgr *matrix.Manager,
+	mgr matrix.ManagerClient,
 	hub *ws.Hub,
 ) *UserService {
 	return &UserService{
@@ -37,9 +37,7 @@ func (s *UserService) Login(
 	return s.matrix.Login(ctx, creds)
 }
 
-func (s *UserService) Logout(
-	ctx context.Context,
-) error {
+func (s *UserService) Logout(ctx context.Context) error {
 	userID := s.GetCurrentUserID()
 	return s.matrix.Logout(ctx, userID)
 }
