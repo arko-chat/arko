@@ -14,15 +14,9 @@ func (h *Handler) HandleVerifyRecoveryPage(
 ) {
 	state := h.session(r)
 	ctx := r.Context()
-	isHtmx := htmx.IsHTMX(r)
 
 	if h.svc.Verification.IsVerified() {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", "/")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, "/")
+		h.redirect(w, r, "/")
 		return
 	}
 
@@ -39,7 +33,7 @@ func (h *Handler) HandleVerifyRecoveryPage(
 
 	h.svc.WebView.SetTitle("Recovery Key Verification")
 
-	if isHtmx {
+	if htmx.IsHTMX(r) {
 		if err := verifyrecoverypage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
@@ -89,6 +83,5 @@ func (h *Handler) HandleVerifyRecovery(
 		return
 	}
 
-	w.Header().Set("HX-Redirect", "/verify")
-	w.WriteHeader(http.StatusOK)
+	h.htmxRedirect(w, "/verify")
 }

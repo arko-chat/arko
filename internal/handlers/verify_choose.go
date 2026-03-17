@@ -14,24 +14,14 @@ func (h *Handler) HandleVerifyChoosePage(
 ) {
 	state := h.session(r)
 	ctx := r.Context()
-	isHtmx := htmx.IsHTMX(r)
-
-	redirect := func(path string) {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", path)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, path)
-	}
 
 	if h.svc.Verification.IsVerified() {
-		redirect("/")
+		h.redirect(w, r, "/")
 		return
 	}
 
 	if !h.svc.Verification.HasCrossSigningKeys() {
-		redirect("/verify")
+		h.redirect(w, r, "/verify")
 		return
 	}
 
@@ -47,7 +37,7 @@ func (h *Handler) HandleVerifyChoosePage(
 
 	h.svc.WebView.SetTitle("Verification Options")
 
-	if isHtmx {
+	if htmx.IsHTMX(r) {
 		if err := verifychoosepage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}

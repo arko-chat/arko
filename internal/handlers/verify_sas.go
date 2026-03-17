@@ -21,8 +21,7 @@ func (h *Handler) HandleVerifyStartSAS(
 		return
 	}
 
-	w.Header().Set("HX-Redirect", "/verify/sas/waiting")
-	w.WriteHeader(http.StatusOK)
+	h.htmxRedirect(w, "/verify/sas/waiting")
 }
 
 func (h *Handler) HandleVerifySASPage(
@@ -31,48 +30,26 @@ func (h *Handler) HandleVerifySASPage(
 ) {
 	state := h.session(r)
 	ctx := r.Context()
-	isHtmx := htmx.IsHTMX(r)
 
-	verified := h.svc.Verification.IsVerified()
-	if verified {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", "/")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, "/")
+	if h.svc.Verification.IsVerified() {
+		h.redirect(w, r, "/")
 		return
 	}
 
 	if !h.svc.Verification.HasCrossSigningKeys() {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", "/verify")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, "/verify")
+		h.redirect(w, r, "/verify")
 		return
 	}
 
 	vs := h.svc.Verification.GetVerificationState()
 	if vs == nil || len(vs.Emojis) == 0 {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", "/verify/sas/waiting")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, "/verify/sas/waiting")
+		h.redirect(w, r, "/verify/sas/waiting")
 		return
 	}
 
 	if vs.Cancelled {
 		h.svc.Verification.ClearVerificationState()
-		if isHtmx {
-			w.Header().Set("HX-Redirect", "/verify")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, "/verify")
+		h.redirect(w, r, "/verify")
 		return
 	}
 
@@ -97,7 +74,7 @@ func (h *Handler) HandleVerifySASPage(
 
 	h.svc.WebView.SetTitle("SAS Verification")
 
-	if isHtmx {
+	if htmx.IsHTMX(r) {
 		if err := verifysaspage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
@@ -121,36 +98,26 @@ func (h *Handler) HandleVerifySASWaitingPage(
 ) {
 	state := h.session(r)
 	ctx := r.Context()
-	isHtmx := htmx.IsHTMX(r)
-
-	redirect := func(path string) {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", path)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, path)
-	}
 
 	if h.svc.Verification.IsVerified() {
-		redirect("/")
+		h.redirect(w, r, "/")
 		return
 	}
 
 	if !h.svc.Verification.HasCrossSigningKeys() {
-		redirect("/verify/waiting")
+		h.redirect(w, r, "/verify/waiting")
 		return
 	}
 
 	vs := h.svc.Verification.GetVerificationState()
 	if vs.Cancelled {
 		h.svc.Verification.ClearVerificationState()
-		redirect("/verify/choose")
+		h.redirect(w, r, "/verify/choose")
 		return
 	}
 
 	if len(vs.Emojis) > 0 {
-		redirect("/verify/sas")
+		h.redirect(w, r, "/verify/sas")
 		return
 	}
 
@@ -166,7 +133,7 @@ func (h *Handler) HandleVerifySASWaitingPage(
 
 	h.svc.WebView.SetTitle("SAS Verification")
 
-	if isHtmx {
+	if htmx.IsHTMX(r) {
 		if err := verifysaswaitingpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}

@@ -21,8 +21,7 @@ func (h *Handler) HandleVerifyStartQR(
 		return
 	}
 
-	w.Header().Set("HX-Redirect", "/verify/qr")
-	w.WriteHeader(http.StatusOK)
+	h.htmxRedirect(w, "/verify/qr")
 }
 
 func (h *Handler) HandleVerifyQRPage(
@@ -31,36 +30,26 @@ func (h *Handler) HandleVerifyQRPage(
 ) {
 	state := h.session(r)
 	ctx := r.Context()
-	isHtmx := htmx.IsHTMX(r)
-
-	redirect := func(path string) {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", path)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, path)
-	}
 
 	if h.svc.Verification.IsVerified() {
-		redirect("/")
+		h.redirect(w, r, "/")
 		return
 	}
 
 	if !h.svc.Verification.HasCrossSigningKeys() {
-		redirect("/verify")
+		h.redirect(w, r, "/verify")
 		return
 	}
 
 	vs := h.svc.Verification.GetVerificationState()
 	if vs.Cancelled {
 		h.svc.Verification.ClearVerificationState()
-		redirect("/verify/choose")
+		h.redirect(w, r, "/verify/choose")
 		return
 	}
 
 	if vs.QRScanned {
-		redirect("/verify/qr/scanned")
+		h.redirect(w, r, "/verify/qr/scanned")
 		return
 	}
 
@@ -81,14 +70,14 @@ func (h *Handler) HandleVerifyQRPage(
 		QRCodeSVG: qrSVG,
 	}
 
-	if isHtmx {
+	h.svc.WebView.SetTitle("QR Verification")
+
+	if htmx.IsHTMX(r) {
 		if err := verifyqrpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-
-	h.svc.WebView.SetTitle("QR Verification")
 
 	if err := verifyqrpage.Page(verifyqrpage.PageProps{
 		PageProps: components.PageProps{
@@ -107,31 +96,21 @@ func (h *Handler) HandleVerifyQRScannedPage(
 ) {
 	state := h.session(r)
 	ctx := r.Context()
-	isHtmx := htmx.IsHTMX(r)
-
-	redirect := func(path string) {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", path)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, path)
-	}
 
 	if h.svc.Verification.IsVerified() {
-		redirect("/")
+		h.redirect(w, r, "/")
 		return
 	}
 
 	vs := h.svc.Verification.GetVerificationState()
 	if vs.Cancelled {
 		h.svc.Verification.ClearVerificationState()
-		redirect("/verify/choose")
+		h.redirect(w, r, "/verify/choose")
 		return
 	}
 
 	if !vs.QRScanned {
-		redirect("/verify/qr")
+		h.redirect(w, r, "/verify/qr")
 		return
 	}
 
@@ -145,14 +124,14 @@ func (h *Handler) HandleVerifyQRScannedPage(
 		User: user,
 	}
 
-	if isHtmx {
+	h.svc.WebView.SetTitle("QR Verification")
+
+	if htmx.IsHTMX(r) {
 		if err := verifyqrscannedpage.Content(props).Render(ctx, w); err != nil {
 			h.serverError(w, r, err)
 		}
 		return
 	}
-
-	h.svc.WebView.SetTitle("QR Verification")
 
 	if err := verifyqrscannedpage.Page(verifyqrscannedpage.PageProps{
 		PageProps: components.PageProps{
@@ -171,20 +150,15 @@ func (h *Handler) HandleVerifyQRStatus(
 ) {
 	ctx := r.Context()
 
-	redirect := func(path string) {
-		w.Header().Set("HX-Redirect", path)
-		w.WriteHeader(http.StatusOK)
-	}
-
 	if h.svc.Verification.IsVerified() {
-		redirect("/")
+		h.htmxRedirect(w, "/")
 		return
 	}
 
 	vs := h.svc.Verification.GetVerificationState()
 	if vs.Cancelled {
 		h.svc.Verification.ClearVerificationState()
-		redirect("/verify/choose")
+		h.htmxRedirect(w, "/verify/choose")
 		return
 	}
 

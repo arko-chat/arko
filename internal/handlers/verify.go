@@ -12,55 +12,44 @@ func (h *Handler) HandleVerifyPage(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	isHtmx := htmx.IsHTMX(r)
-
-	redirect := func(path string) {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", path)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, path)
-	}
-
 	if h.svc.Verification.IsVerified() {
-		redirect("/")
+		h.redirect(w, r, "/")
 		return
 	}
 
 	if !h.svc.Verification.HasCrossSigningKeys() {
-		redirect("/verify/waiting")
+		h.redirect(w, r, "/verify/waiting")
 		return
 	}
 
 	vs := h.svc.Verification.GetVerificationState()
 	if vs.Cancelled {
 		h.svc.Verification.ClearVerificationState()
-		redirect("/verify/choose")
+		h.redirect(w, r, "/verify/choose")
 		return
 	}
 
 	if len(vs.Emojis) > 0 {
-		redirect("/verify/sas")
+		h.redirect(w, r, "/verify/sas")
 		return
 	}
 
 	if vs.SASActive {
-		redirect("/verify/sas/waiting")
+		h.redirect(w, r, "/verify/sas/waiting")
 		return
 	}
 
 	if vs.QRScanned {
-		redirect("/verify/qr/scanned")
+		h.redirect(w, r, "/verify/qr/scanned")
 		return
 	}
 
 	if vs.QRActive {
-		redirect("/verify/qr")
+		h.redirect(w, r, "/verify/qr")
 		return
 	}
 
-	redirect("/verify/choose")
+	h.redirect(w, r, "/verify/choose")
 }
 
 func (h *Handler) HandleVerifyWaitingPage(
@@ -71,22 +60,13 @@ func (h *Handler) HandleVerifyWaitingPage(
 	ctx := r.Context()
 	isHtmx := htmx.IsHTMX(r)
 
-	redirect := func(path string) {
-		if isHtmx {
-			w.Header().Set("HX-Redirect", path)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		htmx.Redirect(w, r, path)
-	}
-
 	if h.svc.Verification.IsVerified() {
-		redirect("/")
+		h.redirect(w, r, "/")
 		return
 	}
 
 	if h.svc.Verification.HasCrossSigningKeys() {
-		redirect("/verify/choose")
+		h.redirect(w, r, "/verify/choose")
 		return
 	}
 
