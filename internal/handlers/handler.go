@@ -8,6 +8,7 @@ import (
 
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/cache"
+	"github.com/arko-chat/arko/internal/htmx"
 	"github.com/arko-chat/arko/internal/middleware"
 	"github.com/arko-chat/arko/internal/service"
 	"github.com/arko-chat/arko/internal/session"
@@ -50,4 +51,18 @@ func (h *Handler) wsError(conn *websocket.Conn, message string) {
 	var buf bytes.Buffer
 	_ = ui.ToastError(message).Render(nil, &buf)
 	_ = conn.WriteMessage(websocket.TextMessage, buf.Bytes())
+}
+
+func (h *Handler) redirect(w http.ResponseWriter, r *http.Request, path string) {
+	if htmx.IsHTMX(r) {
+		w.Header().Set("HX-Redirect", path)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	htmx.Redirect(w, r, path)
+}
+
+func (h *Handler) htmxRedirect(w http.ResponseWriter, path string) {
+	w.Header().Set("HX-Redirect", path)
+	w.WriteHeader(http.StatusOK)
 }
