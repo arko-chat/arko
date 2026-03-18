@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	serviceName       = "arko"
-	knownUsersKey     = "app:known_users"
-	globalSettingsKey = "app:global_settings"
-	cookieName        = "arko_uid"
+	serviceName         = "arko"
+	knownUsersKey       = "app:known_users"
+	globalSettingsKey   = "app:global_settings"
+	cookieName          = "arko_uid"
+	cookieKeyKeyringKey = "app:cookie_key"
 )
 
 var (
@@ -49,9 +50,30 @@ type GlobalSettings struct {
 }
 
 func init() {
-	cookieKey := make([]byte, 32)
-	_, _ = rand.Read(cookieKey)
-	secureCookie = securecookie.New(cookieKey, nil)
+	secureCookie = securecookie.New(getOrCreateCookieKey(), nil)
+}
+
+func getOrCreateCookieKey() []byte {
+	raw, err := keyring.Get(serviceName, cookieKeyKeyringKey)
+	if err == nil && len(raw) >= 64 {
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			key = []byte(raw[:32])
+		}
+		return key
+	}
+
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		key = securecookie.GenerateRandomKey(32)
+	}
+
+	encoded := make([]byte, 64)
+	for i, b := range key {
+		encoded[i] = b
+	}
+	_ = keyring.Set(serviceName, cookieKeyKeyringKey, string(encoded))
+	return key
 }
 
 func Default() *Session {
