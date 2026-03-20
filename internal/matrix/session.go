@@ -46,6 +46,7 @@ type MatrixSession struct {
 	keyBackupMgr          *KeyBackupManager
 	listeners             *xsync.Map[uint64, chan *event.Event]
 	idCounter             atomic.Uint64
+	typingTracker         *TypingTracker
 
 	crossSigningEvent chan struct{}
 
@@ -218,6 +219,7 @@ func (m *Manager) NewMatrixSession(ctx context.Context, client *mautrix.Client, 
 		dmCache:               cache.NewDefault[[]models.User](),
 		membersCache:          cache.NewDefault[[]models.User](),
 		crossSigningEvent:     make(chan struct{}, 2),
+		typingTracker:         NewTypingTracker(s.UserID),
 	}
 
 	mSess.keyBackupMgr = NewKeyBackupManager(mSess)
@@ -315,6 +317,30 @@ func (m *MatrixSession) initSyncHandlers() {
 		m.profileCache.Invalidate("gup:" + evt.Sender.String())
 		if evt.Sender.String() == m.id {
 			m.userCache.Invalidate("gcu:" + m.id)
+		}
+	})
+
+	syncer.OnEventType(event.EphemeralEventTyping, func(ctx context.Context, evt *event.Event) {
+		content, ok := evt.Content.Parsed.(*event.TypingEventContent)
+		if !ok {
+			return
+		}
+		roomID := evt.RoomID.String()
+		for _, userID := range content.UserIDs {
+			profile, _ := m.GetUserProfile(userID.String())
+			m.typingTracker.SetTyping(roomID, profile, true, 30*time.Second)
+		}
+		for existingID := range m.typingTracker.rooms[roomID] {
+			isStillTyping := false
+			for _, userID := range content.UserIDs {
+				if userID.String() == existingID {
+					isStillTyping = true
+					break
+				}
+			}
+			if !isStillTyping {
+				m.typingTracker.SetTyping(roomID, models.User{ID: existingID}, false, 0)
+			}
 		}
 	})
 
@@ -513,6 +539,26 @@ func (m *MatrixSession) WaitUntilVerified(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func (m *MatrixSession) GetTypingUsers(roomID string) []string {
+	return m.typingTracker.GetTypingUsers(roomID)
+}
+
+func (m *MatrixSession) SendTyping(roomID string, typing bool, timeout time.Duration) error {
+	ctx := m.Context()
+	client := m.GetClient()
+	rid := id.RoomID(roomID)
+	_, err := client.UserTyping(ctx, rid, typing, timeout)
+	return err
+}
+
+func (m *MatrixSession) TypingEvents() <-chan TypingEvent {
+	return m.typingTracker.Listen()
+}
+
+func (m *MatrixSession) CloseTypingListener(ch <-chan TypingEvent) {
+	m.typingTracker.CloseListener(ch)
 }
 
 func (m *MatrixSession) Close() {
