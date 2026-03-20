@@ -2,6 +2,7 @@ package matrix
 
 import (
 	"context"
+	"time"
 
 	"github.com/arko-chat/arko/internal/models"
 	"github.com/arko-chat/arko/internal/session"
@@ -22,6 +23,10 @@ type SessionClient interface {
 	CreateChannel(params CreateChannelParams) (models.Channel, error)
 	SearchUsers(query string) ([]models.User, error)
 	CreateDMRoom(otherUserID string) (models.User, string, error)
+	GetTypingUsers(roomID string) []string
+	SendTyping(roomID string, typing bool, timeout time.Duration) error
+	TypingEvents() <-chan TypingEvent
+	CloseTypingListener(ch <-chan TypingEvent)
 }
 
 type VerificationClient interface {
