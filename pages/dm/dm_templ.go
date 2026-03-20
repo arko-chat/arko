@@ -29,6 +29,7 @@ type ContentProps struct {
 	Friend      models.User
 	Tree        *matrix.MessageTree
 	RoomID      string
+	TypingUsers []string
 }
 
 func Page(props PageProps) templ.Component {
@@ -131,6 +132,7 @@ func Content(props ContentProps) templ.Component {
 			CurrentUserName:   props.User.Name,
 			CurrentUserAvatar: props.User.Avatar,
 			WelcomeUser:       &props.Friend,
+			TypingUsers:       props.TypingUsers,
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

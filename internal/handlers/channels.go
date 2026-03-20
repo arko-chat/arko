@@ -46,6 +46,10 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.svc.Chat.SubscribeTyping(channelID)
+
+	typingUsers := h.svc.Chat.GetTypingUsers(channelID)
+
 	fl, _ := h.svc.Friends.ListFriends()
 
 	props := channelspage.ContentProps{
@@ -56,6 +60,7 @@ func (h *Handler) HandleChannels(w http.ResponseWriter, r *http.Request) {
 		Channel:     ch,
 		Tree:        tree,
 		RoomID:      ch.ID,
+		TypingUsers: typingUsers,
 	}
 
 	h.svc.WebView.SetTitle(fmt.Sprintf("#%s", ch.Name))

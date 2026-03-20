@@ -15,12 +15,13 @@ type PageProps struct {
 }
 
 type ContentProps struct {
-	User        models.User
-	Spaces      []models.Space
-	FriendsList []models.User
-	Friend      models.User
-	Tree        *matrix.MessageTree
-	RoomID      string
+	User         models.User
+	Spaces       []models.Space
+	FriendsList  []models.User
+	Friend       models.User
+	Tree         *matrix.MessageTree
+	RoomID       string
+	TypingUsers  []string
 }
 
 templ Page(props PageProps) {
@@ -44,6 +45,7 @@ templ Content(props ContentProps) {
 					CurrentUserName:   props.User.Name,
 					CurrentUserAvatar: props.User.Avatar,
 					WelcomeUser:       &props.Friend,
+					TypingUsers:       props.TypingUsers,
 				})
 			</div>
 		</div>

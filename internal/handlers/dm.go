@@ -45,6 +45,10 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.svc.Chat.SubscribeTyping(roomID)
+
+	typingUsers := h.svc.Chat.GetTypingUsers(roomID)
+
 	props := dmpage.ContentProps{
 		User:        user,
 		Spaces:      spaces,
@@ -52,6 +56,7 @@ func (h *Handler) HandleDM(w http.ResponseWriter, r *http.Request) {
 		Friend:      friend,
 		Tree:        tree,
 		RoomID:      roomID,
+		TypingUsers: typingUsers,
 	}
 
 	h.svc.WebView.SetTitle(friend.Name)
