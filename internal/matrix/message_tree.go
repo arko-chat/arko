@@ -1,5 +1,14 @@
 // TODO: implement a "view-only" data structure to ensure only a specific number of messages are in the DOM at a time
 
+// Package matrix provides Matrix protocol client functionality.
+//
+// This file (message_tree.go) contains the MessageTree which handles:
+// - Thread-safe message storage using BTree
+// - Message loading and pagination
+// - Encryption/decryption handling
+// - Real-time event listening
+// - URL embed fetching
+
 package matrix
 
 import (

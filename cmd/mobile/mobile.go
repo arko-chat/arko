@@ -48,7 +48,7 @@ func Start(dataDir string) (string, error) {
 
 	mgr := matrix.NewManager(slogger, cryptoDBPath)
 	wsHub := ws.NewHub(slogger)
-	svc := service.New(mgr, wsHub)
+	svc := service.New(mgr, wsHub, slogger)
 	h := handlers.New(wsHub, svc, slogger)
 	mux := router.New(h, mgr)
 
