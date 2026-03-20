@@ -42,3 +42,28 @@ func (s *SpaceService) GetChannel(spaceID string, channelID string) (models.Chan
 	}
 	return session.GetChannel(spaceID, channelID)
 }
+
+func (s *SpaceService) CreateSpace(name, topic string, public bool) (models.Space, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return models.Space{}, err
+	}
+	return session.CreateSpace(matrix.CreateSpaceParams{
+		Name:   name,
+		Topic:  topic,
+		Public: public,
+	})
+}
+
+func (s *SpaceService) CreateChannel(spaceID, name, topic string, public bool) (models.Channel, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return models.Channel{}, err
+	}
+	return session.CreateChannel(matrix.CreateChannelParams{
+		Name:    name,
+		Topic:   topic,
+		SpaceID: spaceID,
+		Public:  public,
+	})
+}
