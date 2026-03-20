@@ -1,6 +1,7 @@
 package sidebar
 
 import (
+	friendmodal "github.com/arko-chat/arko/components/modals/friends"
 	"github.com/arko-chat/arko/components/modals/spaces"
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/internal/models"
@@ -26,6 +27,7 @@ templ NavigationSidebar(viewType string, user models.User, friends []models.User
 			@ui.Modal("create-space-modal", "Create Server", ui.ModalSizeSmall, spaces.CreateSpace())
 		} else if viewType == "friends" {
 			@ui.Modal("friends-list", "Friends", ui.ModalSizeMedium, FriendsList(friends))
+			@friendmodal.AddFriendModal()
 		}
 	}
 	@ui.ResizableHandle("#navigation-sidebar", "nav-sidebar-width", 180, 400, true)

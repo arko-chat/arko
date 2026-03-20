@@ -1,0 +1,64 @@
+package friends
+
+import (
+	"github.com/arko-chat/arko/components/ui"
+	"github.com/arko-chat/arko/internal/models"
+)
+
+templ AddFriendModal() {
+	@ui.Modal("add-friend-modal", "Add Friend", ui.ModalSizeSmall, AddFriendContent())
+}
+
+templ AddFriendContent() {
+	<div class="p-4">
+		<p class="text-xs text-content-muted mb-3">Search for a user by their Matrix ID (e.g., @user:example.com) or display name.</p>
+		<div class="relative">
+			@ui.SearchInput("Enter a username or Matrix ID", "query", templ.Attributes{
+				"hx-get":           "/friends/search-users",
+				"hx-trigger":       "input changed delay:300ms, search",
+				"hx-target":        "#search-results",
+				"hx-indicator":     "#search-spinner",
+				"hx-include":       "this",
+				"autofocus":        "true",
+				"class":            "pr-8",
+			})
+			<i id="search-spinner" class="fa-solid fa-spinner spinner text-brand absolute right-3 top-1/2 -translate-y-1/2 text-sm htmx-indicator"></i>
+		</div>
+		<div id="search-results" class="mt-3 max-h-60 overflow-y-auto">
+			@SearchResults(nil, "")
+		</div>
+	</div>
+}
+
+templ SearchResults(users []models.User, query string) {
+	if query != "" && len(users) == 0 {
+		<div class="text-center py-6">
+			<p class="text-sm text-content-muted">No users found for "{ query }"</p>
+		</div>
+	} else if len(users) > 0 {
+		for _, user := range users {
+			@UserResult(user)
+		}
+	} else {
+		<div class="text-center py-6">
+			<p class="text-sm text-content-faint">Start typing to search</p>
+		</div>
+	}
+}
+
+templ UserResult(user models.User) {
+	<button
+		type="button"
+		class="w-full flex items-center gap-3 p-2 rounded-md hover:bg-hover-primary transition-colors cursor-pointer text-left"
+		hx-post={ "/friends/create-dm?userID=" + user.ID }
+		hx-target="body"
+		hx-swap="innerHTML"
+		hx-push-url={ "/dm/" + user.ID }
+	>
+		@ui.Avatar(user.Avatar, "sm", user.Status == models.StatusOnline, true)
+		<div class="flex-1 min-w-0">
+			<p class="text-sm font-medium text-content-primary truncate">{ user.Name }</p>
+			<p class="text-xs text-content-muted truncate">{ user.ID }</p>
+		</div>
+	</button>
+}

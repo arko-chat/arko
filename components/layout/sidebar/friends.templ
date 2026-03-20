@@ -11,7 +11,10 @@ templ FriendsSection(friends []models.User) {
 			<span class="text-[11px] font-semibold text-content-muted tracking-wide group-hover/header:text-content-secondary transition-colors">
 				Direct Messages
 			</span>
-			<i class="fa fa-plus text-[11px] text-content-muted opacity-0 group-hover/header:opacity-100 hover:text-content-primary transition-all cursor-pointer"></i>
+			<i
+				class="fa fa-plus text-[11px] text-content-muted opacity-0 group-hover/header:opacity-100 hover:text-content-primary transition-all cursor-pointer"
+				@click="$dispatch('open-modal', 'add-friend-modal')"
+			></i>
 		</div>
 		<div id="friends-list" class="mt-0.5 flex flex-col">
 			@FriendsList(friends)

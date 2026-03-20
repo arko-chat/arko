@@ -55,11 +55,15 @@ func Content(filter string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div @click=\"$dispatch('open-modal', 'add-friend-modal')\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
 		templ_7745c5c3_Err = ui.NavButton(ui.NavButtonOpts{Label: "Add Friend", Variant: "success"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div id=\"main-content\" hx-swap-oob=\"true\" class=\"h-full w-[65%] border-r border-border-primary flex items-center justify-center flex-col gap-12 max-[1050px]:w-full max-[1050px]:border-none transition-colors\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div><div id=\"main-content\" hx-swap-oob=\"true\" class=\"h-full w-[65%] border-r border-border-primary flex items-center justify-center flex-col gap-12 max-[1050px]:w-full max-[1050px]:border-none transition-colors\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -67,7 +71,7 @@ func Content(filter string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -112,12 +116,12 @@ func ActivitySidebar(activities []models.User) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<h1 class=\"text-xl font-black mb-5 text-content-primary transition-colors\">Active Now</h1>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<h1 class=\"text-xl font-black mb-5 text-content-primary transition-colors\">Active Now</h1>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(activities) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"flex items-center justify-center gap-1 flex-col\"><h2 class=\"text-base font-semibold text-center text-content-primary transition-colors\">It's quiet for now...</h2><p class=\"text-xs text-content-muted text-center transition-colors\">When a friend starts an activity—like playing a game or hanging out on voice—we'll show it here!</p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"flex items-center justify-center gap-1 flex-col\"><h2 class=\"text-base font-semibold text-center text-content-primary transition-colors\">It's quiet for now...</h2><p class=\"text-xs text-content-muted text-center transition-colors\">When a friend starts an activity—like playing a game or hanging out on voice—we'll show it here!</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

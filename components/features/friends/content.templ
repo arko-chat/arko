@@ -12,7 +12,9 @@ templ Content(filter string) {
 		@ui.NavButton(ui.NavButtonOpts{Label: "All", HxGet: "/friends?filter=all", HxTarget: "#main-content", HideOnMobile: true, Active: filter == "all"})
 		@ui.NavButton(ui.NavButtonOpts{Label: "Pending", HxGet: "/friends?filter=pending", HxTarget: "#main-content", HideOnMobile: true, Active: filter == "pending"})
 		@ui.NavButton(ui.NavButtonOpts{Label: "Blocked", HxGet: "/friends?filter=blocked", HxTarget: "#main-content", HideOnMobile: true, Active: filter == "blocked"})
-		@ui.NavButton(ui.NavButtonOpts{Label: "Add Friend", Variant: "success"})
+		<div @click="$dispatch('open-modal', 'add-friend-modal')">
+			@ui.NavButton(ui.NavButtonOpts{Label: "Add Friend", Variant: "success"})
+		</div>
 	</div>
 	<div id="main-content" hx-swap-oob="true" class="h-full w-[65%] border-r border-border-primary flex items-center justify-center flex-col gap-12 max-[1050px]:w-full max-[1050px]:border-none transition-colors">
 		@dm.Empty()
