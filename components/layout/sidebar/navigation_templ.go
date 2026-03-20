@@ -78,6 +78,16 @@ func NavigationSidebar(viewType string, user models.User, friends []models.User,
 						return templ_7745c5c3_Err
 					}
 				}
+			} else if viewType == "spaces" {
+				templ_7745c5c3_Err = ui.Modal("create-space-modal", "Create Server", ui.ModalSizeSmall, spaces.CreateSpace()).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			} else if viewType == "friends" {
+				templ_7745c5c3_Err = ui.Modal("friends-list", "Friends", ui.ModalSizeMedium, FriendsList(friends)).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 			}
 			return nil
 		})
@@ -155,23 +165,11 @@ func spaceModals(spaceDetail models.SpaceDetail, friends []models.User) templ.Co
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = ui.Modal("create-channel-modal", "Create Channel", ui.ModalSizeSmall, spaces.CreateChannel()).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ui.Modal("create-channel-modal", "Create Channel", ui.ModalSizeSmall, spaces.CreateChannel(spaceDetail.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ui.Modal("create-category-modal", "Create Category", ui.ModalSizeSmall, spaces.CreateCategory()).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = ui.Modal("notification-settings-modal", "Notification Settings", ui.ModalSizeMedium, spaces.NotificationSettings()).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = ui.Modal("privacy-settings-modal", "Privacy Settings", ui.ModalSizeMedium, spaces.PrivacySettings()).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = ui.Modal("leave-space-modal", "Leave '"+spaceDetail.Name+"'", ui.ModalSizeSmall, spaces.LeaveSpace(spaceDetail.Name)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -303,7 +301,7 @@ func spaceHeaderTrigger(spaceName string) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(spaceName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/layout/sidebar/navigation.templ`, Line: 102, Col: 14}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/layout/sidebar/navigation.templ`, Line: 103, Col: 14}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {

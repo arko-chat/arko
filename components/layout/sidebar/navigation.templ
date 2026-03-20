@@ -22,6 +22,10 @@ templ NavigationSidebar(viewType string, user models.User, friends []models.User
 			if spaceDetail, ok := data.(models.SpaceDetail); ok {
 				@spaceModals(spaceDetail, friends)
 			}
+		} else if viewType == "spaces" {
+			@ui.Modal("create-space-modal", "Create Server", ui.ModalSizeSmall, spaces.CreateSpace())
+		} else if viewType == "friends" {
+			@ui.Modal("friends-list", "Friends", ui.ModalSizeMedium, FriendsList(friends))
 		}
 	}
 	@ui.ResizableHandle("#navigation-sidebar", "nav-sidebar-width", 180, 400, true)
@@ -58,11 +62,8 @@ templ spaceModals(spaceDetail models.SpaceDetail, friends []models.User) {
 			ui.Button("Save Changes", "primary", templ.Attributes{}),
 		),
 	)
-	@ui.Modal("create-channel-modal", "Create Channel", ui.ModalSizeSmall, spaces.CreateChannel())
+	@ui.Modal("create-channel-modal", "Create Channel", ui.ModalSizeSmall, spaces.CreateChannel(spaceDetail.ID))
 	@ui.Modal("create-category-modal", "Create Category", ui.ModalSizeSmall, spaces.CreateCategory())
-	@ui.Modal("notification-settings-modal", "Notification Settings", ui.ModalSizeMedium, spaces.NotificationSettings())
-	@ui.Modal("privacy-settings-modal", "Privacy Settings", ui.ModalSizeMedium, spaces.PrivacySettings())
-	@ui.Modal("leave-space-modal", "Leave '"+spaceDetail.Name+"'", ui.ModalSizeSmall, spaces.LeaveSpace(spaceDetail.Name))
 }
 
 templ sidebarHeader(viewType string, data interface{}) {
