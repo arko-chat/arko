@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/arko-chat/arko/components/ui"
 	"github.com/arko-chat/arko/components/utils"
@@ -17,6 +18,7 @@ import (
 type ChatService struct {
 	*BaseService
 	initializedTree *xsync.Map[string, struct{}]
+	typingListeners *xsync.Map[string, <-chan matrix.TypingEvent]
 	logger          *slog.Logger
 }
 
@@ -28,6 +30,7 @@ func NewChatService(
 	return &ChatService{
 		BaseService:     NewBaseService(mgr, hub),
 		initializedTree: xsync.NewMap[string, struct{}](),
+		typingListeners: xsync.NewMap[string, <-chan matrix.TypingEvent](),
 		logger:          logger,
 	}
 }
@@ -183,4 +186,80 @@ func (s *ChatService) checkRegrouping(
 	}
 
 	return nil, false
+}
+
+func (s *ChatService) SubscribeTyping(roomID string) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return
+	}
+
+	s.typingListeners.Compute(roomID, func(ch <-chan matrix.TypingEvent, loaded bool) (<-chan matrix.TypingEvent, xsync.ComputeOp) {
+		if loaded {
+			return ch, xsync.CancelOp
+		}
+
+		typingCh := session.TypingEvents()
+		go s.listenTypingEvents(roomID, typingCh)
+		return typingCh, xsync.UpdateOp
+	})
+}
+
+func (s *ChatService) listenTypingEvents(roomID string, ch <-chan matrix.TypingEvent) {
+	ctx := s.matrix.GetContext()
+	session, _ := s.GetCurrentSession()
+
+	for {
+		select {
+		case <-ctx.Done():
+			if session != nil {
+				session.CloseTypingListener(ch)
+			}
+			return
+		case evt, ok := <-ch:
+			if !ok {
+				return
+			}
+			if evt.RoomID != roomID {
+				continue
+			}
+			s.broadcastTypingUpdate(evt)
+		}
+	}
+}
+
+func (s *ChatService) broadcastTypingUpdate(evt matrix.TypingEvent) {
+	if s.hub == nil {
+		return
+	}
+
+	var names []string
+	for _, u := range evt.TypingUsers {
+		names = append(names, u.Name)
+	}
+
+	var buf bytes.Buffer
+	if err := ui.TypingIndicator(names).Render(s.matrix.GetContext(), &buf); err != nil {
+		s.logger.Error("render typing indicator", "err", err)
+		return
+	}
+
+	oobHTML := fmt.Sprintf(`<div id="typing-indicator" hx-swap-oob="innerHTML">%s</div>`, buf.String())
+	s.hub.BroadcastToRoom(evt.RoomID, []byte(oobHTML))
+}
+
+func (s *ChatService) SendTyping(roomID string, userID string, typing bool) error {
+	session := s.matrix.GetMatrixSession(userID)
+	if session == nil {
+		return fmt.Errorf("missing matrix session")
+	}
+	return session.SendTyping(roomID, typing, 30*time.Second)
+}
+
+func (s *ChatService) GetTypingUsers(roomID string) []string {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return nil
+	}
+	return session.GetTypingUsers(roomID)
 }
