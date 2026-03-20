@@ -2,21 +2,23 @@
   "name": "arko",
   "version": "0.0.0",
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.0",
     "autoprefixer": "^10.4.24",
     "daisyui": "^5.5.18",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.0",
+    "typescript": "^5.8.2",
     "vite": "^7.3.1"
   },
   "private": true,
   "scripts": {
     "dev": "bun -b --hot vite",
     "build": "bun -b vite build",
-    "preview": "bun -b vite preview"
+    "preview": "bun -b vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "author": "Son Roy Almerol",
   "dependencies": {
-    "@tailwindcss/postcss": "^4.2.0",
     "@types/alpinejs": "^3.13.11",
     "alpinejs": "^3.15.8",
     "baseline-browser-mapping": "^2.10.0",
