@@ -34,6 +34,26 @@ stop. it's not ready yet.
 ### Contributing
 If you want to help out, open a pull request. keep it simple and follow the existing style. no large refactors without talking about it first. 
 
+### Roadmap
+
+#### Completed: Add Friend / Start DM
+- [x] `internal/matrix/dm.go` - `SearchUsers()`, `CreateDMRoom()`
+- [x] `internal/matrix/interfaces.go` - Add new methods to `SessionClient`
+- [x] `internal/service/friends.go` - `SearchUsers()`, `CreateDM()`
+- [x] `internal/handlers/friends.go` - `HandleSearchUsers`, `HandleCreateDM`
+- [x] `internal/router/router.go` - Routes: `/friends/search-users`, `/friends/create-dm`
+- [x] `components/modals/friends/add_friend.templ` - Search modal UI
+- [x] Wire "Add Friend" button in sidebar
+- [x] Add "Message" option to space member list
+
+#### Up Next
+- [ ] Password login support
+- [ ] Message reactions
+- [ ] Message replies/threads
+- [ ] File attachments
+- [ ] Notifications
+- [ ] Typing indicators
+
 ### License
 MIT
 
