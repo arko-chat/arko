@@ -534,7 +534,3 @@ func TestGetSpaceChildren_StateError(t *testing.T) {
 		t.Error("expected error, got nil")
 	}
 }
-
-func ptr(s string) *string {
-	return &s
-}
