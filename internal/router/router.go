@@ -61,6 +61,9 @@ func New(
 		r.Get("/", h.HandleFriends)
 		r.Get("/friends", h.HandleFriendsFilter)
 		r.Post("/friends/search", h.HandleFriendSearch)
+		r.Get("/friends/modal", h.HandleAddFriendModal)
+		r.Get("/friends/search-users", h.HandleSearchUsers)
+		r.Post("/friends/create-dm", h.HandleCreateDM)
 		r.Get("/dm/{userID}", h.HandleDM)
 
 		r.Post("/spaces/create", h.HandleCreateSpace)
