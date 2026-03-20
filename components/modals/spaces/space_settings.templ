@@ -90,6 +90,13 @@ templ settingsMemberItem(user models.User) {
 			</div>
 		</div>
 		<div class="flex items-center gap-2">
+			@ui.IconButton("fa-solid fa-message", "default", templ.Attributes{
+				"type":      "button",
+				"hx-post":   "/friends/create-dm?userID=" + user.ID,
+				"hx-target": "body",
+				"hx-swap":   "innerHTML",
+				"hx-push-url": "/dm/" + user.ID,
+			})
 			@ui.IconButton("fa-solid fa-pen", "default", templ.Attributes{"type": "button"})
 			@ui.IconButton("fa-solid fa-user-slash", "danger", templ.Attributes{"type": "button"})
 		</div>

@@ -463,6 +463,16 @@ func settingsMemberItem(user models.User) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
+		templ_7745c5c3_Err = ui.IconButton("fa-solid fa-message", "default", templ.Attributes{
+			"type":        "button",
+			"hx-post":     "/friends/create-dm?userID=" + user.ID,
+			"hx-target":   "body",
+			"hx-swap":     "innerHTML",
+			"hx-push-url": "/dm/" + user.ID,
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
 		templ_7745c5c3_Err = ui.IconButton("fa-solid fa-pen", "default", templ.Attributes{"type": "button"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -564,7 +574,7 @@ func bannedUserItem(name string, avatar string, reason string, date string) temp
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/modals/spaces/space_settings.templ`, Line: 113, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/modals/spaces/space_settings.templ`, Line: 120, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
@@ -577,7 +587,7 @@ func bannedUserItem(name string, avatar string, reason string, date string) temp
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(reason)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/modals/spaces/space_settings.templ`, Line: 114, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/modals/spaces/space_settings.templ`, Line: 121, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -590,7 +600,7 @@ func bannedUserItem(name string, avatar string, reason string, date string) temp
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(date)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/modals/spaces/space_settings.templ`, Line: 114, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/modals/spaces/space_settings.templ`, Line: 121, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
