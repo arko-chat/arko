@@ -52,7 +52,7 @@ If you want to help out, open a pull request. keep it simple and follow the exis
 - [ ] Message replies/threads
 - [ ] File attachments
 - [ ] Notifications
-- [ ] Typing indicators
+- [x] Typing indicators
 
 ### License
 MIT
