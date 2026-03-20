@@ -1,0 +1,30 @@
+package spaces
+
+import "github.com/arko-chat/arko/components/ui"
+
+templ CreateSpace() {
+	<form
+		hx-post="/spaces/create"
+		hx-swap="none"
+		class="p-4 space-y-4"
+	>
+		<div>
+			@ui.Label("Server Name", true)
+			@ui.TextInput("My Awesome Server", templ.Attributes{
+				"name":      "name",
+				"required":  "true",
+				"autofocus": "true",
+			})
+		</div>
+		<div>
+			@ui.Label("Description (optional)", false)
+			@ui.TextInput("What's this server about?", templ.Attributes{
+				"name": "topic",
+			})
+		</div>
+	</form>
+	@ui.ModalFooter(
+		ui.Button("Cancel", "ghost", templ.Attributes{"type": "button", "@click": "open = false"}),
+		ui.Button("Create Server", "primary", templ.Attributes{"type": "submit", "form": ""}),
+	)
+}
