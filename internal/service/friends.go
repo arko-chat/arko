@@ -94,3 +94,19 @@ func (s *FriendsService) GetFriend(otherUserID string) (models.User, error) {
 	}
 	return session.GetUserProfile(otherUserID)
 }
+
+func (s *FriendsService) SearchUsers(query string) ([]models.User, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return nil, err
+	}
+	return session.SearchUsers(query)
+}
+
+func (s *FriendsService) CreateDM(otherUserID string) (models.User, string, error) {
+	session, err := s.GetCurrentSession()
+	if err != nil {
+		return models.User{}, "", err
+	}
+	return session.CreateDMRoom(otherUserID)
+}
