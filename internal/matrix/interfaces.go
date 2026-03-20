@@ -20,6 +20,8 @@ type SessionClient interface {
 	IsVerified() bool
 	CreateSpace(params CreateSpaceParams) (models.Space, error)
 	CreateChannel(params CreateChannelParams) (models.Channel, error)
+	SearchUsers(query string) ([]models.User, error)
+	CreateDMRoom(otherUserID string) (models.User, string, error)
 }
 
 type VerificationClient interface {
