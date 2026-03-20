@@ -62,7 +62,10 @@ func New(
 		r.Get("/friends", h.HandleFriendsFilter)
 		r.Post("/friends/search", h.HandleFriendSearch)
 		r.Get("/dm/{userID}", h.HandleDM)
+
+		r.Post("/spaces/create", h.HandleCreateSpace)
 		r.Get("/spaces/{spaceID}", h.HandleSpaces)
+		r.Post("/spaces/{spaceID}/channels/create", h.HandleCreateChannel)
 		r.Get("/spaces/{spaceID}/channels/{channelID}", h.HandleChannels)
 
 		r.Get("/rooms/{roomID}/next", h.HandleNextMessages)
