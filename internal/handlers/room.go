@@ -26,3 +26,23 @@ func (h *Handler) HandleNextMessages(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, err)
 	}
 }
+
+func (h *Handler) HandleTyping(w http.ResponseWriter, r *http.Request) {
+	s := h.session(r)
+	if s == nil || !s.LoggedIn {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	roomID := r.FormValue("roomID")
+	if roomID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.Chat.SendTyping(roomID, s.UserID, true); err != nil {
+		h.logger.Warn("failed to send typing notification", "err", err)
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
