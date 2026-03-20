@@ -18,6 +18,8 @@ type SessionClient interface {
 	GetDMRoomID(otherUserID string) (string, error)
 	GetMessageTree(roomID string) *MessageTree
 	IsVerified() bool
+	CreateSpace(params CreateSpaceParams) (models.Space, error)
+	CreateChannel(params CreateChannelParams) (models.Channel, error)
 }
 
 type VerificationClient interface {
