@@ -24,6 +24,7 @@ type Props struct {
 	ChannelName       string
 	Topic             string
 	WelcomeUser       *models.User
+	TypingUsers       []string
 }
 
 func Chat(props Props) templ.Component {
@@ -54,7 +55,7 @@ func Chat(props Props) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(props.CurrentUserName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 25, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 26, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -67,26 +68,52 @@ func Chat(props Props) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.CurrentUserAvatar)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 26, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 27, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" x-data=\"chatDrop()\" @dragover.prevent=\"onDragOver\" @dragleave=\"onDragLeave\" @drop.prevent=\"onDrop\"><div ws-send hx-trigger=\"load\" hx-vals=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" data-room-id=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"action": "SUBSCRIBE_ROOM", "roomID": "%s"}`, props.RoomID))
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(props.RoomID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 35, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 28, Col: 29}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"></div><template x-if=\"dragOver\"><div class=\"absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface-base/80 backdrop-blur-sm border-2 border-dashed border-brand/50 rounded-lg pointer-events-none\"><i class=\"fa-solid fa-cloud-arrow-up text-4xl text-brand mb-3\"></i><p class=\"text-sm font-semibold text-brand\">Drop files to upload</p><p class=\"text-xs text-content-muted mt-1\">Images and files supported</p></div></template>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" x-data=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("chatDrop({roomID: '%s'})", props.RoomID))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 29, Col: 64}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" @dragover.prevent=\"onDragOver\" @dragleave=\"onDragLeave\" @drop.prevent=\"onDrop\"><div ws-send hx-trigger=\"load\" hx-vals=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var6 string
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{"action": "SUBSCRIBE_ROOM", "roomID": "%s"}`, props.RoomID))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/features/chat/chat.templ`, Line: 37, Col: 86}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></div><template x-if=\"dragOver\"><div class=\"absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface-base/80 backdrop-blur-sm border-2 border-dashed border-brand/50 rounded-lg pointer-events-none\"><i class=\"fa-solid fa-cloud-arrow-up text-4xl text-brand mb-3\"></i><p class=\"text-sm font-semibold text-brand\">Drop files to upload</p><p class=\"text-xs text-content-muted mt-1\">Images and files supported</p></div></template>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -96,7 +123,7 @@ func Chat(props Props) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div id=\"messages\" class=\"flex-1 overflow-y-auto flex flex-col-reverse\"><div id=\"message-list\" class=\"flex flex-col py-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div id=\"messages\" class=\"flex-1 overflow-y-auto flex flex-col-reverse\"><div id=\"message-list\" class=\"flex flex-col py-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -119,15 +146,15 @@ func Chat(props Props) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div><div id=\"typing-indicator\" class=\"shrink-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></div><div id=\"typing-indicator\" class=\"shrink-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = ui.TypingIndicator([]string{}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ui.TypingIndicator(props.TypingUsers).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -138,7 +165,7 @@ func Chat(props Props) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

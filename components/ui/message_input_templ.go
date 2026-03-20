@@ -109,6 +109,10 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 			"id":           "textarea-messageinput",
 			"name":         name,
 			"autocomplete": "off",
+			"hx-post":      "/rooms/typing",
+			"hx-trigger":   "keyup changed delay:500ms, focusout from:#textarea-messageinput",
+			"hx-target":    "none",
+			"hx-vals":      "js:{roomID: document.getElementById('chat-container')?.dataset?.roomId || ''}",
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -120,7 +124,7 @@ func MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) t
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs("for")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 128, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/ui/message_input.templ`, Line: 132, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {

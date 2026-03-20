@@ -121,6 +121,10 @@ templ MessageInput(placeholder string, name string, htmxAttrs templ.Attributes) 
 					"id":           "textarea-messageinput",
 					"name":         name,
 					"autocomplete": "off",
+					"hx-post":      "/rooms/typing",
+					"hx-trigger":   "keyup changed delay:500ms, focusout from:#textarea-messageinput",
+					"hx-target":    "none",
+					"hx-vals":      "js:{roomID: document.getElementById('chat-container')?.dataset?.roomId || ''}",
 				})
 			</div>
 			<div class="flex items-center justify-between mt-1.5 px-0.5">

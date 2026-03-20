@@ -16,6 +16,7 @@ type Props struct {
 	ChannelName       string
 	Topic             string
 	WelcomeUser       *models.User
+	TypingUsers       []string
 }
 
 templ Chat(props Props) {
@@ -24,7 +25,8 @@ templ Chat(props Props) {
 		id="chat-container"
 		data-user-name={ props.CurrentUserName }
 		data-user-avatar={ props.CurrentUserAvatar }
-		x-data="chatDrop()"
+		data-room-id={ props.RoomID }
+		x-data={ fmt.Sprintf("chatDrop({roomID: '%s'})", props.RoomID) }
 		@dragover.prevent="onDragOver"
 		@dragleave="onDragLeave"
 		@drop.prevent="onDrop"
@@ -59,7 +61,7 @@ templ Chat(props Props) {
 			</div>
 		</div>
 		<div id="typing-indicator" class="shrink-0">
-			@ui.TypingIndicator([]string{})
+			@ui.TypingIndicator(props.TypingUsers)
 		</div>
 		@ui.MessageInput(props.Placeholder, "message", templ.Attributes{
 			"ws-send": "",
